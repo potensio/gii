@@ -50,7 +50,9 @@ export default function Pricing() {
           </p>
         </div>
 
-        <Slider defaultValue={[33]} max={100} step={1} />
+        <div className="max-w-2xl mx-auto w-full bg-muted">
+          <Slider defaultValue={[33]} max={100} step={1} />
+        </div>
 
         <div className="border bg-background flex flex-col justify-between w-full max-w-xs mx-auto p-8 relative h-fit">
           <div className="flex flex-col">
@@ -60,7 +62,7 @@ export default function Pricing() {
             <Icon className="absolute h-6 w-6 -bottom-3 -right-3 dark:text-white text-black" />
 
             <h4 className="font-semibold">Monthly</h4>
-            <h3 className="mt-3 mb-6 text-4xl font-semibold">$0/mo</h3>
+            <h3 className="mt-3 mb-6 text-3xl font-semibold">$0/mo</h3>
 
             {featuresA.map((item, index) => (
               <div className="flex w-full h-fit items-center mt-2" key={index}>
@@ -71,7 +73,9 @@ export default function Pricing() {
               </div>
             ))}
           </div>
-          <Button variant={"outline"}>Sign up </Button>
+          <Button variant={"outline"} size={"lg"} className="mt-6">
+            <p className="">Get Started</p>
+          </Button>
         </div>
       </div>
     </>

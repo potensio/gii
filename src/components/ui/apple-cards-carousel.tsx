@@ -93,7 +93,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
     >
       <div className="relative w-full">
         <div className="flex justify-between items-center">
-          <h2 className="max-w-7xl pl-5 text-xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200 font-sans">
+          <h2 className="max-w-7xl pl-5 text-xl md:text-3xl font-semibold text-neutral-800 dark:text-neutral-200 font-sans">
             Rilis Terbaru
           </h2>
           <div className="flex justify-end gap-2 mr-5">

@@ -12,6 +12,7 @@ import { LayoutGridDemo } from "@/components/landing/grid";
 import { TextHoverEffectDemo } from "@/components/landing/gii";
 import { ExpandableCardDemo } from "@/components/landing/cards";
 import { TextHoverEffect } from "@/components/ui/text-hover-effect";
+import { Procurement } from "@/components/landing/procurement";
 
 export default function Home() {
   return (
@@ -23,6 +24,7 @@ export default function Home() {
         <Hero />
         <ExpandableCardDemo />
         <AppleCardsCarouselDemo />
+        <Procurement />
         <LayoutGridDemo />
 
         <Footer />

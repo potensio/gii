@@ -44,7 +44,7 @@ export function ExpandableCardDemo() {
       </AnimatePresence>
       <AnimatePresence>
         {active && typeof active === "object" ? (
-          <div className="fixed inset-0  grid place-items-center z-[100]">
+          <div className="fixed inset-0 grid place-items-center z-[100]">
             <motion.button
               key={`button-${active.title}-${id}`}
               layout
@@ -82,7 +82,7 @@ export function ExpandableCardDemo() {
               </motion.div>
 
               <div>
-                <div className="flex justify-between items-start p-4">
+                <div className="flex justify-between items-start p-4 ">
                   <div className="">
                     <motion.h3
                       layoutId={`title-${active.title}-${id}`}
@@ -134,7 +134,7 @@ export function ExpandableCardDemo() {
             Jelajahi Produk Kami
           </h2>
         </div>
-        <ul className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 items-start gap-3 px-3 py-6">
+        <ul className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 items-start gap-3 px-3 py-6 md:px-6">
           {cards.map((card, index) => (
             <motion.div
               layoutId={`card-${card.title}-${id}`}
@@ -142,14 +142,14 @@ export function ExpandableCardDemo() {
               onClick={() => setActive(card)}
               className="flex flex-col rounded-xl cursor-pointer"
             >
-              <div className="flex gap-4 flex-col w-full">
+              <div className="flex gap-4 flex-col w-full ">
                 <motion.div layoutId={`image-${card.title}-${id}`}>
                   <Image
                     width={100}
                     height={100}
                     src={card.src}
                     alt={card.title}
-                    className="h-52 md:h-80 w-full  rounded-lg object-cover object-top"
+                    className="aspect-square w-full  rounded-lg object-cover object-top"
                   />
                 </motion.div>
                 <div className="flex justify-center flex-col">
@@ -210,8 +210,8 @@ export const CloseIcon = () => {
 
 const cards = [
   {
-    description: "Lana Del Rey",
-    title: "Summertime Sadness",
+    description: "Rp20.000.000",
+    title: "Samsung S20",
     src: "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=3556&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     ctaText: "Visit",
     ctaLink: "https://ui.aceternity.com/templates",

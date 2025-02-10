@@ -6,7 +6,7 @@ export function LayoutGridDemo() {
   return (
     <div className="w-full">
       <div className="flex justify-between items-center">
-        <h2 className="max-w-7xl pl-5 text-2xl md:text-4xl font-bold text-neutral-800 dark:text-neutral-200 font-sans">
+        <h2 className="max-w-7xl pl-5 text-2xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200 font-sans">
           Brand Pilihan
         </h2>
       </div>
@@ -78,29 +78,21 @@ const cards = [
   {
     id: 1,
     content: <SkeletonOne />,
-    className: "col-span-3 md:col-span-4",
+    className: "col-span-6 row-span-1 lg:col-span-4 lg:row-span-2",
     thumbnail:
-      "https://images.unsplash.com/photo-1476231682828-37e571bc172f?q=80&w=3474&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1661347998423-b15d37d6f61e?q=80&w=2370&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 2,
     content: <SkeletonTwo />,
-    className: "col-span-3 md:col-span-2",
+    className: "col-span-6 lg:col-span-2",
     thumbnail:
-      "https://images.unsplash.com/photo-1464457312035-3d7d0e0c058e?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1621768216002-5ac171876625?q=80&w=2374&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     id: 3,
     content: <SkeletonThree />,
-    className: "col-span-3 md:col-span-2",
-    thumbnail:
-      "https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  },
-  {
-    id: 4,
-    content: <SkeletonFour />,
-    className: "col-span-3 md:col-span-4",
-    thumbnail:
-      "https://images.unsplash.com/photo-1475070929565-c985b496cb9f?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    className: "col-span-6 lg:col-span-2",
+    thumbnail: "/logo/logo-gree.png",
   },
 ];

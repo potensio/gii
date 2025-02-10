@@ -17,7 +17,7 @@ import { Procurement } from "@/components/landing/procurement";
 export default function Home() {
   return (
     <>
-      <div className="flex flex-col bg-background gap-10">
+      <div className="flex flex-col bg-background gap-20">
         <div className="fixed right-10 bottom-10 z-50">
           <ThemeToggle />
         </div>

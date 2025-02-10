@@ -5,12 +5,12 @@ export function Procurement() {
   return (
     <>
       <div className="flex flex-col w-full gap-6 ">
-        <h2 className="pl-5 text-2xl md:text-4xl font-semibold text-neutral-800 dark:text-neutral-200 font-sans">
+        <h2 className="pl-5 text-2xl md:text-3xl font-semibold text-neutral-800 dark:text-neutral-200 font-sans">
           Pengadaan
         </h2>
         <div className="flex flex-col md:flex-row max-w-6xl bg-muted rounded-2xl mx-5 mt-5 h-96 items-center overflow-hidden self-center">
           <div className="flex flex-col p-10 gap-2 w-full">
-            <h3 className="text-xl md:text-2xl font-medium text-center">
+            <h3 className="text-xl md:text-3xl font-medium text-center">
               Penawaran harga terbaik, dengan ketersediaan melimpah.
             </h3>
             <p className="text-center font-light text-sm md:text-base">

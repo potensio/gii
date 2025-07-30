@@ -78,7 +78,7 @@ export function SiteHeader({ onCartClick }: SiteHeaderProps) {
           </Link>
         </div>
         <div className="flex items-center space-x-4">
-          <ul className="space-x-6 md:flex">
+          <ul className="hidden space-x-6 md:flex">
             <li>
               <Link href="#" className="text-sm font-medium hover:text-gray-700">
                 Apparel

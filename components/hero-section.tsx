@@ -11,17 +11,17 @@ const heroImages = [
   {
     src: "/placeholder.svg?height=700&width=1400",
     alt: "Hero Image 1: Woman in hoodie with plants",
-    text: "PROTECT YOU PEACE VOL.1",
+    text: "Ramping, ringan, sangat bertenaga",
   },
   {
     src: "/placeholder.svg?height=700&width=1400",
     alt: "Hero Image 2: Abstract pattern",
-    text: "NEW ARRIVALS",
+    text: "Pendingin hemar listrik yang pintar",
   },
   {
     src: "/placeholder.svg?height=700&width=1400",
     alt: "Hero Image 3: Urban streetwear",
-    text: "EXPLORE THE COLLECTION",
+    text: "Bentuk rutinitas & waktu tidur yang sehat",
   },
 ]
 
@@ -68,7 +68,7 @@ export function HeroSection() {
                 />
                 <div className="absolute inset-0 rounded-3xl bg-black/20" />
                 <div className="relative z-10 flex h-full flex-col items-start justify-end p-8 md:p-16">
-                  <h1 className="text-4xl font-extrabold uppercase leading-tight text-white md:text-6xl lg:text-7xl">
+                  <h1 className="text-4xl font-semibold tracking-tighter leading-tight text-white md:text-4xl lg:text-5xl">
                     {image.text}
                   </h1>
                 </div>
@@ -77,39 +77,39 @@ export function HeroSection() {
           ))}
         </div>
 
-        {/* Navigation Arrows and Dots - positioned absolutely relative to the max-w container */}
-        <div className="absolute bottom-8 left-8 right-8 z-20 flex items-center justify-between md:bottom-16 md:left-16 md:right-16">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full border-white bg-transparent text-white hover:bg-white hover:text-black"
-            onClick={goToPrevious}
-            aria-label="Previous slide"
-          >
-            <ArrowLeft className="size-5" />
-          </Button>
-          <div className="flex space-x-2">
-            {heroImages.map((_, index) => (
-              <button
-                key={index}
-                className={cn(
-                  "size-2 rounded-full bg-white transition-all duration-300",
-                  index === currentIndex ? "scale-125 opacity-100" : "opacity-50",
-                )}
-                onClick={() => setCurrentIndex(index)}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full border-white bg-transparent text-white hover:bg-white hover:text-black"
-            onClick={goToNext}
-            aria-label="Next slide"
-          >
-            <ArrowRight className="size-5" />
-          </Button>
+        {/* Navigation Arrows - positioned absolutely and vertically centered */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute left-8 top-1/2 -translate-y-1/2 z-20 rounded-full border-white bg-transparent text-white hover:bg-white hover:text-black"
+          onClick={goToPrevious}
+          aria-label="Previous slide"
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute right-8 top-1/2 -translate-y-1/2 z-20 rounded-full border-white bg-transparent text-white hover:bg-white hover:text-black"
+          onClick={goToNext}
+          aria-label="Next slide"
+        >
+          <ArrowRight className="size-5" />
+        </Button>
+
+        {/* Navigation Dots - positioned absolutely at the bottom and horizontally centered */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex space-x-2 md:bottom-16">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              className={cn(
+                "size-2 rounded-full bg-white transition-all duration-300",
+                index === currentIndex ? "scale-125 opacity-100" : "opacity-50",
+              )}
+              onClick={() => setCurrentIndex(index)}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       </div>
     </section>

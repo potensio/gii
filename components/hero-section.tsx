@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const heroImages = [
   {
@@ -23,28 +23,30 @@ const heroImages = [
     alt: "Hero Image 3: Urban streetwear",
     text: "EXPLORE THE COLLECTION",
   },
-]
+];
 
 export function HeroSection() {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % heroImages.length)
-    }, 5000) // Change image every 5 seconds
-    return () => clearInterval(interval)
-  }, [])
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+    }, 5000); // Change image every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const goToPrevious = () => {
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + heroImages.length) % heroImages.length)
-  }
+    setCurrentIndex(
+      (prevIndex) => (prevIndex - 1 + heroImages.length) % heroImages.length
+    );
+  };
 
   const goToNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % heroImages.length)
-  }
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+  };
 
   return (
-    <section className="relative flex justify-center overflow-hidden py-8">
+    <section className="relative flex justify-center overflow-hidden">
       {/* This div acts as the viewport for the slider, ensuring it's centered and has rounded corners */}
       <div className="relative h-[600px] w-full max-w-[1400px] md:h-[700px]">
         {/* This div contains all the slides and will be translated horizontally */}
@@ -67,11 +69,11 @@ export function HeroSection() {
                   priority={index === 0}
                 />
                 <div className="absolute inset-0 rounded-3xl bg-black/20" />
-                <div className="relative z-10 flex h-full flex-col items-start justify-end p-8 md:p-16">
+                {/* <div className="relative z-10 flex h-full flex-col items-start justify-end p-8 md:p-16">
                   <h1 className="text-4xl font-extrabold uppercase leading-tight text-white md:text-6xl lg:text-7xl">
                     {image.text}
                   </h1>
-                </div>
+                </div> */}
               </div>
             </div>
           ))}
@@ -94,7 +96,9 @@ export function HeroSection() {
                 key={index}
                 className={cn(
                   "size-2 rounded-full bg-white transition-all duration-300",
-                  index === currentIndex ? "scale-125 opacity-100" : "opacity-50",
+                  index === currentIndex
+                    ? "scale-125 opacity-100"
+                    : "opacity-50"
                 )}
                 onClick={() => setCurrentIndex(index)}
                 aria-label={`Go to slide ${index + 1}`}
@@ -113,5 +117,5 @@ export function HeroSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

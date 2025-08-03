@@ -5,9 +5,28 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Filter, SlidersHorizontal } from "lucide-react";
@@ -143,22 +162,26 @@ interface FilterPanelProps {
   className?: string;
 }
 
-function FilterPanel({ filters, onFiltersChange, className }: FilterPanelProps) {
-  const categories = Array.from(new Set(allProducts.map(p => p.category)));
-  const brands = Array.from(new Set(allProducts.map(p => p.brand)));
-  const maxPrice = Math.max(...allProducts.map(p => p.priceValue));
+function FilterPanel({
+  filters,
+  onFiltersChange,
+  className,
+}: FilterPanelProps) {
+  const categories = Array.from(new Set(allProducts.map((p) => p.category)));
+  const brands = Array.from(new Set(allProducts.map((p) => p.brand)));
+  const maxPrice = Math.max(...allProducts.map((p) => p.priceValue));
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     const newCategories = checked
       ? [...filters.categories, category]
-      : filters.categories.filter(c => c !== category);
+      : filters.categories.filter((c) => c !== category);
     onFiltersChange({ ...filters, categories: newCategories });
   };
 
   const handleBrandChange = (brand: string, checked: boolean) => {
     const newBrands = checked
       ? [...filters.brands, brand]
-      : filters.brands.filter(b => b !== brand);
+      : filters.brands.filter((b) => b !== brand);
     onFiltersChange({ ...filters, brands: newBrands });
   };
 
@@ -171,12 +194,14 @@ function FilterPanel({ filters, onFiltersChange, className }: FilterPanelProps) 
       <div>
         <h3 className="font-semibold text-lg mb-4">Categories</h3>
         <div className="space-y-3">
-          {categories.map(category => (
+          {categories.map((category) => (
             <div key={category} className="flex items-center space-x-2">
               <Checkbox
                 id={`category-${category}`}
                 checked={filters.categories.includes(category)}
-                onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                onCheckedChange={(checked) =>
+                  handleCategoryChange(category, checked as boolean)
+                }
               />
               <label
                 htmlFor={`category-${category}`}
@@ -192,12 +217,14 @@ function FilterPanel({ filters, onFiltersChange, className }: FilterPanelProps) 
       <div>
         <h3 className="font-semibold text-lg mb-4">Brands</h3>
         <div className="space-y-3">
-          {brands.map(brand => (
+          {brands.map((brand) => (
             <div key={brand} className="flex items-center space-x-2">
               <Checkbox
                 id={`brand-${brand}`}
                 checked={filters.brands.includes(brand)}
-                onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
+                onCheckedChange={(checked) =>
+                  handleBrandChange(brand, checked as boolean)
+                }
               />
               <label
                 htmlFor={`brand-${brand}`}
@@ -231,11 +258,13 @@ function FilterPanel({ filters, onFiltersChange, className }: FilterPanelProps) 
       <Button
         variant="outline"
         className="w-full"
-        onClick={() => onFiltersChange({
-          categories: [],
-          brands: [],
-          priceRange: [0, maxPrice]
-        })}
+        onClick={() =>
+          onFiltersChange({
+            categories: [],
+            brands: [],
+            priceRange: [0, maxPrice],
+          })
+        }
       >
         Clear All Filters
       </Button>
@@ -249,15 +278,20 @@ export default function ShopPage() {
   const [filters, setFilters] = useState<Filters>({
     categories: [],
     brands: [],
-    priceRange: [0, Math.max(...allProducts.map(p => p.priceValue))]
+    priceRange: [0, Math.max(...allProducts.map((p) => p.priceValue))],
   });
 
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = allProducts.filter(product => {
-      const categoryMatch = filters.categories.length === 0 || filters.categories.includes(product.category);
-      const brandMatch = filters.brands.length === 0 || filters.brands.includes(product.brand);
-      const priceMatch = product.priceValue >= filters.priceRange[0] && product.priceValue <= filters.priceRange[1];
+    let filtered = allProducts.filter((product) => {
+      const categoryMatch =
+        filters.categories.length === 0 ||
+        filters.categories.includes(product.category);
+      const brandMatch =
+        filters.brands.length === 0 || filters.brands.includes(product.brand);
+      const priceMatch =
+        product.priceValue >= filters.priceRange[0] &&
+        product.priceValue <= filters.priceRange[1];
       return categoryMatch && brandMatch && priceMatch;
     });
 
@@ -282,7 +316,9 @@ export default function ShopPage() {
   }, [filters, sortBy]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedProducts.length / PRODUCTS_PER_PAGE);
+  const totalPages = Math.ceil(
+    filteredAndSortedProducts.length / PRODUCTS_PER_PAGE
+  );
   const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
   const endIndex = startIndex + PRODUCTS_PER_PAGE;
   const currentProducts = filteredAndSortedProducts.slice(startIndex, endIndex);
@@ -296,7 +332,7 @@ export default function ShopPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      
+
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -355,8 +391,12 @@ export default function ShopPage() {
                   <SelectContent>
                     <SelectItem value="newest">Newest</SelectItem>
                     <SelectItem value="popularity">Most Popular</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="price-low">
+                      Price: Low to High
+                    </SelectItem>
+                    <SelectItem value="price-high">
+                      Price: High to Low
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -365,14 +405,16 @@ export default function ShopPage() {
             {/* Results Count */}
             <div className="mb-6">
               <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredAndSortedProducts.length)} of {filteredAndSortedProducts.length} products
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, filteredAndSortedProducts.length)} of{" "}
+                {filteredAndSortedProducts.length} products
               </p>
             </div>
 
             {/* Product Grid */}
             {currentProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {currentProducts.map(product => (
+                {currentProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     imageSrc={product.imageSrc}
@@ -392,11 +434,16 @@ export default function ShopPage() {
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => handleFiltersChange({
-                    categories: [],
-                    brands: [],
-                    priceRange: [0, Math.max(...allProducts.map(p => p.priceValue))]
-                  })}
+                  onClick={() =>
+                    handleFiltersChange({
+                      categories: [],
+                      brands: [],
+                      priceRange: [
+                        0,
+                        Math.max(...allProducts.map((p) => p.priceValue)),
+                      ],
+                    })
+                  }
                 >
                   Clear All Filters
                 </Button>
@@ -414,33 +461,44 @@ export default function ShopPage() {
                         e.preventDefault();
                         if (currentPage > 1) setCurrentPage(currentPage - 1);
                       }}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
                     />
                   </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage(page);
-                        }}
-                        isActive={currentPage === page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
                   <PaginationItem>
                     <PaginationNext
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                        if (currentPage < totalPages)
+                          setCurrentPage(currentPage + 1);
                       }}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
                     />
                   </PaginationItem>
                 </PaginationContent>

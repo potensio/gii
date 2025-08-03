@@ -1,6 +1,4 @@
 import Image from "next/image";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function ProductCategorySection() {
   return (
@@ -10,7 +8,7 @@ export function ProductCategorySection() {
         <div className="space-y-6 lg:col-span-1">
           <p className="text-sm uppercase text-gray-500">Brand</p>
           <h2 className="text-3xl font-semibold tracking-tighter leading-tight md:text-4xl">
-            Jelajahi Berdasarkan Brand
+            Temukan produk favorit anda.
             {/* Wavy underline effect */}
             <div className="mt-2 h-2 w-full bg-[url('/placeholder.svg?height=8&width=200')] bg-no-repeat bg-left-bottom" />
           </h2>

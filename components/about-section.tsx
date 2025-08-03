@@ -9,7 +9,7 @@ export function AboutSection() {
       <div className="grid gap-8 md:grid-cols-2 md:gap-16">
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold tracking-tighter leading-tight md:text-4xl">
-            Semua produk kami bergaransi resmi, tanpa kompromi.
+            Produk kami resmi, bergaransi, —tanpa kompromi.
           </h2>
           <Button
             variant="outline"

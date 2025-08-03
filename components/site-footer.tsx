@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Facebook,
@@ -10,96 +12,127 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
+import CircularText from "./CircularText/CircularText";
+import { useEffect, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function SiteFooter() {
+  const [scrollY, setScrollY] = useState(0);
+  const footerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (footerRef.current) {
+        const rect = footerRef.current.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // Calculate how much of the footer is visible
+        const footerTop = rect.top;
+        const footerHeight = rect.height;
+        
+        // Start parallax when footer enters viewport
+        if (footerTop < windowHeight && footerTop > -footerHeight) {
+          const scrollProgress = (windowHeight - footerTop) / (windowHeight + footerHeight);
+          setScrollY(scrollProgress * 50); // Adjust multiplier for parallax intensity
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial call
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   return (
-    <footer className="relative bg-black px-4 py-16 text-white md:px-8">
-      <div className="justify-center grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12">
-        {/* Logo */}
-        <div className="col-span-2 md:col-span-4 lg:col-span-1">
-          <Link
-            href="#"
-            className="text-3xl font-extrabold uppercase tracking-widest"
-          >
-            Global Inovasi Industri
-          </Link>
-        </div>
+    <footer 
+      ref={footerRef}
+      className="relative bg-black px-6 sm:px-10 py-20 text-white"
+      style={{
+        transform: `translateY(${scrollY}px)`,
+        transition: 'transform 0.1s ease-out'
+      }}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
+        <div className="flex flex-col md:flex-row gap-20 lg:mx-auto col-span-1">
+          {/* Logo */}
+          <div className="w-full md:w-fit hidden lg:block">
+            <CircularText
+              text="GLOBAL*INOVASI*INDUSTRI*"
+              onHover="speedUp"
+              spinDuration={40}
+              className="custom-class"
+            />
+          </div>
 
-        {/* Quick Links */}
-        <div className="col-span-1 md:col-span-1">
-          <h3 className="mb-6 text-xl font-semibold">Links</h3>
-          <ul className="space-y-3 font-light text-lg tracking-normal text-gray-300">
-            <li>
-              <Link href="#" className="hover:text-white">
-                Beranda
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-white">
-                Kontak
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-white">
-                Belanja
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-white">
-                Daftar
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div className="col-span-1 md:col-span-1">
-          <h3 className="mb-6 text-lg font-semibold">Hubungi Kami</h3>
-          <div className="space-y-3 font-light tracking-normal text-gray-300">
-            <p>+62 877 7102 9800</p>
-            <p>
-              <Link
-                href="mailto:wecare@flowersandsaints.com.au"
-                className="hover:text-white"
-              >
-                halo@email.com
-              </Link>
-            </p>
+          {/* Links */}
+          <div className="flex w-full col-span-1 gap-20">
+            {/* Pages */}
+            <div className="w-full">
+              <h3 className="mb-6 font-medium">Tautan</h3>
+              <ul className="space-y-3 font-light tracking-normal text-gray-300">
+                <li>
+                  <Link href="#" className="hover:text-white">
+                    Beranda
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-white">
+                    Kontak
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-white">
+                    Belanja
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-white">
+                    Daftar
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            {/* Contact */}
+            <div className="w-full">
+              <h3 className="mb-6 font-medium">Hubungi Kami</h3>
+              <div className="space-y-3 font-light tracking-normal text-gray-300">
+                <p>+62 877 7102 9800</p>
+                <p>
+                  <Link
+                    href="mailto:wecare@flowersandsaints.com.au"
+                    className="hover:text-white"
+                  >
+                    halo@email.com
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Newsletter */}
-        <div className="col-span-2">
-          <h3 className="mb-4 text-2xl lg:text-4xl font-medium tracking-tighter leading-tighter">
-            Dapatkan update terbaru dan Diskon eksklusif
-          </h3>
-          <div className="flex w-full max-w-md">
-            <Input
-              type="email"
-              placeholder="Masukkan email kamu"
-              className="flex-1 h-12 rounded-r-none border-r-0 text-white placeholder:text-gray-400 focus:border-white focus:ring-0"
-            />
-            <Button
-              type="submit"
-              className="rounded-l-none h-12 bg-primary px-4 hover:bg-gray-600"
-              aria-label="Subscribe"
-            >
-              <ArrowRight className="size-5" />
-            </Button>
-          </div>
-          <div className="mt-6 flex space-x-4">
-            <Link href="#" aria-label="Facebook">
-              <Facebook className="size-5 text-gray-300 hover:text-white" />
-            </Link>
-            <Link href="#" aria-label="X (Twitter)">
-              <Twitter className="size-5 text-gray-300 hover:text-white" />
-            </Link>
-            <Link href="#" aria-label="Instagram">
-              <Instagram className="size-5 text-gray-300 hover:text-white" />
-            </Link>
+        <div className="col-span-1 items-center">
+          <div className="flex flex-col max-w-md mx-auto">
+            {" "}
+            <h3 className="text-2xl md:text-3xl mb-4 tracking-tight">
+              Dapatkan update terbaru dan diskon eksklusif
+            </h3>
+            <div className="flex w-full">
+              <Input
+                type="email"
+                placeholder="Masukkan email kamu"
+                className="flex-1 h-12 rounded-r-none border-r-0 text-white placeholder:text-gray-400 focus:border-white focus:ring-0"
+              />
+              <Button
+                type="submit"
+                className="rounded-l-none h-12 bg-primary px-4 hover:bg-gray-600"
+                aria-label="Subscribe"
+              >
+                <ArrowRight className="size-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -129,6 +162,17 @@ export function SiteFooter() {
           </Link>
           <Link href="#" className="hover:text-white">
             Shipping policy
+          </Link>
+        </div>
+        <div className="mt-6 flex space-x-4">
+          <Link href="#" aria-label="Facebook">
+            <Facebook className="size-5 text-gray-300 hover:text-white" />
+          </Link>
+          <Link href="#" aria-label="X (Twitter)">
+            <Twitter className="size-5 text-gray-300 hover:text-white" />
+          </Link>
+          <Link href="#" aria-label="Instagram">
+            <Instagram className="size-5 text-gray-300 hover:text-white" />
           </Link>
         </div>
       </div>

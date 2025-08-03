@@ -9,23 +9,10 @@ import { ProductCategorySection } from "@/components/product-category-section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { TillDeathBundleSection } from "@/components/till-death-bundle-section";
-import { CartDrawer } from "@/components/cart-drawer"; // Import CartDrawer
+import { MainNavigation } from "@/components/main-navigation";
+import { StoryBanner } from "@/components/story-banner";
 
-import Link from "next/link";
-import {
-  Facebook,
-  Instagram,
-  PinIcon as Pinterest,
-  Search,
-  ShoppingCart,
-  SnailIcon as Snapchat,
-  InstagramIcon as Tiktok,
-  Twitter,
-  User,
-  Locate,
-} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false); // State for cart drawer
@@ -108,64 +95,14 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col tracking-tight w-full ">
-      <SiteHeader onCartClick={handleCartClick} /> {/* Pass the handler */}
+      <SiteHeader /> {/* Pass the handler */}
       <main className="flex-col flex-1">
         {/* Main Navigation */}
-        <nav className="sticky w-full z-50 top-0 flex items-center justify-between bg-background px-4 h-[100px] md:px-8 space-x-16">
-          <div className="flex flex-1 justify-between items-center space-x-4">
-            <div className="flex items-center">
-              <Button variant="ghost" size="icon" aria-label="Search">
-                <Search className="size-5" strokeWidth={1.5} />
-              </Button>
-            </div>
-            <div className="flex items-center justify-start">
-              <ul className="hidden space-x-12 md:flex">
-                <li>
-                  <Link href="#" className="text-lg hover:text-gray-700">
-                    Beranda
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-lg hover:text-gray-700">
-                    Kontak
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="flex-0 text-center">
-            <Link
-              href="#"
-              className="text-2xl font-semibold uppercase tracking-widest"
-            >
-              GII
-            </Link>
-          </div>
-          <div className="flex flex-1 justify-between items-center space-x-4">
-            <div className="flex items-center justify-start">
-              <ul className="hidden space-x-12 md:flex">
-                <li>
-                  <Link href="#" className="text-lg hover:text-gray-700">
-                    Belanja
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-lg hover:text-gray-700">
-                    Daftar
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div className="flex items-center">
-              <Button variant="ghost" size="icon" aria-label="User Account">
-                <User className="size-5" strokeWidth={1.5} />
-              </Button>
-              <Button variant="ghost" size="icon" aria-label="Shopping Cart">
-                <ShoppingCart className="size-5" strokeWidth={1.5} />
-              </Button>
-            </div>
-          </div>
-        </nav>
+        <MainNavigation
+          isCartOpen={isCartOpen}
+          onCartClick={handleCartClick}
+          onCloseCart={handleCloseCart}
+        />
         <div className="flex flex-col gap-20">
           {" "}
           <HeroSection />
@@ -182,17 +119,11 @@ export default function Home() {
           {/* Removed the BundleShowcaseSection for "Revenant Sacred Sand Set" */}
           <TillDeathBundleSection />
           {/* The "Our Story - Protect" section is a large text overlay, not a full section */}
-          <section className="flex h-64 items-center justify-center overflow-hidden bg-white py-16 md:h-96">
-            <h2 className="whitespace-nowrap text-center text-6xl font-extrabold uppercase text-black/5 md:text-8xl lg:text-9xl">
-              Our Story - Protect
-            </h2>
-          </section>
+          <StoryBanner />
         </div>
       </main>
       <SiteFooter />
       <JoinClubSidebar />
-      <CartDrawer isOpen={isCartOpen} onClose={handleCloseCart} />{" "}
-      {/* Add the CartDrawer */}
     </div>
   );
 }

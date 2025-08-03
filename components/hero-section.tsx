@@ -48,7 +48,7 @@ export function HeroSection() {
   return (
     <section className="relative flex justify-center overflow-hidden">
       {/* This div acts as the viewport for the slider, ensuring it's centered and has rounded corners */}
-      <div className="relative h-[600px] w-full max-w-[1400px] md:h-[700px]">
+      <div className="relative h-[48vh] md:h-[80vh] w-full max-w-[1400px]">
         {/* This div contains all the slides and will be translated horizontally */}
         <div
           className="flex h-full transition-transform duration-700 ease-in-out"

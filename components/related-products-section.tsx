@@ -1,42 +1,48 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { useRef } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { ProductCard } from "./product-card"
+import { Button } from "@/components/ui/button";
+import { ProductCard } from "./product-card";
 
 interface Product {
-  imageSrc: string
-  imageAlt: string
-  brand: string
-  title: string
-  price: string
-  slug: string // Add slug
+  imageSrc: string;
+  imageAlt: string;
+  brand: string;
+  title: string;
+  price: string;
+  slug: string; // Add slug
 }
 
-interface RelatedProductsSectionProps {
-  products: Product[]
+interface ProductCarouselSectionProps {
+  title: string;
+  products: Product[];
 }
 
-export function RelatedProductsSection({ products }: RelatedProductsSectionProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+export function RelatedProductsSection({
+  title,
+  products,
+}: ProductCarouselSectionProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 300 // Adjust as needed
+      const scrollAmount = 300; // Adjust as needed
       if (direction === "left") {
-        scrollRef.current.scrollBy({ left: -scrollAmount, behavior: "smooth" })
+        scrollRef.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
       } else {
-        scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" })
+        scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
       }
     }
-  }
+  };
 
   return (
-    <section className="container mx-auto px-4 py-16 md:px-8 lg:py-24">
-      <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-4xl font-extrabold">You may also like</h2>
+    <section className="">
+      <div className="mb-8 flex items-center justify-between mx-4 md:mx-10">
+        <h2 className="text-2xl font-semibold tracking-tighter leading-tight">
+          {title}
+        </h2>
         <div className="flex space-x-2">
           <Button
             variant="outline"
@@ -58,11 +64,14 @@ export function RelatedProductsSection({ products }: RelatedProductsSectionProps
           </Button>
         </div>
       </div>
-      <div ref={scrollRef} className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide">
+      <div
+        ref={scrollRef}
+        className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide pl-4 md:pl-10"
+      >
         {products.map((product, index) => (
           <ProductCard key={index} {...product} />
         ))}
       </div>
     </section>
-  )
+  );
 }

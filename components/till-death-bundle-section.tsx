@@ -16,7 +16,7 @@ export function TillDeathBundleSection() {
     <section className="w-full px-4 md:px-8">
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Left Column: Background Image with Text Overlay */}
-        <div className="relative h-[400px] overflow-hidden rounded-xl md:h-[600px]">
+        <div className="h-[400px] overflow-hidden rounded-xl lg:h-[600px] hidden relative md:flex">
           <Image
             src="/placeholder.svg?height=700&width=700"
             alt="Till Death Drips Hot Bundle Background"

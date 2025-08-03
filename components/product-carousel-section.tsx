@@ -38,7 +38,7 @@ export function ProductCarouselSection({
   };
 
   return (
-    <section className="w-full">
+    <section className="">
       <div className="mb-8 flex items-center justify-between mx-4 md:mx-10">
         <h2 className="text-3xl font-semibold tracking-tighter leading-tight md:text-4xl">
           {title}
@@ -66,7 +66,7 @@ export function ProductCarouselSection({
       </div>
       <div
         ref={scrollRef}
-        className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide pl-6 md:pl-10"
+        className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide pl-4 md:pl-10"
       >
         {products.map((product, index) => (
           <ProductCard key={index} {...product} />

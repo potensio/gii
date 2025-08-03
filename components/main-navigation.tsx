@@ -57,7 +57,7 @@ export function MainNavigation({
           <ul className="hidden space-x-12 md:flex">
             <li>
               <Link
-                href="/shops"
+                href="/shop"
                 className="text-lg hover:text-gray-700"
                 prefetch={true}
               >

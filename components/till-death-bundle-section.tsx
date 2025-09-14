@@ -33,12 +33,8 @@ export function TillDeathBundleSection() {
               Untuk harga yang lebih murah
             </p>
             <p className="text-base leading-relaxed text-gray-200">
-              Kami memahami pentingnya <span className="italic">margin</span>{" "}
-              dan kepercayaan dalam bisnis Anda. Itulah mengapa GII hanya
-              menyediakan produk elektronik resmi dan bergaransi, dengan harga
-              khusus untuk <span className="italic">pembelian skala besar</span>
-              . Dukung bisnis Anda dengan pasokan produk yang terjamin kualitas
-              dan keasliannya.
+              Dapatkan penawaran khusus untuk pembelian skala besar, yang
+              memenuhi beragam kebutuhan.
             </p>
           </div>
         </div>

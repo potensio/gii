@@ -30,11 +30,11 @@ export function ProductCard({
       {/* Wrap with Link */}
       <Card
         className={cn(
-          "w-64 md:w-80 flex-shrink-0 overflow-hidden rounded-2xl shadow-sm border-none bg-neutral-50",
+          "overflow-hidden rounded-2xl shadow-sm border-none bg-neutral-50",
           className
         )}
       >
-        <div className="relative h-64 md:h-80 w-full">
+        <div className="relative aspect-square border border-red-500 w-full">
           <Image
             src={
               imageSrc ||
@@ -50,7 +50,10 @@ export function ProductCard({
             {brand}
           </p>
           <div className="flex flex-col items-start justify-between gap-2">
-            <h3 className="text-base font-light leading-tight">{title}</h3>
+            <h3 className="w-full text-base font-light leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
+              {title}
+            </h3>
+
             <p className="text-sm font-semibold">{price}</p>
           </div>
           {color && (

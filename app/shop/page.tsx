@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +41,7 @@ const allProducts = [
     price: "Rp13.999.000",
     priceValue: 13999000,
     slug: "samsung-galaxy-s24-256gb",
-    category: "Electronics",
+    category: "Gadgets",
     subcategory: "Smartphones",
     popularity: 95,
     dateAdded: new Date("2024-01-15"),
@@ -71,7 +69,7 @@ const allProducts = [
     price: "Rp21.999.000",
     priceValue: 21999000,
     slug: "iphone-15-pro-256gb",
-    category: "Electronics",
+    category: "Gadgets",
     subcategory: "Smartphones",
     popularity: 98,
     dateAdded: new Date("2024-01-20"),
@@ -85,7 +83,7 @@ const allProducts = [
     price: "Rp32.999.000",
     priceValue: 32999000,
     slug: "macbook-pro-m3-14-512gb",
-    category: "Electronics",
+    category: "Gadgets",
     subcategory: "Laptops",
     popularity: 89,
     dateAdded: new Date("2024-01-10"),
@@ -99,38 +97,10 @@ const allProducts = [
     price: "Rp4.999.000",
     priceValue: 4999000,
     slug: "sony-wh-1000xm5-headphones",
-    category: "Electronics",
+    category: "Gadgets",
     subcategory: "Audio",
     popularity: 85,
     dateAdded: new Date("2024-02-10"),
-  },
-  {
-    id: 6,
-    imageSrc: "/placeholder.svg?height=256&width=256",
-    imageAlt: "Nike Air Max 270",
-    brand: "Nike",
-    title: "Nike Air Max 270 Running Shoes",
-    price: "Rp1.899.000",
-    priceValue: 1899000,
-    slug: "nike-air-max-270-running-shoes",
-    category: "Fashion",
-    subcategory: "Shoes",
-    popularity: 72,
-    dateAdded: new Date("2024-02-15"),
-  },
-  {
-    id: 7,
-    imageSrc: "/placeholder.svg?height=256&width=256",
-    imageAlt: "Adidas Ultraboost 22",
-    brand: "Adidas",
-    title: "Adidas Ultraboost 22 Running Shoes",
-    price: "Rp2.299.000",
-    priceValue: 2299000,
-    slug: "adidas-ultraboost-22-running-shoes",
-    category: "Fashion",
-    subcategory: "Shoes",
-    popularity: 68,
-    dateAdded: new Date("2024-02-20"),
   },
   {
     id: 8,
@@ -141,7 +111,7 @@ const allProducts = [
     price: "Rp18.999.000",
     priceValue: 18999000,
     slug: "lg-oled-c3-55-4k-smart-tv",
-    category: "Electronics",
+    category: "Gadgets",
     subcategory: "TVs",
     popularity: 82,
     dateAdded: new Date("2024-01-25"),
@@ -192,7 +162,7 @@ function FilterPanel({
   return (
     <div className={cn("space-y-6", className)}>
       <div>
-        <h3 className="font-semibold text-lg mb-4">Categories</h3>
+        <h3 className="font-medium mb-4">Categories</h3>
         <div className="space-y-3">
           {categories.map((category) => (
             <div key={category} className="flex items-center space-x-2">
@@ -205,7 +175,7 @@ function FilterPanel({
               />
               <label
                 htmlFor={`category-${category}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 {category}
               </label>
@@ -215,7 +185,7 @@ function FilterPanel({
       </div>
 
       <div>
-        <h3 className="font-semibold text-lg mb-4">Brands</h3>
+        <h3 className="font-medium mb-4">Brands</h3>
         <div className="space-y-3">
           {brands.map((brand) => (
             <div key={brand} className="flex items-center space-x-2">
@@ -228,7 +198,7 @@ function FilterPanel({
               />
               <label
                 htmlFor={`brand-${brand}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 {brand}
               </label>
@@ -238,7 +208,7 @@ function FilterPanel({
       </div>
 
       <div>
-        <h3 className="font-semibold text-lg mb-4">Price Range</h3>
+        <h3 className="font-medium mb-4">Price Range</h3>
         <div className="space-y-4">
           <Slider
             value={filters.priceRange}
@@ -330,23 +300,15 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SiteHeader />
-
-      <main className="container mx-auto px-4 py-8">
+    <div className="flex min-h-screen flex-col tracking-tight w-full ">
+      <main className="flex-col flex-1 p-4 md:p-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Shop</h1>
-          <p className="text-muted-foreground">
-            Discover our complete collection of products
-          </p>
-        </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Sidebar Filters */}
-          <aside className="hidden lg:block w-80 flex-shrink-0">
-            <div className="sticky top-8">
-              <h2 className="text-2xl font-semibold mb-6">Filters</h2>
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <div className="sticky top-20">
+              <h2 className="text-xl font-medium mb-6">Filters</h2>
               <FilterPanel
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
@@ -413,7 +375,7 @@ export default function ShopPage() {
 
             {/* Product Grid */}
             {currentProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-3 mb-8">
                 {currentProducts.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -507,8 +469,6 @@ export default function ShopPage() {
           </div>
         </div>
       </main>
-
-      <SiteFooter />
     </div>
   );
 }

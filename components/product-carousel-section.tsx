@@ -69,7 +69,9 @@ export function ProductCarouselSection({
         className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide pl-4 md:pl-10"
       >
         {products.map((product, index) => (
-          <ProductCard key={index} {...product} />
+          <div key={index} className="min-w-[280px]">
+            <ProductCard {...product} />
+          </div>
         ))}
       </div>
     </section>

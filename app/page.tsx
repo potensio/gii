@@ -6,13 +6,11 @@ import { HeroSection } from "@/components/hero-section";
 import { JoinClubSidebar } from "@/components/join-club-sidebar";
 import { ProductCarouselSection } from "@/components/product-carousel-section";
 import { ProductCategorySection } from "@/components/product-category-section";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/common/site-footer";
+import { SiteHeader } from "@/components/common/site-header";
 import { TillDeathBundleSection } from "@/components/till-death-bundle-section";
-import { MainNavigation } from "@/components/main-navigation";
+import { MainNavigation } from "@/components/common/main-navigation";
 import { StoryBanner } from "@/components/story-banner";
-
-
 
 export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false); // State for cart drawer
@@ -95,14 +93,10 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col tracking-tight w-full ">
-      <SiteHeader /> {/* Pass the handler */}
+      {/* Pass the handler */}
       <main className="flex-col flex-1">
         {/* Main Navigation */}
-        <MainNavigation
-          isCartOpen={isCartOpen}
-          onCartClick={handleCartClick}
-          onCloseCart={handleCloseCart}
-        />
+
         <div className="flex flex-col gap-20">
           {" "}
           <HeroSection />
@@ -122,8 +116,6 @@ export default function Home() {
           <StoryBanner />
         </div>
       </main>
-      <SiteFooter />
-      <JoinClubSidebar />
     </div>
   );
 }

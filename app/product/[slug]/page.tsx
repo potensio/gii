@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { SiteFooter } from "@/components/common/site-footer";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductDetails } from "@/components/product-details";
 import { ProductDescription } from "@/components/product-description";
-import { ProductSpecifications } from "@/components/product-specifications";
-import { RelatedProductsSection } from "@/components/related-products-section";
 import { JoinClubSidebar } from "@/components/join-club-sidebar";
-import { MainNavigation } from "@/components/main-navigation";
 import { ProductCarouselSection } from "@/components/product-carousel-section";
 
 // Define a type for product data
@@ -138,31 +134,72 @@ const relatedProducts = [
     price: "Rp4.199.000",
     slug: "apple-watch-se-2nd-gen-44mm",
   },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
+  {
+    imageSrc: "/placeholder.svg?height=256&width=256",
+    imageAlt: "Apple Watch SE",
+    brand: "Apple",
+    title: "Apple Watch SE 2nd Gen 44mm GPS",
+    price: "Rp4.199.000",
+    slug: "apple-watch-se-2nd-gen-44mm",
+  },
 ];
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
   // In a real application, you would fetch product data based on params.slug
   // For this example, we're using hardcoded data.
   const product = productData;
-  const [isCartOpen, setIsCartOpen] = useState(false);
-
-  const handleCartClick = () => {
-    setIsCartOpen(true);
-  };
-
-  const handleCloseCart = () => {
-    setIsCartOpen(false);
-  };
 
   if (!product) {
     return (
       <div className="flex min-h-screen flex-col">
-        <SiteHeader />
-        <MainNavigation
-          isCartOpen={isCartOpen}
-          onCartClick={handleCartClick}
-          onCloseCart={handleCloseCart}
-        />
         <main className="flex-1 p-8 text-center">
           <h1 className="text-2xl font-bold">Product not found</h1>
         </main>
@@ -173,12 +210,6 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <MainNavigation
-        isCartOpen={isCartOpen}
-        onCartClick={handleCartClick}
-        onCloseCart={handleCloseCart}
-      />
       <main className="relative">
         <div className="flex flex-col gap-10 md:gap-20 pb-10 md:pb-20">
           {" "}
@@ -207,7 +238,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               />
             </div>
           </div>
-          <RelatedProductsSection
+          <ProductCarouselSection
             title="Lihat juga"
             products={relatedProducts}
           />
@@ -215,8 +246,6 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
         {/* Related Products */}
       </main>
-      <SiteFooter />
-      <JoinClubSidebar />
     </div>
   );
 }

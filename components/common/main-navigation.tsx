@@ -1,24 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Search, ShoppingCart, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "@/components/cart-drawer";
 
-interface MainNavigationProps {
-  isCartOpen: boolean;
-  onCartClick: () => void;
-  onCloseCart: () => void;
-}
+export function MainNavigation() {
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-export function MainNavigation({
-  isCartOpen,
-  onCartClick,
-  onCloseCart,
-}: MainNavigationProps) {
+  const handleCartClick = () => {
+    setIsCartOpen(true);
+  };
+
+  const handleCloseCart = () => {
+    setIsCartOpen(false);
+  };
   return (
-    <nav className="sticky w-full z-50 top-0 flex items-center justify-between bg-background px-4 h-[64px] md:h-[100px] md:px-8 space-x-16">
+    <nav className="fixed w-full z-50 top-0 flex items-center justify-between bg-background px-4 h-[64px] md:h-[80px] md:px-8 space-x-16">
       <div className="flex flex-1 justify-between items-center space-x-4">
         <div className="flex items-center">
           <Button variant="ghost" size="icon" aria-label="Search">
@@ -28,16 +28,12 @@ export function MainNavigation({
         <div className="flex items-center justify-start">
           <ul className="hidden space-x-12 md:flex">
             <li>
-              <Link
-                href="/"
-                className="text-lg hover:text-gray-700"
-                prefetch={true}
-              >
+              <Link href="/" className="hover:text-primary" prefetch={true}>
                 Beranda
               </Link>
             </li>
             <li>
-              <Link href="#" className="text-lg hover:text-gray-700">
+              <Link href="#" className="hover:text-primary">
                 Kontak
               </Link>
             </li>
@@ -56,16 +52,12 @@ export function MainNavigation({
         <div className="flex items-center justify-start">
           <ul className="hidden space-x-12 md:flex">
             <li>
-              <Link
-                href="/shop"
-                className="text-lg hover:text-gray-700"
-                prefetch={true}
-              >
-                Belanja
+              <Link href="/shop" className="hover:text-primary" prefetch={true}>
+                Produk
               </Link>
             </li>
             <li>
-              <Link href="#" className="text-lg hover:text-gray-700">
+              <Link href="/auth/signup" className="hover:text-primary">
                 Daftar
               </Link>
             </li>
@@ -79,11 +71,11 @@ export function MainNavigation({
             variant="ghost"
             size="icon"
             aria-label="Shopping Cart"
-            onClick={onCartClick}
+            onClick={handleCartClick}
           >
             <ShoppingCart className="size-5" strokeWidth={1.5} />
           </Button>
-          <CartDrawer isOpen={isCartOpen} onClose={onCloseCart} />
+          <CartDrawer isOpen={isCartOpen} onClose={handleCloseCart} />
         </div>
       </div>
     </nav>

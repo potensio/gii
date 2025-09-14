@@ -12,7 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
-import CircularText from "./CircularText/CircularText";
+import CircularText from "../CircularText/CircularText";
 import { useEffect, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,38 +20,39 @@ import { Input } from "@/components/ui/input";
 
 export function SiteFooter() {
   const [scrollY, setScrollY] = useState(0);
-  const footerRef = useRef<HTMLElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (footerRef.current) {
         const rect = footerRef.current.getBoundingClientRect();
         const windowHeight = window.innerHeight;
-        
+
         // Calculate how much of the footer is visible
         const footerTop = rect.top;
         const footerHeight = rect.height;
-        
+
         // Start parallax when footer enters viewport
         if (footerTop < windowHeight && footerTop > -footerHeight) {
-          const scrollProgress = (windowHeight - footerTop) / (windowHeight + footerHeight);
+          const scrollProgress =
+            (windowHeight - footerTop) / (windowHeight + footerHeight);
           setScrollY(scrollProgress * 50); // Adjust multiplier for parallax intensity
         }
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll(); // Initial call
-    
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   return (
-    <footer 
+    <div
       ref={footerRef}
       className="relative bg-black px-6 sm:px-10 py-20 text-white"
       style={{
         transform: `translateY(${scrollY}px)`,
-        transition: 'transform 0.1s ease-out'
+        transition: "transform 0.1s ease-out",
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
@@ -176,6 +177,6 @@ export function SiteFooter() {
           </Link>
         </div>
       </div>
-    </footer>
+    </div>
   );
 }

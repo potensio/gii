@@ -10,17 +10,18 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    webpackBuildWorker: true,
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
     turbo: {
       rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
         },
       },
     },
   },
   reactStrictMode: true,
-}
+};
 
-export default nextConfig
+export default nextConfig;

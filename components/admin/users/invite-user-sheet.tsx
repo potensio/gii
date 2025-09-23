@@ -92,36 +92,36 @@ export function InviteUserSheet({ trigger }: InviteUserSheetProps) {
         </SheetHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           <div className="space-y-2">
-            <Label htmlFor="name">Nama Lengkap</Label>
+            <Label htmlFor="name">Nama lengkap</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              placeholder="Enter full name"
+              placeholder="John Doe"
               required
               disabled={createUserMutation.isPending}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Alamat Email</Label>
+            <Label htmlFor="email">Alamat email</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
-              placeholder="Enter email address"
+              placeholder="johndoe@example.com"
               required
               disabled={createUserMutation.isPending}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Kata Sandi</Label>
+            <Label htmlFor="email">Kata sandi</Label>
             <Input
               id="password"
               type="password"
               value={formData.password}
               onChange={(e) => handleInputChange("password", e.target.value)}
-              placeholder="Enter password"
+              placeholder="Masukkan kata sandi"
               required
               disabled={createUserMutation.isPending}
             />

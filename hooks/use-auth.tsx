@@ -1,254 +1,277 @@
 "use client";
 
-import { useState, useCallback, createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   loginFormSchema,
   signupFormSchema,
   resetPasswordFormSchema,
-  LoginFormData,
-  SignupFormData,
-  ResetPasswordFormData,
-  AuthUser,
-  AuthResponse,
-  AuthError
-} from "@/lib/auth-schema";
-import { toast } from "@/hooks/use-toast";
+  newPasswordFormSchema,
+  type LoginFormData,
+  type SignupFormData,
+  type ResetPasswordFormData,
+  type NewPasswordFormData,
+  type AuthUser,
+  type AuthResponse,
+} from "@/lib/schemas/auth-schema";
 
-// Auth Context
+// Auth context types
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (data: LoginFormData) => Promise<AuthResponse>;
   signup: (data: SignupFormData) => Promise<AuthResponse>;
-  logout: () => void;
+  logout: () => Promise<void>;
   resetPassword: (data: ResetPasswordFormData) => Promise<AuthResponse>;
+  refreshToken: () => Promise<boolean>;
 }
 
+// Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Auth Provider Component
+// Auth provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // Check for existing session on mount
+  const isAuthenticated = !!user && !!accessToken;
+
+  // Initialize auth state on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
+    initializeAuth();
+  }, []);
+
+  // Auto-refresh token before expiry
+  useEffect(() => {
+    if (accessToken) {
+      // Set up token refresh interval (refresh every 10 minutes)
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 10 * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [accessToken]);
+
+  const initializeAuth = async () => {
+    try {
+      // Try to refresh token on app start
+      const success = await refreshToken();
+      if (!success) {
+        // If refresh fails, try to get current user with existing token
+        const token = localStorage.getItem("accessToken");
         if (token) {
-          // TODO: Validate token with API
-          // For now, just simulate user data
-          const userData = localStorage.getItem('user_data');
-          if (userData) {
-            setUser(JSON.parse(userData));
-          }
+          setAccessToken(token);
+          await getCurrentUser(token);
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = useCallback(async (data: LoginFormData): Promise<AuthResponse> => {
-    setIsLoading(true);
-    try {
-      // TODO: Replace with actual API call
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful login
-      const mockUser: AuthUser = {
-        id: '1',
-        email: data.email,
-        nama: 'User Test',
-        createdAt: new Date().toISOString()
-      };
-      
-      const mockToken = 'mock_jwt_token_' + Date.now();
-      
-      // Store in localStorage
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('user_data', JSON.stringify(mockUser));
-      
-      setUser(mockUser);
-      
-      toast({
-        title: "Login berhasil",
-        description: `Selamat datang, ${mockUser.nama}!`,
-      });
-      
-      return {
-        success: true,
-        message: 'Login berhasil',
-        user: mockUser,
-        token: mockToken
-      };
     } catch (error) {
-      const errorMessage = 'Login gagal. Silakan coba lagi.';
-      toast({
-        title: "Login gagal",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
-      return {
-        success: false,
-        message: errorMessage
-      };
+      console.error("Auth initialization error:", error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  const signup = useCallback(async (data: SignupFormData): Promise<AuthResponse> => {
-    setIsLoading(true);
+  const getCurrentUser = async (token: string) => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful signup
-      const mockUser: AuthUser = {
-        id: '1',
-        email: data.email,
-        nama: data.nama,
-        createdAt: new Date().toISOString()
-      };
-      
-      const mockToken = 'mock_jwt_token_' + Date.now();
-      
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('user_data', JSON.stringify(mockUser));
-      
-      setUser(mockUser);
-      
-      toast({
-        title: "Registrasi berhasil",
-        description: `Selamat datang, ${mockUser.nama}!`,
+      const response = await fetch("/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
-      return {
-        success: true,
-        message: 'Registrasi berhasil',
-        user: mockUser,
-        token: mockToken
-      };
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUser(data.user);
+          return true;
+        }
+      }
+
+      // If getting user fails, clear token
+      localStorage.removeItem("accessToken");
+      setAccessToken(null);
+      return false;
     } catch (error) {
-      const errorMessage = 'Registrasi gagal. Silakan coba lagi.';
-      toast({
-        title: "Registrasi gagal",
-        description: errorMessage,
-        variant: "destructive",
+      console.error("Get current user error:", error);
+      localStorage.removeItem("accessToken");
+      setAccessToken(null);
+      return false;
+    }
+  };
+
+  const login = async (data: LoginFormData): Promise<AuthResponse> => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
-      
+
+      const result = await response.json();
+
+      if (result.success && result.user && result.accessToken) {
+        setUser(result.user);
+        setAccessToken(result.accessToken);
+        localStorage.setItem("accessToken", result.accessToken);
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Login error:", error);
       return {
         success: false,
-        message: errorMessage
+        message: "Terjadi kesalahan saat login",
       };
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  };
 
-  const resetPassword = useCallback(async (data: ResetPasswordFormData): Promise<AuthResponse> => {
-    setIsLoading(true);
+  const signup = async (data: SignupFormData): Promise<AuthResponse> => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Email reset password terkirim",
-        description: `Link reset password telah dikirim ke ${data.email}`,
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
-      
-      return {
-        success: true,
-        message: 'Email reset password berhasil dikirim'
-      };
+
+      const result = await response.json();
+
+      if (result.success && result.user && result.accessToken) {
+        setUser(result.user);
+        setAccessToken(result.accessToken);
+        localStorage.setItem("accessToken", result.accessToken);
+      }
+
+      return result;
     } catch (error) {
-      const errorMessage = 'Gagal mengirim email reset password.';
-      toast({
-        title: "Reset password gagal",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
+      console.error("Signup error:", error);
       return {
         success: false,
-        message: errorMessage
+        message: "Terjadi kesalahan saat mendaftar",
       };
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    setUser(null);
-    
-    toast({
-      title: "Logout berhasil",
-      description: "Anda telah keluar dari akun.",
-    });
-  }, []);
+  const logout = async () => {
+    try {
+      // Call logout API to clear server-side session
+      if (accessToken) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Logout API error:", error);
+    } finally {
+      // Clear client-side state regardless of API call result
+      setUser(null);
+      setAccessToken(null);
+      localStorage.removeItem("accessToken");
+    }
+  };
 
-  const value = {
+  const resetPassword = async (
+    data: ResetPasswordFormData
+  ): Promise<AuthResponse> => {
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return {
+        success: false,
+        message: "Terjadi kesalahan saat reset password",
+      };
+    }
+  };
+
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/auth/refresh", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.user && result.accessToken) {
+          setUser(result.user);
+          setAccessToken(result.accessToken);
+          localStorage.setItem("accessToken", result.accessToken);
+          return true;
+        }
+      }
+
+      // If refresh fails, clear auth state
+      setUser(null);
+      setAccessToken(null);
+      localStorage.removeItem("accessToken");
+      return false;
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      setUser(null);
+      setAccessToken(null);
+      localStorage.removeItem("accessToken");
+      return false;
+    }
+  };
+
+  const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     login,
     signup,
     logout,
-    resetPassword
+    resetPassword,
+    refreshToken,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook untuk menggunakan Auth Context
+// Hook to use auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
 
-// Form Hooks
+// Form hooks with validation
 export function useLoginForm() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      email: '',
-      password: '',
-      rememberMe: false
-    }
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
   });
 
   return {
     form,
-    isValid: form.formState.isValid,
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
-    register: form.register,
     handleSubmit: form.handleSubmit,
-    watch: form.watch,
-    setValue: form.setValue,
-    getValues: form.getValues
+    register: form.register,
   };
 }
 
@@ -256,44 +279,38 @@ export function useSignupForm() {
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
-      nama: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      agreeToTerms: false
-    }
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      agreeToTerms: false,
+    },
   });
 
   return {
     form,
-    isValid: form.formState.isValid,
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
-    register: form.register,
     handleSubmit: form.handleSubmit,
-    watch: form.watch,
-    setValue: form.setValue,
-    getValues: form.getValues
+    register: form.register,
   };
 }
 
 export function useResetPasswordForm() {
-  const form = useForm<ResetPasswordFormData>({
+  return useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: {
-      email: ''
-    }
+      email: "",
+    },
   });
+}
 
-  return {
-    form,
-    isValid: form.formState.isValid,
-    errors: form.formState.errors,
-    isSubmitting: form.formState.isSubmitting,
-    register: form.register,
-    handleSubmit: form.handleSubmit,
-    watch: form.watch,
-    setValue: form.setValue,
-    getValues: form.getValues
-  };
+export function useNewPasswordForm() {
+  return useForm<NewPasswordFormData>({
+    resolver: zodResolver(newPasswordFormSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
 }

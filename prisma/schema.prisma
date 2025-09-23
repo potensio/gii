@@ -38,6 +38,10 @@ model User {
   updatedAt DateTime   @updatedAt
   password  String?
 
+  // Session management fields
+  refreshToken   String?
+  tokenVersion   Int      @default(0)
+  
   // Optional fields for future extensibility
   avatar    String?
   lastLogin DateTime?

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth, useSignupForm } from "@/hooks/use-auth";
-import { SignupFormData } from "@/lib/auth-schema";
+import { SignupFormData } from "@/lib/schemas/auth-schema";
 
 export function SignupForm({
   className,
@@ -17,7 +17,7 @@ export function SignupForm({
 }: React.ComponentPropsWithoutRef<"form">) {
   const router = useRouter();
   const { signup } = useAuth();
-  const { form, errors, isSubmitting, handleSubmit, register, watch } =
+  const { form, errors, isSubmitting, handleSubmit, register } =
     useSignupForm();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,7 +26,7 @@ export function SignupForm({
     try {
       const result = await signup(data);
       if (result.success) {
-        router.push("/"); // Redirect ke homepage setelah signup berhasil
+        router.push("/");
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -48,16 +48,16 @@ export function SignupForm({
       </div>
       <div className="grid gap-6">
         <div className="grid gap-2">
-          <Label htmlFor="nama">Nama Lengkap</Label>
+          <Label htmlFor="name">Nama Lengkap</Label>
           <Input
-            id="nama"
+            id="name"
             type="text"
             placeholder="Masukkan nama lengkap"
-            {...register("nama")}
-            className={errors.nama ? "border-red-500" : ""}
+            {...register("name")}
+            className={errors.name ? "border-red-500" : ""}
           />
-          {errors.nama && (
-            <p className="text-sm text-red-500">{errors.nama.message}</p>
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
           )}
         </div>
         <div className="grid gap-2">
@@ -104,39 +104,31 @@ export function SignupForm({
             </p>
           )}
         </div>
-        <div className="flex items-start space-x-2">
+        <div className="flex items-center space-x-2">
           <Checkbox
             id="agreeToTerms"
-            {...register("agreeToTerms")}
-            className={errors.agreeToTerms ? "border-red-500" : ""}
+            checked={form.watch("agreeToTerms")}
+            onCheckedChange={(checked) =>
+              form.setValue("agreeToTerms", !!checked)
+            }
           />
-          <div className="grid gap-1.5 leading-none">
-            <Label
-              htmlFor="agreeToTerms"
-              className="text-sm font-normal cursor-pointer"
-            >
-              Saya menyetujui{" "}
-              <Link href="/terms" className="underline underline-offset-4">
-                syarat dan ketentuan
-              </Link>{" "}
-              dan{" "}
-              <Link href="/privacy" className="underline underline-offset-4">
-                kebijakan privasi
-              </Link>
-            </Label>
-            {errors.agreeToTerms && (
-              <p className="text-sm text-red-500">
-                {errors.agreeToTerms.message}
-              </p>
-            )}
-          </div>
+          <Label htmlFor="agreeToTerms" className="text-sm">
+            Saya menyetujui{" "}
+            <Link href="/terms" className="underline">
+              syarat dan ketentuan
+            </Link>
+          </Label>
         </div>
+        {errors.agreeToTerms && (
+          <p className="text-sm text-red-500">{errors.agreeToTerms.message}</p>
+        )}
+
         <Button
           type="submit"
           className="w-full"
           disabled={isLoading || isSubmitting}
         >
-          {isLoading || isSubmitting ? "Memproses..." : "Buat Akun"}
+          {isLoading || isSubmitting ? "Mendaftar..." : "Daftar"}
         </Button>
       </div>
       <div className="text-center text-sm">

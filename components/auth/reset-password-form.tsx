@@ -6,28 +6,34 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth, useResetPasswordForm } from "@/hooks/use-auth";
-import { ResetPasswordFormData } from "@/lib/auth-schema";
+import { useResetPasswordForm, useAuth } from "@/hooks/use-auth";
+import { ResetPasswordFormData } from "@/lib/schemas/auth-schema";
 import { CheckCircle } from "lucide-react";
 
 export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) {
+  const form = useResetPasswordForm();
   const { resetPassword } = useAuth();
-  const { form, errors, isSubmitting, handleSubmit, register } =
-    useResetPasswordForm();
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = form;
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
     try {
       const result = await resetPassword(data);
       if (result.success) {
-        setIsSuccess(true);
         setSubmittedEmail(data.email);
+        setIsSuccess(true);
       }
     } catch (error) {
       console.error("Reset password error:", error);
@@ -67,7 +73,7 @@ export function ResetPasswordForm({
               className="w-full"
               onClick={() => {
                 setIsSuccess(false);
-                form.reset();
+                reset();
               }}
             >
               Kirim ulang email

@@ -109,6 +109,7 @@ export function createUserColumns(actions?: {
       ),
       enableSorting: false,
       enableHiding: false,
+      size: 50,
     },
     {
       accessorKey: "name",
@@ -124,6 +125,7 @@ export function createUserColumns(actions?: {
           </Button>
         );
       },
+      size: 200,
     },
     {
       accessorKey: "email",
@@ -142,6 +144,7 @@ export function createUserColumns(actions?: {
       cell: ({ row }) => (
         <div className="lowercase">{row.getValue("email")}</div>
       ),
+      size: 250,
     },
     {
       accessorKey: "role",
@@ -149,6 +152,7 @@ export function createUserColumns(actions?: {
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("role")}</div>
       ),
+      size: 120,
     },
     {
       accessorKey: "status",
@@ -169,6 +173,7 @@ export function createUserColumns(actions?: {
           </div>
         );
       },
+      size: 120,
     },
     {
       accessorKey: "createdAt",
@@ -177,6 +182,7 @@ export function createUserColumns(actions?: {
         const date = new Date(row.getValue("createdAt"));
         return <div>{date.toLocaleDateString()}</div>;
       },
+      size: 150,
     },
     {
       id: "actions",
@@ -192,6 +198,7 @@ export function createUserColumns(actions?: {
           />
         );
       },
+      size: 80,
     },
   ];
 }

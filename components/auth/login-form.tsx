@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth, useLoginForm } from "@/hooks/use-auth";
-import { LoginFormData } from "@/lib/auth-schema";
+import { LoginFormData } from "@/lib/schemas/auth-schema";
 
 export function LoginForm({
   className,

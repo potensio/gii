@@ -26,7 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { UserTableFilters } from "./user-table-filters";
 import { InviteUserSheet } from "./invite-user-sheet";
 import { User } from "./user-table-columns";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define types locally to avoid import issues
 type UserRole = "ADMIN" | "USER" | "MODERATOR";
@@ -75,6 +75,8 @@ export function UserTable({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    columnResizeMode: 'onChange',
+    enableColumnResizing: false,
     state: {
       sorting,
       columnFilters,
@@ -106,7 +108,10 @@ export function UserTable({
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead 
+                        key={header.id}
+                        style={{ width: header.getSize() }}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -120,42 +125,37 @@ export function UserTable({
               ))}
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-64 text-center"
-                >
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Loading users...</p>
-                  </div>
-                </TableCell>
-              </TableRow>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <TableRow key={index}>
+                  {table.getHeaderGroups()[0]?.headers.map((header) => (
+                    <TableCell 
+                      key={header.id}
+                      style={{ width: header.getSize() }}
+                    >
+                      <Skeleton className="h-4 rounded" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
-        </div>
-
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            Loading...
-          </div>
-          <div className="space-x-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full">
       <div className="flex items-center justify-between">
-        <UserTableFilters table={table} />
+        <UserTableFilters
+          table={table}
+          onRoleFilter={onRoleFilter}
+          onStatusFilter={onStatusFilter}
+          onSearchChange={onSearchChange}
+          currentSearch={currentSearch}
+          currentRole={currentRole}
+          currentStatus={currentStatus}
+        />
         <InviteUserSheet />
       </div>
 
@@ -166,7 +166,10 @@ export function UserTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead 
+                      key={header.id}
+                      style={{ width: header.getSize() }}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -187,7 +190,10 @@ export function UserTable({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell 
+                      key={cell.id}
+                      style={{ width: cell.column.getSize() }}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -202,7 +208,7 @@ export function UserTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No users found.
                 </TableCell>
               </TableRow>
             )}

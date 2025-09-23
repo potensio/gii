@@ -1,13 +1,18 @@
 import { PrismaClient } from "../lib/generated/prisma";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // Hash password for all test users
+  const hashedPassword = await bcrypt.hash("password123", 10);
+
   // Create sample users
   const users = [
     {
       name: "John Doe",
       email: "john@example.com",
+      password: hashedPassword,
       role: "ADMIN" as const,
       status: "ACTIVE" as const,
       avatar: "/avatars/john.jpg",
@@ -15,6 +20,7 @@ async function main() {
     {
       name: "Jane Smith",
       email: "jane@example.com",
+      password: hashedPassword,
       role: "USER" as const,
       status: "ACTIVE" as const,
       avatar: "/avatars/jane.jpg",
@@ -22,6 +28,7 @@ async function main() {
     {
       name: "Bob Wilson",
       email: "bob@example.com",
+      password: hashedPassword,
       role: "MODERATOR" as const,
       status: "INACTIVE" as const,
       avatar: "/avatars/bob.jpg",
@@ -29,6 +36,7 @@ async function main() {
     {
       name: "Alice Johnson",
       email: "alice@example.com",
+      password: hashedPassword,
       role: "USER" as const,
       status: "SUSPENDED" as const,
       avatar: "/avatars/alice.jpg",
@@ -36,6 +44,7 @@ async function main() {
     {
       name: "Charlie Brown",
       email: "charlie@example.com",
+      password: hashedPassword,
       role: "USER" as const,
       status: "ACTIVE" as const,
       avatar: "/avatars/charlie.jpg",

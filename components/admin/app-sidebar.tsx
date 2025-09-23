@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useAuth } from "@/hooks/use-auth";
 import {
   BookOpen,
   Bot,
@@ -30,8 +31,8 @@ import {
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "",
+    email: "",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
@@ -145,6 +146,22 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  const userData = React.useMemo(() => {
+    if (isLoading) {
+      return data.user;
+    }
+    if (isAuthenticated && user) {
+      return {
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || data.user.avatar,
+      };
+    }
+    return data.user;
+  }, [user, isAuthenticated, isLoading]);
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -169,7 +186,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} isLoading={isLoading} />
       </SidebarFooter>
     </Sidebar>
   );

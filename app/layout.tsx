@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html>
+    <html suppressHydrationWarning>
       <head>
         <style>{`
 html {
@@ -39,10 +39,8 @@ html {
           disableTransitionOnChange
         >
           <AuthProvider>
-            <SiteHeader />
-            <MainNavigation />
             {children}
-            <SiteFooter />
+
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

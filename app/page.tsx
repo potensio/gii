@@ -95,6 +95,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col tracking-tight w-full ">
       {/* Pass the handler */}
       <main className="flex-col flex-1">
+        <MainNavigation />
         {/* Main Navigation */}
 
         <div className="flex flex-col gap-20">
@@ -115,6 +116,7 @@ export default function Home() {
           {/* The "Our Story - Protect" section is a large text overlay, not a full section */}
           <StoryBanner />
         </div>
+        <SiteFooter />
       </main>
     </div>
   );

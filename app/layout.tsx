@@ -6,7 +6,9 @@ import { MainNavigation } from "@/components/common/main-navigation";
 import { SiteFooter } from "@/components/common/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/use-auth";
+import { QueryProvider } from "@/lib/providers/query-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,11 +40,14 @@ html {
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            {children}
+          <QueryProvider>
+            <AuthProvider>
+              {children}
 
-            <Toaster />
-          </AuthProvider>
+              <Toaster />
+              <Sonner />
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -110,7 +110,7 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
 }
 
 /**
- * Create secure cookie options
+ * Create secure cookie options for refresh token (long-lived)
  */
 export function getSecureCookieOptions() {
   return {
@@ -118,6 +118,19 @@ export function getSecureCookieOptions() {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict' as const,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    path: '/',
+  };
+}
+
+/**
+ * Create secure cookie options for access token (short-lived)
+ */
+export function getAccessTokenCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
     path: '/',
   };
 }

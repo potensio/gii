@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { userService } from "@/lib/services/user.service";
+import { withAuth } from "@/lib/middleware/auth.middleware";
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest, context: any, user: any) {
   try {
     const stats = await userService.getUserStats();
 
@@ -14,3 +15,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAuth(handleGET, { requiredRoles: ["ADMIN"] });

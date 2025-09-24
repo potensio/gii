@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/services/auth.service";
 import { signupFormSchema } from "@/lib/schemas/auth-schema";
-import { getSecureCookieOptions } from "@/lib/auth";
+import { getSecureCookieOptions, getAccessTokenCookieOptions } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +23,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create response with user data
+    // Create response with user data (without accessToken in body)
     const response = NextResponse.json({
       success: true,
       message: result.message,
       user: result.user,
-      accessToken: result.tokens?.accessToken,
     });
+
+    // Set access token as httpOnly cookie
+    if (result.tokens?.accessToken) {
+      response.cookies.set(
+        "accessToken",
+        result.tokens.accessToken,
+        getAccessTokenCookieOptions()
+      );
+    }
 
     // Set refresh token as httpOnly cookie
     if (result.tokens?.refreshToken) {

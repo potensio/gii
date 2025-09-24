@@ -5,8 +5,10 @@ import {
   userFiltersSchema,
   paginationSchema,
 } from "@/lib/schemas/user.schema";
+import { withAuth } from "@/lib/middleware/auth.middleware";
 
-export async function GET(request: NextRequest) {
+// FIX: Tambahkan context dan user parameter
+async function handleGET(request: NextRequest, context: any, user: any) {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -43,14 +45,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+// FIX: Tambahkan context dan user parameter
+async function handlePOST(request: NextRequest, context: any, user: any) {
   try {
     const body = await request.json();
     const validatedData = createUserSchema.parse(body);
 
-    const user = await userService.createUser(validatedData);
+    const createdUser = await userService.createUser(validatedData);
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(createdUser, { status: 201 });
   } catch (error) {
     console.error("Error creating user:", error);
 
@@ -70,3 +73,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAuth(handleGET, { requiredRoles: ["ADMIN"] });
+export const POST = withAuth(handlePOST, { requiredRoles: ["ADMIN"] });

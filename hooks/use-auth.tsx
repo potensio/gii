@@ -35,39 +35,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const isAuthenticated = !!user && !!accessToken;
+  const isAuthenticated = !!user;
 
   // Initialize auth state on mount
   useEffect(() => {
     initializeAuth();
   }, []);
 
-  // Auto-refresh token before expiry
-  useEffect(() => {
-    if (accessToken) {
-      // Set up token refresh interval (refresh every 10 minutes)
-      const interval = setInterval(() => {
-        refreshToken();
-      }, 10 * 60 * 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [accessToken]);
-
   const initializeAuth = async () => {
     try {
-      // Try to refresh token on app start
-      const success = await refreshToken();
-      if (!success) {
-        // If refresh fails, try to get current user with existing token
-        const token = localStorage.getItem("accessToken");
-        if (token) {
-          setAccessToken(token);
-          await getCurrentUser(token);
-        }
-      }
+      // Try to refresh token on app start to get current user
+      await refreshToken();
     } catch (error) {
       console.error("Auth initialization error:", error);
     } finally {
@@ -75,30 +54,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getCurrentUser = async (token: string) => {
+  const getCurrentUser = async (): Promise<boolean> => {
     try {
-      const response = await fetch("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      const response = await fetch("/api/auth/me");
+      
       if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          setUser(data.user);
+        const result = await response.json();
+        if (result.success && result.user) {
+          setUser(result.user);
           return true;
         }
       }
-
-      // If getting user fails, clear token
-      localStorage.removeItem("accessToken");
-      setAccessToken(null);
+      
+      setUser(null);
       return false;
     } catch (error) {
       console.error("Get current user error:", error);
-      localStorage.removeItem("accessToken");
-      setAccessToken(null);
+      setUser(null);
       return false;
     }
   };
@@ -115,10 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const result = await response.json();
 
-      if (result.success && result.user && result.accessToken) {
+      if (result.success && result.user) {
         setUser(result.user);
-        setAccessToken(result.accessToken);
-        localStorage.setItem("accessToken", result.accessToken);
       }
 
       return result;
@@ -143,10 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const result = await response.json();
 
-      if (result.success && result.user && result.accessToken) {
+      if (result.success && result.user) {
         setUser(result.user);
-        setAccessToken(result.accessToken);
-        localStorage.setItem("accessToken", result.accessToken);
       }
 
       return result;
@@ -159,30 +127,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
-      // Call logout API to clear server-side session
-      if (accessToken) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-      }
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
     } catch (error) {
-      console.error("Logout API error:", error);
+      console.error("Logout error:", error);
     } finally {
-      // Clear client-side state regardless of API call result
+      // Always clear user state regardless of API response
       setUser(null);
-      setAccessToken(null);
-      localStorage.removeItem("accessToken");
     }
   };
 
-  const resetPassword = async (
-    data: ResetPasswordFormData
-  ): Promise<AuthResponse> => {
+  const resetPassword = async (data: ResetPasswordFormData): Promise<AuthResponse> => {
     try {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
@@ -210,24 +168,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.user && result.accessToken) {
+        if (result.success && result.user) {
           setUser(result.user);
-          setAccessToken(result.accessToken);
-          localStorage.setItem("accessToken", result.accessToken);
           return true;
         }
       }
 
       // If refresh fails, clear auth state
       setUser(null);
-      setAccessToken(null);
-      localStorage.removeItem("accessToken");
       return false;
     } catch (error) {
       console.error("Refresh token error:", error);
       setUser(null);
-      setAccessToken(null);
-      localStorage.removeItem("accessToken");
       return false;
     }
   };

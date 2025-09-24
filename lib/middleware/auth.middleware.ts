@@ -17,9 +17,8 @@ export async function authenticateRequest(
   request: NextRequest
 ): Promise<{ success: boolean; user?: any; response?: NextResponse }> {
   try {
-    // Get access token from header
-    const authHeader = request.headers.get('authorization');
-    const accessToken = extractTokenFromHeader(authHeader);
+    // Get access token from cookie instead of header
+    const accessToken = request.cookies.get('accessToken')?.value;
 
     if (!accessToken) {
       return {

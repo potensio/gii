@@ -44,7 +44,7 @@ const data = {
       items: [
         {
           title: "Products",
-          url: "#",
+          url: "/admin/products",
         },
         {
           title: "Starred",

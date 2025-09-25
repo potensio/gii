@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserRole, UserStatus } from "@/lib/generated/prisma";
+import { UserRole, UserStatus } from "@/lib/generated/prisma/enums";
 import {
   CreateUserInput,
   UpdateUserInput,
   UserFilters,
   PaginationOptions,
 } from "@/lib/schemas/user.schema";
+import { apiClient } from "@/lib/api-client";
 
 // Types for API responses
 interface User {
@@ -57,67 +58,50 @@ const userApi = {
     params.append("sortBy", pagination.sortBy);
     params.append("sortOrder", pagination.sortOrder);
 
-    const response = await fetch(`/api/users?${params}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch users");
+    const response = await apiClient.get<UsersResponse>(`/api/users?${params}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   getUserById: async (id: string): Promise<User> => {
-    const response = await fetch(`/api/users/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch user");
+    const response = await apiClient.get<User>(`/api/users/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   createUser: async (data: CreateUserInput): Promise<User> => {
-    const response = await fetch("/api/users", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create user");
+    const response = await apiClient.post<User>("/api/users", data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   updateUser: async (id: string, data: UpdateUserInput): Promise<User> => {
-    const response = await fetch(`/api/users/${id}`, {
-      method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to update user");
+    const response = await apiClient.put<User>(`/api/users/${id}`, data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   deleteUser: async (id: string): Promise<void> => {
-    const response = await fetch(`/api/users/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to delete user");
+    const response = await apiClient.delete(`/api/users/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
   },
 
   getUserStats: async (): Promise<UserStats> => {
-    const response = await fetch("/api/users/stats");
-    if (!response.ok) {
-      throw new Error("Failed to fetch user stats");
+    const response = await apiClient.get<UserStats>("/api/users/stats");
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 };
 

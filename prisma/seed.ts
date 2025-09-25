@@ -1,7 +1,13 @@
-import { PrismaClient } from "../lib/generated/prisma";
+import { PrismaClient } from "../lib/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+// Create the PostgreSQL adapter for seed script
+const adapter = new PrismaPg({ 
+  connectionString: process.env.DATABASE_URL! 
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Hash password for all test users

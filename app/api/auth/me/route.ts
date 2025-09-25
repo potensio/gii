@@ -1,44 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/middleware/auth.middleware";
 import { authService } from "@/lib/services/auth.service";
-import { extractTokenFromHeader, verifyAccessToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get access token from header
-    const authHeader = request.headers.get('authorization');
-    const accessToken = extractTokenFromHeader(authHeader);
+    // Authenticate the request
+    const authResult = await authenticateRequest(request);
     
-    if (!accessToken) {
-      return NextResponse.json(
+    if (!authResult.success || !authResult.user) {
+      return authResult.response || NextResponse.json(
         { 
           success: false, 
-          message: "Token akses tidak ditemukan" 
-        },
-        { status: 401 }
-      );
-    }
-
-    // Verify access token
-    const payload = verifyAccessToken(accessToken);
-    
-    if (!payload) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "Token akses tidak valid" 
+          message: "Unauthorized" 
         },
         { status: 401 }
       );
     }
 
     // Get user profile
-    const result = await authService.getProfile(payload.userId);
+    const profileResult = await authService.getProfile(authResult.user.userId);
     
-    if (!result.success) {
+    if (!profileResult.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: result.message 
+        {
+          success: false,
+          message: profileResult.message,
         },
         { status: 404 }
       );
@@ -46,16 +32,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: result.message,
-      user: result.user,
+      message: profileResult.message,
+      user: profileResult.user,
     });
+
   } catch (error) {
-    console.error("Get profile API error:", error);
-    
+    console.error("Get current user error:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Terjadi kesalahan server" 
+      {
+        success: false,
+        message: "Internal server error",
       },
       { status: 500 }
     );

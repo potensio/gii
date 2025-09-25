@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Users, UserCheck, UserX, Shield } from "lucide-react";
+import { Package, PackageCheck, PackageX, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUserStats } from "@/hooks/use-users";
+import { useProductStats } from "@/hooks/use-products";
 
-export function UserStatsCards() {
-  const { data: stats, isLoading, error } = useUserStats();
+export function ProductStatsCards() {
+  const { data: stats, isLoading, error } = useProductStats();
 
   if (isLoading) {
     return (
@@ -43,30 +43,37 @@ export function UserStatsCards() {
 
   const statsData = [
     {
-      title: "Total Users",
+      title: "Total Products",
       value: stats?.total || 0,
-      description: "All registered users",
-      icon: Users,
+      description: "All products in inventory",
+      icon: Package,
       color: "text-blue-600",
     },
     {
-      title: "Active Users",
+      title: "Active Products",
       value: stats?.active || 0,
-      description: "Currently active",
-      icon: UserCheck,
+      description: "Currently published",
+      icon: PackageCheck,
       color: "text-green-600",
     },
     {
-      title: "Inactive Users",
-      value: stats?.inactive || 0,
-      description: "Not currently active",
-      icon: UserX,
+      title: "Featured Products",
+      value: stats?.featured || 0,
+      description: "Featured products",
+      icon: AlertTriangle,
       color: "text-yellow-600",
+    },
+    {
+      title: "Out of Stock",
+      value: stats?.outOfStock || 0,
+      description: "Products unavailable",
+      icon: PackageX,
+      color: "text-red-600",
     },
   ];
 
   return (
-    <div className="hidden gap-4 grid-cols-3 md:grid">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {statsData.map((stat) => {
         const Icon = stat.icon;
         return (

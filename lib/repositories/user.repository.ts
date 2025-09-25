@@ -1,4 +1,4 @@
-import { Prisma, User, UserRole, UserStatus } from "../generated/prisma";
+import { Prisma, User, UserRole, UserStatus } from "../generated/prisma/client";
 import {
   CreateUserInput,
   UpdateUserInput,

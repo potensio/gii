@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { User, UserStatus } from "../generated/prisma";
+import { User, UserStatus } from "../generated/prisma/client";
 import { userRepository } from "../repositories/user.repository";
 import { 
   generateTokenPair, 

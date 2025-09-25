@@ -15,6 +15,7 @@ import {
   type AuthUser,
   type AuthResponse,
 } from "@/lib/schemas/auth-schema";
+import { apiClient } from "@/lib/api-client";
 
 // Auth context types
 interface AuthContextType {
@@ -45,8 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const initializeAuth = async () => {
     try {
-      // Try to refresh token on app start to get current user
-      await refreshToken();
+      // Try to get current user from /api/auth/me
+      const response = await apiClient.get<{ user: AuthUser }>("/api/auth/me");
+      if (response.data?.user) {
+        setUser(response.data.user);
+      }
     } catch (error) {
       console.error("Auth initialization error:", error);
     } finally {
@@ -54,39 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getCurrentUser = async (): Promise<boolean> => {
-    try {
-      const response = await fetch("/api/auth/me");
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.user) {
-          setUser(result.user);
-          return true;
-        }
-      }
-      
-      setUser(null);
-      return false;
-    } catch (error) {
-      console.error("Get current user error:", error);
-      setUser(null);
-      return false;
-    }
-  };
-
   const login = async (data: LoginFormData): Promise<AuthResponse> => {
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiClient.post<AuthResponse>("/api/auth/login", data, { skipAuth: true });
+      
+      if (response.error) {
+        return {
+          success: false,
+          message: response.error,
+        };
+      }
 
-      const result = await response.json();
-
+      const result = response.data!;
       if (result.success && result.user) {
         setUser(result.user);
       }
@@ -103,16 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (data: SignupFormData): Promise<AuthResponse> => {
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiClient.post<AuthResponse>("/api/auth/signup", data, { skipAuth: true });
+      
+      if (response.error) {
+        return {
+          success: false,
+          message: response.error,
+        };
+      }
 
-      const result = await response.json();
-
+      const result = response.data!;
       if (result.success && result.user) {
         setUser(result.user);
       }
@@ -129,9 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-      });
+      await apiClient.post("/api/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -140,17 +121,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPassword = async (data: ResetPasswordFormData): Promise<AuthResponse> => {
+  const resetPassword = async (
+    data: ResetPasswordFormData
+  ): Promise<AuthResponse> => {
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiClient.post<AuthResponse>("/api/auth/reset-password", data, { skipAuth: true });
+      
+      if (response.error) {
+        return {
+          success: false,
+          message: response.error,
+        };
+      }
 
-      return await response.json();
+      return response.data!;
     } catch (error) {
       console.error("Reset password error:", error);
       return {
@@ -162,16 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshToken = async (): Promise<boolean> => {
     try {
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.user) {
-          setUser(result.user);
-          return true;
-        }
+      const response = await apiClient.post<{ user: AuthUser }>("/api/auth/refresh", undefined, { skipRefresh: true });
+      
+      if (response.data?.user) {
+        setUser(response.data.user);
+        return true;
       }
 
       // If refresh fails, clear auth state

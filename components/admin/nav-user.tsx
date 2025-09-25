@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import {
   BadgeCheck,
   Bell,
@@ -54,6 +56,13 @@ function NavUserSkeleton() {
 
 export function NavUser({ user, isLoading = false }: NavUserProps) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    router.push("/auth/login");
+  }
 
   if (isLoading) {
     return <NavUserSkeleton />;
@@ -122,7 +131,7 @@ export function NavUser({ user, isLoading = false }: NavUserProps) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRole, UserStatus } from "../generated/prisma";
+import { UserRole, UserStatus } from "../generated/prisma/enums";
 
 // Login form schema
 export const loginFormSchema = z.object({

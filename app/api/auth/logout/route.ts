@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/services/auth.service";
-import { extractTokenFromHeader, verifyAccessToken } from "@/lib/auth";
+import { verifyAccessToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get access token from header
-    const authHeader = request.headers.get('authorization');
-    const accessToken = extractTokenFromHeader(authHeader);
+    // Get access token from cookie
+    const accessToken = request.cookies.get('accessToken')?.value;
     
     if (accessToken) {
       // Verify and get user info from token
@@ -25,42 +24,42 @@ export async function POST(request: NextRequest) {
     });
 
     // Clear access token cookie
-    response.cookies.set('accessToken', '', {
+    response.cookies.set("accessToken", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       maxAge: 0, // Expire immediately
-      path: '/',
+      path: "/",
     });
 
     // Clear refresh token cookie
-    response.cookies.set('refreshToken', '', {
+    response.cookies.set("refreshToken", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       maxAge: 0, // Expire immediately
-      path: '/',
+      path: "/",
     });
 
     return response;
   } catch (error) {
     console.error("Logout API error:", error);
-    
+
     // Even if there's an error, we should still clear the cookie
     const response = NextResponse.json(
-      { 
-        success: true, 
-        message: "Logout berhasil" 
+      {
+        success: true,
+        message: "Logout berhasil",
       },
       { status: 200 }
     );
 
-    response.cookies.set('refreshToken', '', {
+    response.cookies.set("refreshToken", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       maxAge: 0,
-      path: '/',
+      path: "/",
     });
 
     return response;

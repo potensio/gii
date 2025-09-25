@@ -1,4 +1,4 @@
-import { User, UserRole, UserStatus } from "../generated/prisma";
+import { User, UserRole, UserStatus } from "../generated/prisma/client";
 import { userRepository } from "../repositories/user.repository";
 import {
   createUserSchema,

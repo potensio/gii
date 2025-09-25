@@ -1,8 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
-import { X, Plus, Upload, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useCallback } from "react";
+import {
+  X,
+  Plus,
+  Images,
+  Trash2,
+  Check,
+  ChevronsUpDown,
+  Star,
+  Image as ImageIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +60,7 @@ const VARIANT_ATTRIBUTE_TYPES = [
 ];
 
 import { VariantAttributeType } from "@/lib/generated/prisma/enums";
+import { PriceInput } from "@/components/ui/price-input";
 
 interface VariantAttribute {
   type: VariantAttributeType;
@@ -63,6 +73,19 @@ interface ProductVariant {
   attributes: VariantAttribute[];
   price: string;
   stock: string;
+}
+
+interface ProductImage {
+  id: string;
+  file: File;
+  preview: string;
+  isThumbnail: boolean;
+}
+
+interface SubDescription {
+  id: string;
+  title: string;
+  content: string;
 }
 
 interface CreateProductSheetProps {
@@ -86,6 +109,24 @@ export function CreateProductSheet({
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [keywords, setKeywords] = useState("");
+
+  // Sub-descriptions state
+  const [subDescriptions, setSubDescriptions] = useState<SubDescription[]>([
+    {
+      id: "1",
+      title: "Fabric & Fit",
+      content: "",
+    },
+    {
+      id: "2", 
+      title: "Care Instructions",
+      content: "",
+    },
+  ]);
+
+  // Image upload states
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Selected variant attributes
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([
@@ -195,6 +236,32 @@ export function CreateProductSheet({
     );
   };
 
+  // Sub-descriptions helper functions
+  const addSubDescription = () => {
+    const newSubDescription: SubDescription = {
+      id: Date.now().toString(),
+      title: "",
+      content: "",
+    };
+    setSubDescriptions([...subDescriptions, newSubDescription]);
+  };
+
+  const removeSubDescription = (id: string) => {
+    setSubDescriptions(subDescriptions.filter((sub) => sub.id !== id));
+  };
+
+  const updateSubDescription = (
+    id: string,
+    field: "title" | "content",
+    value: string
+  ) => {
+    setSubDescriptions((prev) =>
+      prev.map((sub) =>
+        sub.id === id ? { ...sub, [field]: value } : sub
+      )
+    );
+  };
+
   const handleAttributeSelect = (attributeValue: string) => {
     setSelectedAttributes((prev) =>
       prev.includes(attributeValue)
@@ -202,6 +269,88 @@ export function CreateProductSheet({
         : [...prev, attributeValue]
     );
   };
+
+  // Image upload handlers
+  const handleFileSelect = useCallback((files: FileList) => {
+    const validFiles = Array.from(files).filter(
+      (file) => file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024 // 10MB limit
+    );
+
+    const newImages: ProductImage[] = validFiles.map((file) => ({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      file,
+      preview: URL.createObjectURL(file),
+      isThumbnail: false,
+    }));
+
+    setImages((prev) => {
+      const updated = [...prev, ...newImages];
+      // Set first image as thumbnail if no thumbnail exists
+      if (updated.length > 0 && !updated.some((img) => img.isThumbnail)) {
+        updated[0].isThumbnail = true;
+      }
+      return updated;
+    });
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+
+      if (e.dataTransfer.files) {
+        handleFileSelect(e.dataTransfer.files);
+      }
+    },
+    [handleFileSelect]
+  );
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        handleFileSelect(e.target.files);
+      }
+    },
+    [handleFileSelect]
+  );
+
+  const setThumbnail = useCallback((imageId: string) => {
+    setImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        isThumbnail: img.id === imageId,
+      }))
+    );
+  }, []);
+
+  const removeImage = useCallback((imageId: string) => {
+    setImages((prev) => {
+      const filtered = prev.filter((img) => img.id !== imageId);
+      const removedImage = prev.find((img) => img.id === imageId);
+
+      // If removed image was thumbnail, set first remaining image as thumbnail
+      if (removedImage?.isThumbnail && filtered.length > 0) {
+        filtered[0].isThumbnail = true;
+      }
+
+      // Clean up object URL
+      if (removedImage) {
+        URL.revokeObjectURL(removedImage.preview);
+      }
+
+      return filtered;
+    });
+  }, []);
 
   const handleSave = () => {
     // TODO: Implement save logic
@@ -216,11 +365,27 @@ export function CreateProductSheet({
       metaTitle,
       metaDescription,
       keywords,
+      subDescriptions,
       selectedAttributes,
       variants,
+      images: images.map((img) => ({
+        id: img.id,
+        fileName: img.file.name,
+        fileSize: img.file.size,
+        isThumbnail: img.isThumbnail,
+      })),
     });
     onClose();
   };
+
+  // Cleanup object URLs on unmount
+  React.useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        URL.revokeObjectURL(image.preview);
+      });
+    };
+  }, [images]);
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -247,7 +412,7 @@ export function CreateProductSheet({
         <div className="flex max-h-full pt-20">
           <div className="flex w-full justify-center max-h-full overflow-y-auto">
             {/* Main Content */}
-            <div className="flex flex-col w-full max-w-4xl p-3 md:p-8 space-y-14">
+            <div className="flex flex-col w-full max-w-3xl p-3 md:p-8 space-y-14">
               {/* Product Information */}
               <section className="space-y-4">
                 <h2 className="font-semibold tracking-tight border-b pb-2">
@@ -316,11 +481,11 @@ export function CreateProductSheet({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <Label htmlFor="basePrice">Harga Dasar</Label>
-                      <Input
+                      <PriceInput
                         id="basePrice"
-                        placeholder="0.00"
+                        placeholder="0"
                         value={basePrice}
-                        onChange={(e) => setBasePrice(e.target.value)}
+                        onChange={setBasePrice}
                       />
                     </div>
                     <div className="space-y-1">
@@ -340,20 +505,203 @@ export function CreateProductSheet({
                 </div>
               </section>
 
+              {/* Sub-Descriptions */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h2 className="font-semibold tracking-tight">Sub Deskripsi</h2>
+                  <Button onClick={addSubDescription} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Tambah Sub Deskripsi
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {subDescriptions.map((subDesc, index) => (
+                    <Card key={subDesc.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">
+                            Sub Deskripsi {index + 1}
+                          </Label>
+                          {subDescriptions.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeSubDescription(subDesc.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label htmlFor={`sub-title-${subDesc.id}`}>
+                              Judul
+                            </Label>
+                            <Input
+                              id={`sub-title-${subDesc.id}`}
+                              placeholder="e.g., Fabric & Fit, Care Instructions"
+                              value={subDesc.title}
+                              onChange={(e) =>
+                                updateSubDescription(
+                                  subDesc.id,
+                                  "title",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label htmlFor={`sub-content-${subDesc.id}`}>
+                              Konten
+                            </Label>
+                            <Textarea
+                              id={`sub-content-${subDesc.id}`}
+                              placeholder="Masukkan detail deskripsi..."
+                              className="min-h-[80px]"
+                              value={subDesc.content}
+                              onChange={(e) =>
+                                updateSubDescription(
+                                  subDesc.id,
+                                  "content",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+
+                  {subDescriptions.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">Belum ada sub deskripsi.</p>
+                      <p className="text-xs">
+                        Klik "Tambah Sub Deskripsi" untuk menambahkan.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
               {/* Product Images */}
               <section className="space-y-4">
                 <h2 className="font-semibold tracking-tight border-b pb-2">
                   Galeri Produk
                 </h2>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <Upload className="size-5 mx-auto mb-3 text-muted-foreground" />
+
+                {/* Upload Area */}
+                <div
+                  className={cn(
+                    "border-2 border-dashed rounded-lg py-10 text-center transition-colors",
+                    isDragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25"
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <Images className="size-5 mx-auto mb-3 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-2">
-                    Drag and drop images or click to browse
+                    Drag and drop images or{" "}
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer transition-colors"
+                      onClick={() =>
+                        document.getElementById("image-upload")?.click()
+                      }
+                    >
+                      click to browse
+                    </button>
                   </p>
-                  <Button variant="outline" size="sm">
-                    Browse Files
-                  </Button>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Support: JPG, PNG, GIF up to 10MB each
+                  </p>
                 </div>
+
+                {/* Image Preview Grid */}
+                {images.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        Uploaded Images ({images.length})
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Click star to set as thumbnail
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {images.map((image) => (
+                        <div
+                          key={image.id}
+                          className={cn(
+                            "relative group aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                            image.isThumbnail
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-muted hover:border-muted-foreground/50"
+                          )}
+                        >
+                          <img
+                            src={image.preview}
+                            alt="Product preview"
+                            className="w-full h-full object-cover"
+                          />
+
+                          {/* Thumbnail Badge */}
+                          {image.isThumbnail && (
+                            <div className="absolute top-1 left-1">
+                              <Badge
+                                variant="default"
+                                className="text-xs px-1 py-0"
+                              >
+                                <Star className="w-3 h-3 mr-1 fill-current" />
+                                Thumbnail
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            {!image.isThumbnail && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setThumbnail(image.id)}
+                                title="Set as thumbnail"
+                              >
+                                <Star className="w-3 h-3" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-7 w-7 p-0"
+                              onClick={() => removeImage(image.id)}
+                              title="Remove image"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Product Variants */}
@@ -474,7 +822,7 @@ export function CreateProductSheet({
                         }}
                       >
                         {variant.attributes.map((attribute, attrIndex) => (
-                          <div key={attrIndex} className="space-y-1">
+                          <div key={attrIndex} className="space-y-1 min-w-0">
                             <Label className="text-xs">{attribute.name}</Label>
                             <Input
                               placeholder={`e.g., ${
@@ -496,22 +844,22 @@ export function CreateProductSheet({
                             />
                           </div>
                         ))}
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <Label className="text-xs">Price</Label>
-                          <Input
-                            placeholder="0.00"
+                          <PriceInput
+                            placeholder="0"
                             value={variant.price}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               updateVariantField(
                                 variant.id,
                                 "price",
-                                e.target.value
+                                value
                               )
                             }
                             className="h-8"
                           />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <Label className="text-xs">Stock</Label>
                           <Input
                             placeholder="0"
@@ -581,7 +929,7 @@ export function CreateProductSheet({
               <Card>
                 <CardContent className="p-3">
                   <div className="aspect-square bg-muted rounded-lg mb-2 flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-muted-foreground" />
+                    <ImageIcon className="size-5 text-muted-foreground" />
                   </div>
                   <h4 className="font-medium truncate text-sm">
                     {productName || "Product Name"}

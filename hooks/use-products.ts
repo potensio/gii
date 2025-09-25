@@ -6,12 +6,13 @@ import {
   CreateProductInput,
   UpdateProductInput,
   ProductFilters,
-  ProductPaginationOptions,
   CreateCategoryInput,
   UpdateCategoryInput,
   CreateBrandInput,
   UpdateBrandInput,
 } from "@/lib/schemas/product.schema";
+import { PaginationOptions } from "@/lib/schemas/user.schema";
+import { apiClient } from "@/lib/api-client";
 
 // Types for API responses
 interface Product {
@@ -127,7 +128,7 @@ interface ProductStats {
 const productApi = {
   getProducts: async (
     filters: ProductFilters,
-    pagination: ProductPaginationOptions
+    pagination: PaginationOptions
   ): Promise<ProductsResponse> => {
     const params = new URLSearchParams();
 
@@ -147,186 +148,135 @@ const productApi = {
     params.append("sortBy", pagination.sortBy);
     params.append("sortOrder", pagination.sortOrder);
 
-    const response = await fetch(`/api/products?${params}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch products");
+    const response = await apiClient.get<ProductsResponse>(`/api/products?${params}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   getProductById: async (id: string): Promise<Product> => {
-    const response = await fetch(`/api/products/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch product");
+    const response = await apiClient.get<Product>(`/api/products/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   createProduct: async (data: CreateProductInput): Promise<Product> => {
-    const response = await fetch("/api/products", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create product");
+    const response = await apiClient.post<Product>("/api/products", data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   updateProduct: async (
     id: string,
     data: UpdateProductInput
   ): Promise<Product> => {
-    const response = await fetch(`/api/products/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to update product");
+    const response = await apiClient.put<Product>(`/api/products/${id}`, data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   deleteProduct: async (id: string): Promise<void> => {
-    const response = await fetch(`/api/products/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to delete product");
+    const response = await apiClient.delete(`/api/products/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
   },
 
   getProductStats: async (): Promise<ProductStats> => {
-    const response = await fetch("/api/products/stats");
-    if (!response.ok) {
-      throw new Error("Failed to fetch product stats");
+    const response = await apiClient.get<ProductStats>("/api/products/stats");
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   // Categories
   getCategories: async (): Promise<Category[]> => {
-    const response = await fetch("/api/categories");
-    if (!response.ok) {
-      throw new Error("Failed to fetch categories");
+    const response = await apiClient.get<Category[]>("/api/categories");
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   getCategoryById: async (id: string): Promise<Category> => {
-    const response = await fetch(`/api/categories/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch category");
+    const response = await apiClient.get<Category>(`/api/categories/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   createCategory: async (data: CreateCategoryInput): Promise<Category> => {
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create category");
+    const response = await apiClient.post<Category>("/api/categories", data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   updateCategory: async (
     id: string,
     data: UpdateCategoryInput
   ): Promise<Category> => {
-    const response = await fetch(`/api/categories/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to update category");
+    const response = await apiClient.put<Category>(`/api/categories/${id}`, data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   deleteCategory: async (id: string): Promise<void> => {
-    const response = await fetch(`/api/categories/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to delete category");
+    const response = await apiClient.delete(`/api/categories/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
   },
 
   // Brands
   getBrands: async (): Promise<Brand[]> => {
-    const response = await fetch("/api/brands");
-    if (!response.ok) {
-      throw new Error("Failed to fetch brands");
+    const response = await apiClient.get<Brand[]>("/api/brands");
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   getBrandById: async (id: string): Promise<Brand> => {
-    const response = await fetch(`/api/brands/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch brand");
+    const response = await apiClient.get<Brand>(`/api/brands/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   createBrand: async (data: CreateBrandInput): Promise<Brand> => {
-    const response = await fetch("/api/brands", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create brand");
+    const response = await apiClient.post<Brand>("/api/brands", data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   updateBrand: async (id: string, data: UpdateBrandInput): Promise<Brand> => {
-    const response = await fetch(`/api/brands/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to update brand");
+    const response = await apiClient.put<Brand>(`/api/brands/${id}`, data);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   },
 
   deleteBrand: async (id: string): Promise<void> => {
-    const response = await fetch(`/api/brands/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to delete brand");
+    const response = await apiClient.delete(`/api/brands/${id}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
   },
 };
@@ -335,7 +285,7 @@ const productApi = {
 export const productKeys = {
   all: ["products"] as const,
   lists: () => [...productKeys.all, "list"] as const,
-  list: (filters: ProductFilters, pagination: ProductPaginationOptions) =>
+  list: (filters: ProductFilters, pagination: PaginationOptions) =>
     [...productKeys.lists(), filters, pagination] as const,
   details: () => [...productKeys.all, "detail"] as const,
   detail: (id: string) => [...productKeys.details(), id] as const,
@@ -359,7 +309,7 @@ export const brandKeys = {
 // Product Hooks
 export function useProducts(
   filters: ProductFilters = {},
-  pagination: ProductPaginationOptions = {
+  pagination: PaginationOptions = {
     page: 1,
     limit: 10,
     sortBy: "createdAt",

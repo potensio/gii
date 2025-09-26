@@ -11,43 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PriceInput } from "@/components/ui/price-input";
-import { FieldErrors } from "react-hook-form";
+import { FieldErrors, UseFormRegister, Control, Controller } from "react-hook-form";
 import { CreateProductFormData } from "@/lib/schemas/product-form.schema";
 import { useBrands, useCategories } from "@/hooks/use-products";
 
 interface ProductInformationSectionProps {
-  productName: string;
-  onProductNameChange: (value: string) => void;
-  category: string;
-  onCategoryChange: (value: string) => void;
-  brand: string;
-  onBrandChange: (value: string) => void;
-  sku: string;
-  onSkuChange: (value: string) => void;
-  description: string;
-  onDescriptionChange: (value: string) => void;
-  basePrice: string;
-  onBasePriceChange: (value: string) => void;
-  status: string;
-  onStatusChange: (value: string) => void;
+  register: UseFormRegister<CreateProductFormData>;
+  control: Control<CreateProductFormData>;
   errors?: FieldErrors<CreateProductFormData>;
 }
 
 export function ProductInformationSection({
-  productName,
-  category,
-  brand,
-  sku,
-  description,
-  basePrice,
-  status,
-  onProductNameChange,
-  onCategoryChange,
-  onBrandChange,
-  onSkuChange,
-  onDescriptionChange,
-  onBasePriceChange,
-  onStatusChange,
+  register,
+  control,
   errors,
 }: ProductInformationSectionProps) {
   const { data: brands, isLoading: brandsLoading } = useBrands();
@@ -64,8 +40,7 @@ export function ProductInformationSection({
             <Input
               id="productName"
               placeholder="iPhone 14 Pro Max"
-              value={productName}
-              onChange={(e) => onProductNameChange(e.target.value)}
+              {...register("productName")}
               className={errors?.productName ? "border-destructive" : ""}
             />
             {errors?.productName && (
@@ -76,30 +51,36 @@ export function ProductInformationSection({
           </div>
           <div className="space-y-1">
             <Label htmlFor="category">Kategori</Label>
-            <Select
-              value={category}
-              onValueChange={onCategoryChange}
-              disabled={categoriesLoading}
-            >
-              <SelectTrigger
-                className={errors?.category ? "border-destructive" : ""}
-              >
-                <SelectValue
-                  placeholder={
-                    categoriesLoading
-                      ? "Loading categories..."
-                      : "Pilih kategori"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {categories?.map((categoryItem) => (
-                  <SelectItem key={categoryItem.id} value={categoryItem.id}>
-                    {categoryItem.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={categoriesLoading}
+                >
+                  <SelectTrigger
+                    className={errors?.category ? "border-destructive" : ""}
+                  >
+                    <SelectValue
+                      placeholder={
+                        categoriesLoading
+                          ? "Loading categories..."
+                          : "Pilih kategori"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.map((categoryItem) => (
+                      <SelectItem key={categoryItem.id} value={categoryItem.id}>
+                        {categoryItem.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors?.category && (
               <p className="text-sm text-destructive">
                 {errors.category.message}
@@ -111,28 +92,34 @@ export function ProductInformationSection({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label htmlFor="brand">Merk</Label>
-            <Select
-              value={brand}
-              onValueChange={onBrandChange}
-              disabled={brandsLoading}
-            >
-              <SelectTrigger
-                className={errors?.brand ? "border-destructive" : ""}
-              >
-                <SelectValue
-                  placeholder={
-                    brandsLoading ? "Loading brands..." : "Pilih brand"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {brands?.map((brandItem) => (
-                  <SelectItem key={brandItem.id} value={brandItem.id}>
-                    {brandItem.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="brand"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={brandsLoading}
+                >
+                  <SelectTrigger
+                    className={errors?.brand ? "border-destructive" : ""}
+                  >
+                    <SelectValue
+                      placeholder={
+                        brandsLoading ? "Loading brands..." : "Pilih brand"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands?.map((brandItem) => (
+                      <SelectItem key={brandItem.id} value={brandItem.id}>
+                        {brandItem.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors?.brand && (
               <p className="text-sm text-destructive">{errors.brand.message}</p>
             )}
@@ -142,8 +129,7 @@ export function ProductInformationSection({
             <Input
               id="sku"
               placeholder="Nomor SKU"
-              value={sku}
-              onChange={(e) => onSkuChange(e.target.value)}
+              {...register("sku")}
               className={errors?.sku ? "border-destructive" : ""}
             />
             {errors?.sku && (
@@ -160,8 +146,7 @@ export function ProductInformationSection({
             className={`min-h-[80px] ${
               errors?.description ? "border-destructive" : ""
             }`}
-            value={description}
-            onChange={(e) => onDescriptionChange(e.target.value)}
+            {...register("description")}
           />
           {errors?.description && (
             <p className="text-sm text-destructive">
@@ -173,12 +158,18 @@ export function ProductInformationSection({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label htmlFor="basePrice">Harga Dasar</Label>
-            <PriceInput
-              id="basePrice"
-              placeholder="0"
-              value={basePrice}
-              onChange={onBasePriceChange}
-              className={errors?.basePrice ? "border-destructive" : ""}
+            <Controller
+              name="basePrice"
+              control={control}
+              render={({ field }) => (
+                <PriceInput
+                  id="basePrice"
+                  placeholder="0"
+                  value={field.value}
+                  onChange={field.onChange}
+                  className={errors?.basePrice ? "border-destructive" : ""}
+                />
+              )}
             />
             {errors?.basePrice && (
               <p className="text-sm text-destructive">
@@ -188,18 +179,24 @@ export function ProductInformationSection({
           </div>
           <div className="space-y-1">
             <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={onStatusChange}>
-              <SelectTrigger
-                className={errors?.status ? "border-destructive" : ""}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    className={errors?.status ? "border-destructive" : ""}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors?.status && (
               <p className="text-sm text-destructive">
                 {errors.status.message}

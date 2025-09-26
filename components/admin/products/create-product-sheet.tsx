@@ -46,6 +46,8 @@ export function CreateProductSheet({
   const form = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductFormSchema),
     defaultValues: defaultProductFormValues,
+    mode: "onChange", // Validate on change for real-time feedback
+    reValidateMode: "onChange", // Re-validate on change after first error
   });
 
   const {
@@ -53,14 +55,15 @@ export function CreateProductSheet({
     setValue,
     getValues,
     handleSubmit,
+    setError,
+    clearErrors,
+    register,
+    control,
     formState: { errors, isSubmitting },
   } = form;
 
   // Watch form values for reactive updates
   const watchedValues = watch();
-
-  // Form submission state
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Create product mutation
   const createProductMutation = useCreateProductWithForm();
@@ -117,6 +120,7 @@ export function CreateProductSheet({
     setValue("variants", updatedVariants);
   }, [selectedAttributes, setValue, getValues]);
 
+  // Handle category change
   const addVariant = () => {
     const newVariant: ProductVariant = {
       id: Date.now().toString(),
@@ -293,7 +297,8 @@ export function CreateProductSheet({
   const handleSave = handleSubmit(
     async (data: CreateProductFormData) => {
       try {
-        setSubmitError(null);
+        // Clear any previous errors
+        clearErrors("root");
 
         // Upload images to Vercel Blob first if there are any
         let uploadedImages: Array<{
@@ -355,11 +360,12 @@ export function CreateProductSheet({
             );
           } catch (uploadError) {
             console.error("Image upload error:", uploadError);
-            setSubmitError(
-              uploadError instanceof Error
+            setError("root.uploadError", {
+              type: "manual",
+              message: uploadError instanceof Error
                 ? `Image upload failed: ${uploadError.message}`
                 : "Failed to upload images. Please try again."
-            );
+            });
             return;
           }
         }
@@ -384,25 +390,23 @@ export function CreateProductSheet({
         console.error("Product creation error:", error);
 
         if (error instanceof Error) {
-          // Handle validation errors
-          if (error.message.includes("validation")) {
-            setSubmitError(`Validation error: ${error.message}`);
-            toast({
-              title: "Validation Error",
-              description: "Please check all required fields and fix any errors.",
-              variant: "destructive",
+          // Handle specific error types that require root-level errors
+          if (error.message.includes("already exists")) {
+            setError("root.duplicateError", {
+              type: "manual",
+              message: "A product with this slug already exists. Please use a different slug."
             });
-          } else if (error.message.includes("already exists")) {
-            setSubmitError(
-              "A product with this slug already exists. Please use a different slug."
-            );
             toast({
               title: "Duplicate Product",
               description: "A product with this slug already exists. Please use a different slug.",
               variant: "destructive",
             });
           } else {
-            setSubmitError(error.message);
+            // Handle server/network errors
+            setError("root.serverError", {
+              type: "manual",
+              message: error.message
+            });
             toast({
               title: "Error",
               description: error.message,
@@ -410,7 +414,10 @@ export function CreateProductSheet({
             });
           }
         } else {
-          setSubmitError("An unexpected error occurred. Please try again.");
+          setError("root.unexpectedError", {
+            type: "manual",
+            message: "An unexpected error occurred. Please try again."
+          });
           toast({
             title: "Error",
             description: "An unexpected error occurred. Please try again.",
@@ -419,33 +426,14 @@ export function CreateProductSheet({
         }
       }
     },
-    (errors: any) => {
-      // Handle validation errors with detailed messages
-      console.log("Form validation errors:", errors);
-      
-      const errorMessages = [];
-      
-      // Check for specific field errors
-      if (errors.productName) errorMessages.push("Product name is required");
-      if (errors.category) errorMessages.push("Category is required");
-      if (errors.brand) errorMessages.push("Brand is required");
-      if (errors.sku) errorMessages.push("SKU is required");
-      if (errors.description) errorMessages.push("Description is required");
-      if (errors.basePrice) errorMessages.push("Base price is required");
-      if (errors.subDescriptions) errorMessages.push("At least one sub-description is required");
-      if (errors.images || errors.uploadedImages) errorMessages.push("At least one image is required and one must be set as thumbnail");
-      if (errors.selectedAttributes) errorMessages.push("At least one variant attribute must be selected");
-      if (errors.variants) errorMessages.push("At least one variant is required with all fields filled");
-      
-      const detailedMessage = errorMessages.length > 0 
-        ? errorMessages.join(", ") 
-        : "Please fix the validation errors before submitting";
-      
-      setSubmitError(detailedMessage);
+    (validationErrors) => {
+      // Let React Hook Form handle field validation errors automatically
+      // Only show a general toast for user feedback
+      console.log("Form validation errors:", validationErrors);
       
       toast({
         title: "Validation Errors",
-        description: detailedMessage,
+        description: "Please check the highlighted fields and fix any errors.",
         variant: "destructive",
       });
     }
@@ -488,22 +476,8 @@ export function CreateProductSheet({
             <div className="flex flex-col w-full max-w-3xl p-3 md:p-8 space-y-14">
               {/* Product Information */}
               <ProductInformationSection
-                productName={watchedValues.productName}
-                category={watchedValues.category}
-                brand={watchedValues.brand}
-                sku={watchedValues.sku}
-                description={watchedValues.description}
-                basePrice={watchedValues.basePrice}
-                status={watchedValues.status}
-                onProductNameChange={(value) => setValue("productName", value)}
-                onCategoryChange={(value) => setValue("category", value)}
-                onBrandChange={(value) => setValue("brand", value)}
-                onSkuChange={(value) => setValue("sku", value)}
-                onDescriptionChange={(value) => setValue("description", value)}
-                onBasePriceChange={(value) => setValue("basePrice", value)}
-                onStatusChange={(value) =>
-                  setValue("status", value as "ACTIVE" | "INACTIVE" | "DRAFT")
-                }
+                register={register}
+                control={control}
                 errors={errors}
               />
 
@@ -581,10 +555,31 @@ export function CreateProductSheet({
             </div>
 
             <div className="space-y-2 pt-4 border-t">
-              {submitError && (
+              {/* Display field validation errors */}
+              {Object.keys(errors).length > 0 && !errors.root && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{submitError}</AlertDescription>
+                  <AlertDescription>
+                    Please fix the validation errors in the highlighted fields.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Display root-level errors (server errors, upload failures, etc.) */}
+              {errors.root && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {Object.values(errors.root).map((error, index) => (
+                      <div key={index}>
+                        {typeof error === 'string' 
+                          ? error 
+                          : typeof error === 'object' && error && 'message' in error 
+                            ? error.message 
+                            : 'An error occurred'}
+                      </div>
+                    ))}
+                  </AlertDescription>
                 </Alert>
               )}
 

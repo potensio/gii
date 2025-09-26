@@ -72,7 +72,7 @@ export default function ProductsPage() {
         isLoading={isLoading}
       />
 
-      <CreateProductSheet 
+      <CreateProductSheet
         isOpen={isCreateSheetOpen}
         onClose={() => setIsCreateSheetOpen(false)}
       />

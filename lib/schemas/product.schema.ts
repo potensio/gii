@@ -10,7 +10,10 @@ export const createProductSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    ),
   description: z.string().optional(),
   shortDescription: z
     .string()
@@ -24,10 +27,17 @@ export const createProductSchema = z.object({
     .max(999999.99, "Base price too large"),
   status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.ACTIVE),
   featured: z.boolean().optional().default(false),
-  metaTitle: z.string().max(60, "Meta title must be less than 60 characters").optional(),
-  metaDescription: z.string().max(160, "Meta description must be less than 160 characters").optional(),
+  metaTitle: z
+    .string()
+    .max(60, "Meta title must be less than 60 characters")
+    .optional(),
+  metaDescription: z
+    .string()
+    .max(160, "Meta description must be less than 160 characters")
+    .optional(),
   fabricFit: z.string().optional(),
   careInstructions: z.string().optional(),
+  imageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 });
 
 export const updateProductSchema = z.object({
@@ -39,7 +49,10 @@ export const updateProductSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    )
     .optional(),
   description: z.string().optional(),
   shortDescription: z
@@ -55,8 +68,14 @@ export const updateProductSchema = z.object({
     .optional(),
   status: z.nativeEnum(ProductStatus).optional(),
   featured: z.boolean().optional(),
-  metaTitle: z.string().max(60, "Meta title must be less than 60 characters").optional(),
-  metaDescription: z.string().max(160, "Meta description must be less than 160 characters").optional(),
+  metaTitle: z
+    .string()
+    .max(60, "Meta title must be less than 60 characters")
+    .optional(),
+  metaDescription: z
+    .string()
+    .max(160, "Meta description must be less than 160 characters")
+    .optional(),
   fabricFit: z.string().optional(),
   careInstructions: z.string().optional(),
 });
@@ -95,7 +114,10 @@ export const createVariantSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    ),
   price: z
     .number()
     .positive("Price must be positive")
@@ -111,7 +133,11 @@ export const createVariantSchema = z.object({
     .max(999999.99, "Cost price too large")
     .optional(),
   stock: z.number().int().min(0, "Stock cannot be negative").default(0),
-  lowStockThreshold: z.number().int().min(0, "Low stock threshold cannot be negative").default(5),
+  lowStockThreshold: z
+    .number()
+    .int()
+    .min(0, "Low stock threshold cannot be negative")
+    .default(5),
   trackInventory: z.boolean().default(true),
   isActive: z.boolean().default(true),
   isDefault: z.boolean().default(false),
@@ -131,7 +157,10 @@ export const updateVariantSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    )
     .optional(),
   price: z
     .number()
@@ -149,7 +178,11 @@ export const updateVariantSchema = z.object({
     .max(999999.99, "Cost price too large")
     .optional(),
   stock: z.number().int().min(0, "Stock cannot be negative").optional(),
-  lowStockThreshold: z.number().int().min(0, "Low stock threshold cannot be negative").optional(),
+  lowStockThreshold: z
+    .number()
+    .int()
+    .min(0, "Low stock threshold cannot be negative")
+    .optional(),
   trackInventory: z.boolean().optional(),
   isActive: z.boolean().optional(),
   isDefault: z.boolean().optional(),
@@ -194,23 +227,22 @@ export const updateVariantAttributeSchema = z.object({
 });
 
 // Product Image schemas
-export const createProductImageSchema = z.object({
-  productId: z.string().optional(),
-  variantId: z.string().optional(),
-  url: z.string().url("Invalid image URL"),
-  altText: z
-    .string()
-    .min(1, "Alt text is required")
-    .max(200, "Alt text must be less than 200 characters"),
-  sortOrder: z.number().int().min(0).default(0),
-  isMain: z.boolean().default(false),
-}).refine(
-  (data) => data.productId || data.variantId,
-  {
+export const createProductImageSchema = z
+  .object({
+    productId: z.string().optional(),
+    variantId: z.string().optional(),
+    url: z.string().url("Invalid image URL"),
+    altText: z
+      .string()
+      .min(1, "Alt text is required")
+      .max(200, "Alt text must be less than 200 characters"),
+    sortOrder: z.number().int().min(0).default(0),
+    isMain: z.boolean().default(false),
+  })
+  .refine((data) => data.productId || data.variantId, {
     message: "Either productId or variantId must be provided",
     path: ["productId"],
-  }
-);
+  });
 
 export const updateProductImageSchema = z.object({
   url: z.string().url("Invalid image URL").optional(),
@@ -262,7 +294,10 @@ export const createCategorySchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    ),
   description: z.string().optional(),
   parentId: z.string().optional(),
 });
@@ -276,7 +311,10 @@ export const updateCategorySchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    )
     .optional(),
   description: z.string().optional(),
   parentId: z.string().optional(),
@@ -291,7 +329,10 @@ export const createBrandSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    ),
   description: z.string().optional(),
   logoUrl: z.string().url("Invalid logo URL").optional(),
   website: z.string().url("Invalid website URL").optional(),
@@ -306,7 +347,10 @@ export const updateBrandSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase with hyphens only"
+    )
     .optional(),
   description: z.string().optional(),
   logoUrl: z.string().url("Invalid logo URL").optional(),
@@ -322,14 +366,22 @@ export type ProductPaginationOptions = z.infer<typeof productPaginationSchema>;
 export type CreateVariantInput = z.infer<typeof createVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
 
-export type CreateVariantAttributeInput = z.infer<typeof createVariantAttributeSchema>;
-export type UpdateVariantAttributeInput = z.infer<typeof updateVariantAttributeSchema>;
+export type CreateVariantAttributeInput = z.infer<
+  typeof createVariantAttributeSchema
+>;
+export type UpdateVariantAttributeInput = z.infer<
+  typeof updateVariantAttributeSchema
+>;
 
 export type CreateProductImageInput = z.infer<typeof createProductImageSchema>;
 export type UpdateProductImageInput = z.infer<typeof updateProductImageSchema>;
 
-export type CreateProductSpecificationInput = z.infer<typeof createProductSpecificationSchema>;
-export type UpdateProductSpecificationInput = z.infer<typeof updateProductSpecificationSchema>;
+export type CreateProductSpecificationInput = z.infer<
+  typeof createProductSpecificationSchema
+>;
+export type UpdateProductSpecificationInput = z.infer<
+  typeof updateProductSpecificationSchema
+>;
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

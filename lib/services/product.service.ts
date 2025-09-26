@@ -47,28 +47,58 @@ import {
 export class ProductService {
   // Product operations
   async createProduct(input: CreateProductInput): Promise<Product> {
-    // Validate input
     const validatedInput = createProductSchema.parse(input);
 
-    // Check if product with slug already exists
-    const existingProduct = await productRepository.findBySlug(validatedInput.slug);
+    // Check if product with same slug already exists
+    const existingProduct = await productRepository.findBySlug(
+      validatedInput.slug
+    );
     if (existingProduct) {
-      throw new Error("Product with this slug already exists");
+      throw new Error(`Product with slug "${validatedInput.slug}" already exists`);
     }
 
     // Verify brand exists
-    const brand = await productRepository.findBrandById(validatedInput.brandId);
+    const brand = await this.getBrandById(validatedInput.brandId);
     if (!brand) {
       throw new Error("Brand not found");
     }
 
     // Verify category exists
-    const category = await productRepository.findCategoryById(validatedInput.categoryId);
+    const category = await this.getCategoryById(validatedInput.categoryId);
     if (!category) {
       throw new Error("Category not found");
     }
 
-    return productRepository.create(validatedInput);
+    // Extract imageUrls and remove it from the product data
+    const { imageUrls, ...productData } = validatedInput;
+
+    // Create the product
+    const createdProduct = await productRepository.create(productData);
+
+    // Handle image creation if imageUrls are provided
+    if (imageUrls && imageUrls.length > 0) {
+      const imagePromises = imageUrls.map((url, index) => {
+        const imageInput: CreateProductImageInput = {
+          productId: createdProduct.id,
+          url,
+          altText: `${createdProduct.name} - Image ${index + 1}`,
+          sortOrder: index,
+          isMain: index === 0, // First image is the main image
+        };
+        return this.createProductImage(imageInput);
+      });
+
+      await Promise.all(imagePromises);
+    }
+
+    // Return the product with images included
+    const productWithImages = await productRepository.findById(
+      createdProduct.id
+    );
+    if (!productWithImages) {
+      throw new Error("Failed to retrieve created product");
+    }
+    return productWithImages;
   }
 
   async getProductById(id: string): Promise<Product> {
@@ -138,7 +168,9 @@ export class ProductService {
 
     // If slug is being updated, check for conflicts
     if (validatedInput.slug && validatedInput.slug !== existingProduct.slug) {
-      const slugConflict = await productRepository.findBySlug(validatedInput.slug);
+      const slugConflict = await productRepository.findBySlug(
+        validatedInput.slug
+      );
       if (slugConflict) {
         throw new Error("Slug is already in use by another product");
       }
@@ -146,7 +178,9 @@ export class ProductService {
 
     // Verify brand exists if being updated
     if (validatedInput.brandId) {
-      const brand = await productRepository.findBrandById(validatedInput.brandId);
+      const brand = await productRepository.findBrandById(
+        validatedInput.brandId
+      );
       if (!brand) {
         throw new Error("Brand not found");
       }
@@ -154,7 +188,9 @@ export class ProductService {
 
     // Verify category exists if being updated
     if (validatedInput.categoryId) {
-      const category = await productRepository.findCategoryById(validatedInput.categoryId);
+      const category = await productRepository.findCategoryById(
+        validatedInput.categoryId
+      );
       if (!category) {
         throw new Error("Category not found");
       }
@@ -184,7 +220,10 @@ export class ProductService {
     return productRepository.deleteMany(ids);
   }
 
-  async updateProductStatus(id: string, status: ProductStatus): Promise<Product> {
+  async updateProductStatus(
+    id: string,
+    status: ProductStatus
+  ): Promise<Product> {
     if (!id) {
       throw new Error("Product ID is required");
     }
@@ -201,7 +240,10 @@ export class ProductService {
     return productRepository.getFeaturedProducts(limit);
   }
 
-  async getProductsByCategory(categoryId: string, limit?: number): Promise<Product[]> {
+  async getProductsByCategory(
+    categoryId: string,
+    limit?: number
+  ): Promise<Product[]> {
     if (!categoryId) {
       throw new Error("Category ID is required");
     }
@@ -214,7 +256,10 @@ export class ProductService {
     return productRepository.getProductsByCategory(categoryId, limit);
   }
 
-  async getProductsByBrand(brandId: string, limit?: number): Promise<Product[]> {
+  async getProductsByBrand(
+    brandId: string,
+    limit?: number
+  ): Promise<Product[]> {
     if (!brandId) {
       throw new Error("Brand ID is required");
     }
@@ -252,13 +297,17 @@ export class ProductService {
     }
 
     // Check if variant with slug already exists
-    const existingVariant = await productRepository.findVariantBySlug(validatedInput.slug);
+    const existingVariant = await productRepository.findVariantBySlug(
+      validatedInput.slug
+    );
     if (existingVariant) {
       throw new Error("Variant with this slug already exists");
     }
 
     // Check if SKU already exists
-    const existingSkuVariants = await productRepository.findVariantsBySku(validatedInput.sku);
+    const existingSkuVariants = await productRepository.findVariantsBySku(
+      validatedInput.sku
+    );
     if (existingSkuVariants.length > 0) {
       throw new Error("Variant with this SKU already exists");
     }
@@ -292,7 +341,10 @@ export class ProductService {
     return variant;
   }
 
-  async updateVariant(id: string, input: UpdateVariantInput): Promise<ProductVariant> {
+  async updateVariant(
+    id: string,
+    input: UpdateVariantInput
+  ): Promise<ProductVariant> {
     if (!id) {
       throw new Error("Variant ID is required");
     }
@@ -308,7 +360,9 @@ export class ProductService {
 
     // If slug is being updated, check for conflicts
     if (validatedInput.slug && validatedInput.slug !== existingVariant.slug) {
-      const slugConflict = await productRepository.findVariantBySlug(validatedInput.slug);
+      const slugConflict = await productRepository.findVariantBySlug(
+        validatedInput.slug
+      );
       if (slugConflict) {
         throw new Error("Slug is already in use by another variant");
       }
@@ -316,7 +370,9 @@ export class ProductService {
 
     // If SKU is being updated, check for conflicts
     if (validatedInput.sku && validatedInput.sku !== existingVariant.sku) {
-      const skuConflicts = await productRepository.findVariantsBySku(validatedInput.sku);
+      const skuConflicts = await productRepository.findVariantsBySku(
+        validatedInput.sku
+      );
       if (skuConflicts.length > 0) {
         throw new Error("SKU is already in use by another variant");
       }
@@ -343,12 +399,16 @@ export class ProductService {
   }
 
   // Variant Attribute operations
-  async createVariantAttribute(input: CreateVariantAttributeInput): Promise<VariantAttribute> {
+  async createVariantAttribute(
+    input: CreateVariantAttributeInput
+  ): Promise<VariantAttribute> {
     // Validate input
     const validatedInput = createVariantAttributeSchema.parse(input);
 
     // Check if variant exists
-    const variant = await productRepository.findVariantById(validatedInput.variantId);
+    const variant = await productRepository.findVariantById(
+      validatedInput.variantId
+    );
     if (!variant) {
       throw new Error("Variant not found");
     }
@@ -356,7 +416,10 @@ export class ProductService {
     return productRepository.createVariantAttribute(validatedInput);
   }
 
-  async updateVariantAttribute(id: string, input: UpdateVariantAttributeInput): Promise<VariantAttribute> {
+  async updateVariantAttribute(
+    id: string,
+    input: UpdateVariantAttributeInput
+  ): Promise<VariantAttribute> {
     if (!id) {
       throw new Error("Variant attribute ID is required");
     }
@@ -376,20 +439,26 @@ export class ProductService {
   }
 
   // Product Image operations
-  async createProductImage(input: CreateProductImageInput): Promise<ProductImage> {
+  async createProductImage(
+    input: CreateProductImageInput
+  ): Promise<ProductImage> {
     // Validate input
     const validatedInput = createProductImageSchema.parse(input);
 
     // Check if product or variant exists
     if (validatedInput.productId) {
-      const product = await productRepository.findById(validatedInput.productId);
+      const product = await productRepository.findById(
+        validatedInput.productId
+      );
       if (!product) {
         throw new Error("Product not found");
       }
     }
 
     if (validatedInput.variantId) {
-      const variant = await productRepository.findVariantById(validatedInput.variantId);
+      const variant = await productRepository.findVariantById(
+        validatedInput.variantId
+      );
       if (!variant) {
         throw new Error("Variant not found");
       }
@@ -398,7 +467,10 @@ export class ProductService {
     return productRepository.createProductImage(validatedInput);
   }
 
-  async updateProductImage(id: string, input: UpdateProductImageInput): Promise<ProductImage> {
+  async updateProductImage(
+    id: string,
+    input: UpdateProductImageInput
+  ): Promise<ProductImage> {
     if (!id) {
       throw new Error("Product image ID is required");
     }
@@ -418,7 +490,9 @@ export class ProductService {
   }
 
   // Product Specification operations
-  async createProductSpecification(input: CreateProductSpecificationInput): Promise<ProductSpecification> {
+  async createProductSpecification(
+    input: CreateProductSpecificationInput
+  ): Promise<ProductSpecification> {
     // Validate input
     const validatedInput = createProductSpecificationSchema.parse(input);
 
@@ -431,7 +505,10 @@ export class ProductService {
     return productRepository.createProductSpecification(validatedInput);
   }
 
-  async updateProductSpecification(id: string, input: UpdateProductSpecificationInput): Promise<ProductSpecification> {
+  async updateProductSpecification(
+    id: string,
+    input: UpdateProductSpecificationInput
+  ): Promise<ProductSpecification> {
     if (!id) {
       throw new Error("Product specification ID is required");
     }
@@ -456,14 +533,18 @@ export class ProductService {
     const validatedInput = createCategorySchema.parse(input);
 
     // Check if category with slug already exists
-    const existingCategory = await productRepository.findCategoryBySlug(validatedInput.slug);
+    const existingCategory = await productRepository.findCategoryBySlug(
+      validatedInput.slug
+    );
     if (existingCategory) {
       throw new Error("Category with this slug already exists");
     }
 
     // Check if parent category exists
     if (validatedInput.parentId) {
-      const parentCategory = await productRepository.findCategoryById(validatedInput.parentId);
+      const parentCategory = await productRepository.findCategoryById(
+        validatedInput.parentId
+      );
       if (!parentCategory) {
         throw new Error("Parent category not found");
       }
@@ -502,7 +583,10 @@ export class ProductService {
     return productRepository.findAllCategories();
   }
 
-  async updateCategory(id: string, input: UpdateCategoryInput): Promise<Category> {
+  async updateCategory(
+    id: string,
+    input: UpdateCategoryInput
+  ): Promise<Category> {
     if (!id) {
       throw new Error("Category ID is required");
     }
@@ -518,7 +602,9 @@ export class ProductService {
 
     // If slug is being updated, check for conflicts
     if (validatedInput.slug && validatedInput.slug !== existingCategory.slug) {
-      const slugConflict = await productRepository.findCategoryBySlug(validatedInput.slug);
+      const slugConflict = await productRepository.findCategoryBySlug(
+        validatedInput.slug
+      );
       if (slugConflict) {
         throw new Error("Slug is already in use by another category");
       }
@@ -526,7 +612,9 @@ export class ProductService {
 
     // Check if parent category exists
     if (validatedInput.parentId) {
-      const parentCategory = await productRepository.findCategoryById(validatedInput.parentId);
+      const parentCategory = await productRepository.findCategoryById(
+        validatedInput.parentId
+      );
       if (!parentCategory) {
         throw new Error("Parent category not found");
       }
@@ -551,7 +639,10 @@ export class ProductService {
     }
 
     // Check if category has products
-    const productsInCategory = await productRepository.getProductsByCategory(id, 1);
+    const productsInCategory = await productRepository.getProductsByCategory(
+      id,
+      1
+    );
     if (productsInCategory.length > 0) {
       throw new Error("Cannot delete category that contains products");
     }
@@ -565,7 +656,9 @@ export class ProductService {
     const validatedInput = createBrandSchema.parse(input);
 
     // Check if brand with slug already exists
-    const existingBrand = await productRepository.findBrandBySlug(validatedInput.slug);
+    const existingBrand = await productRepository.findBrandBySlug(
+      validatedInput.slug
+    );
     if (existingBrand) {
       throw new Error("Brand with this slug already exists");
     }
@@ -619,7 +712,9 @@ export class ProductService {
 
     // If slug is being updated, check for conflicts
     if (validatedInput.slug && validatedInput.slug !== existingBrand.slug) {
-      const slugConflict = await productRepository.findBrandBySlug(validatedInput.slug);
+      const slugConflict = await productRepository.findBrandBySlug(
+        validatedInput.slug
+      );
       if (slugConflict) {
         throw new Error("Slug is already in use by another brand");
       }

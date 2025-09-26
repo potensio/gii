@@ -2,27 +2,10 @@
 
 import * as React from "react";
 import { useState, useCallback } from "react";
-import {
-  X,
-  Plus,
-  Images,
-  Trash2,
-  Check,
-  ChevronsUpDown,
-  Star,
-  Image as ImageIcon,
-} from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { X, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -30,156 +13,109 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
-// Define the predefined variant attribute types
-const VARIANT_ATTRIBUTE_TYPES = [
-  { value: "COLOR", label: "Color" },
-  { value: "SIZE", label: "Size" },
-  { value: "STORAGE", label: "Storage" },
-  { value: "MEMORY", label: "Memory" },
-  { value: "PROCESSOR", label: "Processor" },
-  { value: "MATERIAL", label: "Material" },
-  { value: "CAPACITY", label: "Capacity" },
-  { value: "MODEL", label: "Model" },
-  { value: "DIMENSION", label: "Dimension" },
-  { value: "FEATURE", label: "Feature" },
-];
-
+  VARIANT_ATTRIBUTE_TYPES,
+  ProductVariant,
+  ProductImage,
+  SubDescription,
+  CreateProductSheetProps,
+  VariantAttribute,
+} from "./types";
 import { VariantAttributeType } from "@/lib/generated/prisma/enums";
-import { PriceInput } from "@/components/ui/price-input";
-
-interface VariantAttribute {
-  type: VariantAttributeType;
-  name: string;
-  value: string;
-}
-
-interface ProductVariant {
-  id: string;
-  attributes: VariantAttribute[];
-  price: string;
-  stock: string;
-}
-
-interface ProductImage {
-  id: string;
-  file: File;
-  preview: string;
-  isThumbnail: boolean;
-}
-
-interface SubDescription {
-  id: string;
-  title: string;
-  content: string;
-}
-
-interface CreateProductSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { ProductInformationSection } from "./product-information-section";
+import { SubDescriptionsSection } from "./sub-descriptions-section";
+import { ProductImagesSection } from "./product-images-section";
+import { ProductVariantsSection } from "./product-variants-section";
+import { SEOSection } from "./seo-section";
+import {
+  createProductFormSchema,
+  defaultProductFormValues,
+  type CreateProductFormData,
+} from "@/lib/schemas/product-form.schema";
+import { useCreateProductWithForm } from "@/hooks/use-products";
+import { useToast } from "@/hooks/use-toast";
 
 export function CreateProductSheet({
   isOpen,
   onClose,
 }: CreateProductSheetProps) {
-  const [productName, setProductName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [description, setDescription] = useState("");
-  const [basePrice, setBasePrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [sku, setSku] = useState("");
-  const [status, setStatus] = useState("ACTIVE");
+  const { toast } = useToast();
 
-  // SEO & Metatag states
-  const [metaTitle, setMetaTitle] = useState("");
-  const [metaDescription, setMetaDescription] = useState("");
-  const [keywords, setKeywords] = useState("");
+  // React Hook Form setup
+  const form = useForm<CreateProductFormData>({
+    resolver: zodResolver(createProductFormSchema),
+    defaultValues: defaultProductFormValues,
+  });
 
-  // Sub-descriptions state
-  const [subDescriptions, setSubDescriptions] = useState<SubDescription[]>([
-    {
-      id: "1",
-      title: "Fabric & Fit",
-      content: "",
-    },
-    {
-      id: "2", 
-      title: "Care Instructions",
-      content: "",
-    },
-  ]);
+  const {
+    watch,
+    setValue,
+    getValues,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = form;
 
-  // Image upload states
-  const [images, setImages] = useState<ProductImage[]>([]);
+  // Watch form values for reactive updates
+  const watchedValues = watch();
+
+  // Form submission state
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Create product mutation
+  const createProductMutation = useCreateProductWithForm();
+
+  // UI state for drag and drop
   const [isDragOver, setIsDragOver] = useState(false);
-
-  // Selected variant attributes
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([
-    "COLOR",
-    "STORAGE",
-  ]);
   const [open, setOpen] = useState(false);
 
-  const [variants, setVariants] = useState<ProductVariant[]>([
-    {
-      id: "1",
-      attributes: [
-        { type: "COLOR", name: "Color", value: "Black" },
-        { type: "STORAGE", name: "Storage", value: "128GB" },
-      ],
-      price: "999.00",
-      stock: "100",
-    },
-    {
-      id: "2",
-      attributes: [
-        { type: "COLOR", name: "Color", value: "White" },
-        { type: "STORAGE", name: "Storage", value: "256GB" },
-      ],
-      price: "1099.00",
-      stock: "50",
-    },
-  ]);
+  // Get form values for complex fields
+  const subDescriptions = watchedValues.subDescriptions || [];
+  const images = watchedValues.images || [];
+  const selectedAttributes = watchedValues.selectedAttributes || [];
+  const variants = watchedValues.variants || [];
+
+  // Helper functions to update form values
+  const setSubDescriptions = (newSubDescriptions: SubDescription[]) => {
+    setValue("subDescriptions", newSubDescriptions);
+  };
+
+  const setImages = (newImages: ProductImage[]) => {
+    setValue("images", newImages);
+  };
+
+  const setSelectedAttributes = (newAttributes: VariantAttributeType[]) => {
+    setValue("selectedAttributes", newAttributes);
+  };
+
+  const setVariants = (newVariants: ProductVariant[]) => {
+    setValue("variants", newVariants);
+  };
 
   // Update variants when selected attributes change
   React.useEffect(() => {
-    setVariants((prevVariants) =>
-      prevVariants.map((variant) => ({
-        ...variant,
-        attributes: selectedAttributes.map((attrType) => {
-          const existingAttr = variant.attributes.find(
-            (attr) => attr.type === attrType
-          );
-          const attrLabel =
-            VARIANT_ATTRIBUTE_TYPES.find((type) => type.value === attrType)
-              ?.label || attrType;
+    const currentVariants = getValues("variants") || [];
+    const updatedVariants = currentVariants.map((variant: ProductVariant) => ({
+      ...variant,
+      attributes: selectedAttributes.map((attrType) => {
+        const existingAttr = variant.attributes.find(
+          (attr: VariantAttribute) => attr.type === attrType
+        );
+        const attrLabel =
+          VARIANT_ATTRIBUTE_TYPES.find((type) => type.value === attrType)
+            ?.label || attrType;
 
-          return (
-            existingAttr || {
-              type: attrType as VariantAttributeType,
-              name: attrLabel,
-              value: "",
-            }
-          );
-        }),
-      }))
-    );
-  }, [selectedAttributes]);
+        return (
+          existingAttr || {
+            type: attrType as VariantAttributeType,
+            name: attrLabel,
+            value: "",
+          }
+        );
+      }),
+    }));
+    setValue("variants", updatedVariants);
+  }, [selectedAttributes, setValue, getValues]);
 
   const addVariant = () => {
     const newVariant: ProductVariant = {
@@ -210,18 +146,17 @@ export function CreateProductSheet({
     attributeType: string,
     value: string
   ) => {
-    setVariants((prev) =>
-      prev.map((variant) =>
-        variant.id === variantId
-          ? {
-              ...variant,
-              attributes: variant.attributes.map((attr) =>
-                attr.type === attributeType ? { ...attr, value } : attr
-              ),
-            }
-          : variant
-      )
+    const updatedVariants = variants.map((variant) =>
+      variant.id === variantId
+        ? {
+            ...variant,
+            attributes: variant.attributes.map((attr) =>
+              attr.type === attributeType ? { ...attr, value } : attr
+            ),
+          }
+        : variant
     );
+    setVariants(updatedVariants);
   };
 
   const updateVariantField = (
@@ -229,11 +164,10 @@ export function CreateProductSheet({
     field: "price" | "stock",
     value: string
   ) => {
-    setVariants((prev) =>
-      prev.map((variant) =>
-        variant.id === variantId ? { ...variant, [field]: value } : variant
-      )
+    const updatedVariants = variants.map((variant) =>
+      variant.id === variantId ? { ...variant, [field]: value } : variant
     );
+    setVariants(updatedVariants);
   };
 
   // Sub-descriptions helper functions
@@ -255,19 +189,17 @@ export function CreateProductSheet({
     field: "title" | "content",
     value: string
   ) => {
-    setSubDescriptions((prev) =>
-      prev.map((sub) =>
-        sub.id === id ? { ...sub, [field]: value } : sub
-      )
+    const updatedSubDescriptions = subDescriptions.map((sub) =>
+      sub.id === id ? { ...sub, [field]: value } : sub
     );
+    setSubDescriptions(updatedSubDescriptions);
   };
 
-  const handleAttributeSelect = (attributeValue: string) => {
-    setSelectedAttributes((prev) =>
-      prev.includes(attributeValue)
-        ? prev.filter((item) => item !== attributeValue)
-        : [...prev, attributeValue]
-    );
+  const handleAttributeSelect = (attributeValue: VariantAttributeType) => {
+    const updatedAttributes = selectedAttributes.includes(attributeValue)
+      ? selectedAttributes.filter((item) => item !== attributeValue)
+      : [...selectedAttributes, attributeValue];
+    setSelectedAttributes(updatedAttributes);
   };
 
   // Image upload handlers
@@ -283,14 +215,17 @@ export function CreateProductSheet({
       isThumbnail: false,
     }));
 
-    setImages((prev) => {
-      const updated = [...prev, ...newImages];
-      // Set first image as thumbnail if no thumbnail exists
-      if (updated.length > 0 && !updated.some((img) => img.isThumbnail)) {
-        updated[0].isThumbnail = true;
-      }
-      return updated;
-    });
+    setImages([...images, ...newImages]);
+
+    // Set first image as thumbnail if no thumbnail exists
+    const updatedImages = [...images, ...newImages];
+    if (
+      updatedImages.length > 0 &&
+      !updatedImages.some((img) => img.isThumbnail)
+    ) {
+      updatedImages[0].isThumbnail = true;
+      setImages(updatedImages);
+    }
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -324,19 +259,21 @@ export function CreateProductSheet({
     [handleFileSelect]
   );
 
-  const setThumbnail = useCallback((imageId: string) => {
-    setImages((prev) =>
-      prev.map((img) => ({
+  const setThumbnail = useCallback(
+    (imageId: string) => {
+      const updatedImages = images.map((img) => ({
         ...img,
         isThumbnail: img.id === imageId,
-      }))
-    );
-  }, []);
+      }));
+      setImages(updatedImages);
+    },
+    [images]
+  );
 
-  const removeImage = useCallback((imageId: string) => {
-    setImages((prev) => {
-      const filtered = prev.filter((img) => img.id !== imageId);
-      const removedImage = prev.find((img) => img.id === imageId);
+  const removeImage = useCallback(
+    (imageId: string) => {
+      const filtered = images.filter((img) => img.id !== imageId);
+      const removedImage = images.find((img) => img.id === imageId);
 
       // If removed image was thumbnail, set first remaining image as thumbnail
       if (removedImage?.isThumbnail && filtered.length > 0) {
@@ -348,35 +285,171 @@ export function CreateProductSheet({
         URL.revokeObjectURL(removedImage.preview);
       }
 
-      return filtered;
-    });
-  }, []);
+      setImages(filtered);
+    },
+    [images]
+  );
 
-  const handleSave = () => {
-    // TODO: Implement save logic
-    console.log("Saving product...", {
-      productName,
-      brand,
-      description,
-      basePrice,
-      category,
-      sku,
-      status,
-      metaTitle,
-      metaDescription,
-      keywords,
-      subDescriptions,
-      selectedAttributes,
-      variants,
-      images: images.map((img) => ({
-        id: img.id,
-        fileName: img.file.name,
-        fileSize: img.file.size,
-        isThumbnail: img.isThumbnail,
-      })),
-    });
-    onClose();
-  };
+  const handleSave = handleSubmit(
+    async (data: CreateProductFormData) => {
+      try {
+        setSubmitError(null);
+
+        // Upload images to Vercel Blob first if there are any
+        let uploadedImages: Array<{
+          url: string;
+          filename: string;
+          originalName: string;
+          size: number;
+          type: string;
+          isMain: boolean;
+        }> = [];
+
+        if (data.images && data.images.length > 0) {
+          try {
+            // Create FormData for image upload
+            const formData = new FormData();
+            data.images.forEach((image, index) => {
+              if (image.file) {
+                formData.append("files", image.file);
+                formData.append(
+                  `metadata_${index}`,
+                  JSON.stringify({
+                    isThumbnail: image.isThumbnail,
+                    altText: `${data.productName} - Image ${index + 1}`,
+                  })
+                );
+              }
+            });
+
+            // Upload images to Vercel Blob
+            const uploadResponse = await fetch("/api/upload/images", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+              const errorData = await uploadResponse.json();
+              throw new Error(errorData.error || "Failed to upload images");
+            }
+
+            const uploadResult = await uploadResponse.json();
+
+            if (!uploadResult.success || !uploadResult.files) {
+              throw new Error("Invalid upload response");
+            }
+
+            // Map uploaded images with form metadata
+            uploadedImages = uploadResult.files.map(
+              (uploadedFile: any, index: number) => {
+                const originalImage = data.images[index];
+                return {
+                  url: uploadedFile.url,
+                  filename: uploadedFile.filename,
+                  originalName: uploadedFile.originalName,
+                  size: uploadedFile.size,
+                  type: uploadedFile.type,
+                  isMain: originalImage?.isThumbnail || index === 0, // Convert isThumbnail to isMain
+                };
+              }
+            );
+          } catch (uploadError) {
+            console.error("Image upload error:", uploadError);
+            setSubmitError(
+              uploadError instanceof Error
+                ? `Image upload failed: ${uploadError.message}`
+                : "Failed to upload images. Please try again."
+            );
+            return;
+          }
+        }
+
+        // Create modified form data with uploaded image URLs
+        const modifiedData = {
+          ...data,
+          uploadedImages, // Add uploaded images data
+        };
+
+        // Use the mutation to create the product
+        await createProductMutation.mutateAsync(modifiedData);
+        
+        toast({
+          title: "Success",
+          description: "Product created successfully!",
+        });
+
+        // Close the sheet on success
+        onClose();
+      } catch (error) {
+        console.error("Product creation error:", error);
+
+        if (error instanceof Error) {
+          // Handle validation errors
+          if (error.message.includes("validation")) {
+            setSubmitError(`Validation error: ${error.message}`);
+            toast({
+              title: "Validation Error",
+              description: "Please check all required fields and fix any errors.",
+              variant: "destructive",
+            });
+          } else if (error.message.includes("already exists")) {
+            setSubmitError(
+              "A product with this slug already exists. Please use a different slug."
+            );
+            toast({
+              title: "Duplicate Product",
+              description: "A product with this slug already exists. Please use a different slug.",
+              variant: "destructive",
+            });
+          } else {
+            setSubmitError(error.message);
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+        } else {
+          setSubmitError("An unexpected error occurred. Please try again.");
+          toast({
+            title: "Error",
+            description: "An unexpected error occurred. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    },
+    (errors: any) => {
+      // Handle validation errors with detailed messages
+      console.log("Form validation errors:", errors);
+      
+      const errorMessages = [];
+      
+      // Check for specific field errors
+      if (errors.productName) errorMessages.push("Product name is required");
+      if (errors.category) errorMessages.push("Category is required");
+      if (errors.brand) errorMessages.push("Brand is required");
+      if (errors.sku) errorMessages.push("SKU is required");
+      if (errors.description) errorMessages.push("Description is required");
+      if (errors.basePrice) errorMessages.push("Base price is required");
+      if (errors.subDescriptions) errorMessages.push("At least one sub-description is required");
+      if (errors.images || errors.uploadedImages) errorMessages.push("At least one image is required and one must be set as thumbnail");
+      if (errors.selectedAttributes) errorMessages.push("At least one variant attribute must be selected");
+      if (errors.variants) errorMessages.push("At least one variant is required with all fields filled");
+      
+      const detailedMessage = errorMessages.length > 0 
+        ? errorMessages.join(", ") 
+        : "Please fix the validation errors before submitting";
+      
+      setSubmitError(detailedMessage);
+      
+      toast({
+        title: "Validation Errors",
+        description: detailedMessage,
+        variant: "destructive",
+      });
+    }
+  );
 
   // Cleanup object URLs on unmount
   React.useEffect(() => {
@@ -414,510 +487,71 @@ export function CreateProductSheet({
             {/* Main Content */}
             <div className="flex flex-col w-full max-w-3xl p-3 md:p-8 space-y-14">
               {/* Product Information */}
-              <section className="space-y-4">
-                <h2 className="font-semibold tracking-tight border-b pb-2">
-                  Informasi Produk
-                </h2>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="productName">Nama Produk</Label>
-                      <Input
-                        id="productName"
-                        placeholder="iPhone 14 Pro Max"
-                        value={productName}
-                        onChange={(e) => setProductName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="category">Kategori</Label>
-                      <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="electronics">
-                            Electronics
-                          </SelectItem>
-                          <SelectItem value="clothing">Clothing</SelectItem>
-                          <SelectItem value="books">Books</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="brand">Merk</Label>
-                      <Input
-                        id="brand"
-                        placeholder="Apple"
-                        value={brand}
-                        onChange={(e) => setBrand(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="sku">SKU</Label>
-                      <Input
-                        id="sku"
-                        placeholder="Nomor SKU"
-                        value={sku}
-                        onChange={(e) => setSku(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="description">Deskripsi Produk</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="iPhone 14 Pro Max 256GB – Deep Purple. Super Retina XDR, kamera Pro 48MP, dan chip A16 Bionic."
-                      className="min-h-[80px]"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="basePrice">Harga Dasar</Label>
-                      <PriceInput
-                        id="basePrice"
-                        placeholder="0"
-                        value={basePrice}
-                        onChange={setBasePrice}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="status">Status</Label>
-                      <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="INACTIVE">Inactive</SelectItem>
-                          <SelectItem value="DRAFT">Draft</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <ProductInformationSection
+                productName={watchedValues.productName}
+                category={watchedValues.category}
+                brand={watchedValues.brand}
+                sku={watchedValues.sku}
+                description={watchedValues.description}
+                basePrice={watchedValues.basePrice}
+                status={watchedValues.status}
+                onProductNameChange={(value) => setValue("productName", value)}
+                onCategoryChange={(value) => setValue("category", value)}
+                onBrandChange={(value) => setValue("brand", value)}
+                onSkuChange={(value) => setValue("sku", value)}
+                onDescriptionChange={(value) => setValue("description", value)}
+                onBasePriceChange={(value) => setValue("basePrice", value)}
+                onStatusChange={(value) =>
+                  setValue("status", value as "ACTIVE" | "INACTIVE" | "DRAFT")
+                }
+                errors={errors}
+              />
 
               {/* Sub-Descriptions */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h2 className="font-semibold tracking-tight">Sub Deskripsi</h2>
-                  <Button onClick={addSubDescription} size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Tambah Sub Deskripsi
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {subDescriptions.map((subDesc, index) => (
-                    <Card key={subDesc.id} className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">
-                            Sub Deskripsi {index + 1}
-                          </Label>
-                          {subDescriptions.length > 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeSubDescription(subDesc.id)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <Label htmlFor={`sub-title-${subDesc.id}`}>
-                              Judul
-                            </Label>
-                            <Input
-                              id={`sub-title-${subDesc.id}`}
-                              placeholder="e.g., Fabric & Fit, Care Instructions"
-                              value={subDesc.title}
-                              onChange={(e) =>
-                                updateSubDescription(
-                                  subDesc.id,
-                                  "title",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label htmlFor={`sub-content-${subDesc.id}`}>
-                              Konten
-                            </Label>
-                            <Textarea
-                              id={`sub-content-${subDesc.id}`}
-                              placeholder="Masukkan detail deskripsi..."
-                              className="min-h-[80px]"
-                              value={subDesc.content}
-                              onChange={(e) =>
-                                updateSubDescription(
-                                  subDesc.id,
-                                  "content",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-
-                  {subDescriptions.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="text-sm">Belum ada sub deskripsi.</p>
-                      <p className="text-xs">
-                        Klik "Tambah Sub Deskripsi" untuk menambahkan.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </section>
+              <SubDescriptionsSection
+                subDescriptions={subDescriptions}
+                onAddSubDescription={addSubDescription}
+                onRemoveSubDescription={removeSubDescription}
+                onUpdateSubDescription={updateSubDescription}
+                errors={errors}
+              />
 
               {/* Product Images */}
-              <section className="space-y-4">
-                <h2 className="font-semibold tracking-tight border-b pb-2">
-                  Galeri Produk
-                </h2>
+              <ProductImagesSection
+                images={images}
+                isDragOver={isDragOver}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onFileInputChange={handleFileInputChange}
+                onSetThumbnail={setThumbnail}
+                onRemoveImage={removeImage}
+                errors={errors}
+              />
 
-                {/* Upload Area */}
-                <div
-                  className={cn(
-                    "border-2 border-dashed rounded-lg py-10 text-center transition-colors",
-                    isDragOver
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25"
-                  )}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <Images className="size-5 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Drag and drop images or{" "}
-                    <button
-                      type="button"
-                      className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer transition-colors"
-                      onClick={() =>
-                        document.getElementById("image-upload")?.click()
-                      }
-                    >
-                      click to browse
-                    </button>
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Support: JPG, PNG, GIF up to 10MB each
-                  </p>
-                </div>
+              <ProductVariantsSection
+                variants={variants}
+                selectedAttributes={selectedAttributes}
+                open={open}
+                onOpenChange={setOpen}
+                onAddVariant={addVariant}
+                onRemoveVariant={removeVariant}
+                onAttributeSelect={handleAttributeSelect}
+                onUpdateVariantAttribute={updateVariantAttribute}
+                onUpdateVariantField={updateVariantField}
+                errors={errors}
+              />
 
-                {/* Image Preview Grid */}
-                {images.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">
-                        Uploaded Images ({images.length})
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Click star to set as thumbnail
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                      {images.map((image) => (
-                        <div
-                          key={image.id}
-                          className={cn(
-                            "relative group aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                            image.isThumbnail
-                              ? "border-primary ring-2 ring-primary/20"
-                              : "border-muted hover:border-muted-foreground/50"
-                          )}
-                        >
-                          <img
-                            src={image.preview}
-                            alt="Product preview"
-                            className="w-full h-full object-cover"
-                          />
-
-                          {/* Thumbnail Badge */}
-                          {image.isThumbnail && (
-                            <div className="absolute top-1 left-1">
-                              <Badge
-                                variant="default"
-                                className="text-xs px-1 py-0"
-                              >
-                                <Star className="w-3 h-3 mr-1 fill-current" />
-                                Thumbnail
-                              </Badge>
-                            </div>
-                          )}
-
-                          {/* Action Buttons */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                            {!image.isThumbnail && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setThumbnail(image.id)}
-                                title="Set as thumbnail"
-                              >
-                                <Star className="w-3 h-3" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-7 w-7 p-0"
-                              onClick={() => removeImage(image.id)}
-                              title="Remove image"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Product Variants */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h2 className="font-semibold tracking-tight">Varian</h2>
-                  <div className="flex gap-2">
-                    <Button onClick={addVariant} size="sm" className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Add Variant
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Variant Attributes Selection */}
-                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                  <div className="space-y-2">
-                    <Label>Variant Attributes</Label>
-                    <Popover open={open} onOpenChange={setOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={open}
-                          className="w-full justify-between font-normal"
-                        >
-                          {selectedAttributes.length === 0
-                            ? "Select attributes..."
-                            : `${selectedAttributes.length} attribute${
-                                selectedAttributes.length > 1 ? "s" : ""
-                              } selected`}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search attributes..." />
-                          <CommandEmpty>No attributes found.</CommandEmpty>
-                          <CommandGroup>
-                            {VARIANT_ATTRIBUTE_TYPES.map((attribute) => (
-                              <CommandItem
-                                key={attribute.value}
-                                onSelect={() =>
-                                  handleAttributeSelect(attribute.value)
-                                }
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedAttributes.includes(attribute.value)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {attribute.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Show selected attributes as badges */}
-                  {selectedAttributes.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedAttributes.map((attrType) => {
-                        const attrLabel = VARIANT_ATTRIBUTE_TYPES.find(
-                          (type) => type.value === attrType
-                        )?.label;
-                        return (
-                          <Badge
-                            key={attrType}
-                            variant="secondary"
-                            className="gap-1"
-                          >
-                            {attrLabel}
-                            <button
-                              onClick={() => handleAttributeSelect(attrType)}
-                              className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {variants.map((variant, index) => (
-                    <div
-                      key={variant.id}
-                      className="border rounded-lg p-3 space-y-0"
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">
-                          Variant #{index + 1}
-                        </h4>
-                        {variants.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeVariant(variant.id)}
-                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                      <div
-                        className="grid gap-3"
-                        style={{
-                          gridTemplateColumns: `repeat(${
-                            selectedAttributes.length + 2
-                          }, 1fr)`,
-                        }}
-                      >
-                        {variant.attributes.map((attribute, attrIndex) => (
-                          <div key={attrIndex} className="space-y-1 min-w-0">
-                            <Label className="text-xs">{attribute.name}</Label>
-                            <Input
-                              placeholder={`e.g., ${
-                                attribute.type === "COLOR"
-                                  ? "Black"
-                                  : attribute.type === "STORAGE"
-                                  ? "128GB"
-                                  : "Value"
-                              }`}
-                              value={attribute.value}
-                              onChange={(e) =>
-                                updateVariantAttribute(
-                                  variant.id,
-                                  attribute.type,
-                                  e.target.value
-                                )
-                              }
-                              className="h-8"
-                            />
-                          </div>
-                        ))}
-                        <div className="space-y-1 min-w-0">
-                          <Label className="text-xs">Price</Label>
-                          <PriceInput
-                            placeholder="0"
-                            value={variant.price}
-                            onChange={(value) =>
-                              updateVariantField(
-                                variant.id,
-                                "price",
-                                value
-                              )
-                            }
-                            className="h-8"
-                          />
-                        </div>
-                        <div className="space-y-1 min-w-0">
-                          <Label className="text-xs">Stock</Label>
-                          <Input
-                            placeholder="0"
-                            value={variant.stock}
-                            onChange={(e) =>
-                              updateVariantField(
-                                variant.id,
-                                "stock",
-                                e.target.value
-                              )
-                            }
-                            className="h-8"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* SEO & Metatag Section */}
-              <section className="space-y-4">
-                <h2 className="font-semibold tracking-tight border-b pb-2">
-                  SEO & Metatag
-                </h2>
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="metaTitle">Meta Title</Label>
-                    <Input
-                      id="metaTitle"
-                      placeholder="iPhone 14 Pro Max - Premium Smartphone | Your Store"
-                      value={metaTitle}
-                      onChange={(e) => setMetaTitle(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="metaDescription">Meta Description</Label>
-                    <Textarea
-                      id="metaDescription"
-                      placeholder="Discover the iPhone 14 Pro Max with advanced camera system, A16 Bionic chip, and stunning display. Available in multiple colors and storage options."
-                      className="min-h-[80px]"
-                      value={metaDescription}
-                      onChange={(e) => setMetaDescription(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="keywords">Keywords</Label>
-                    <Input
-                      id="keywords"
-                      placeholder="iPhone, smartphone, Apple, mobile phone, premium phone"
-                      value={keywords}
-                      onChange={(e) => setKeywords(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </section>
+              <SEOSection
+                metaTitle={watchedValues.metaTitle || ""}
+                metaDescription={watchedValues.metaDescription || ""}
+                keywords={watchedValues.keywords || ""}
+                onMetaTitleChange={(value) => setValue("metaTitle", value)}
+                onMetaDescriptionChange={(value) =>
+                  setValue("metaDescription", value)
+                }
+                onKeywordsChange={(value) => setValue("keywords", value)}
+              />
 
               <section className="border border-transparent"></section>
             </div>
@@ -932,14 +566,14 @@ export function CreateProductSheet({
                     <ImageIcon className="size-5 text-muted-foreground" />
                   </div>
                   <h4 className="font-medium truncate text-sm">
-                    {productName || "Product Name"}
+                    {watchedValues.productName || "Product Name"}
                   </h4>
                   <p className="text-xs text-muted-foreground truncate">
-                    {brand || "Brand"}
+                    {watchedValues.brand || "Brand"}
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-semibold text-sm">
-                      Rp{basePrice || "-"}
+                      Rp{watchedValues.basePrice || "-"}
                     </span>
                   </div>
                 </CardContent>
@@ -947,13 +581,27 @@ export function CreateProductSheet({
             </div>
 
             <div className="space-y-2 pt-4 border-t">
-              <Button onClick={handleSave} className="w-full h-9">
-                Create Product
+              {submitError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                onClick={handleSave}
+                className="w-full h-9"
+                disabled={isSubmitting || createProductMutation.isPending}
+              >
+                {isSubmitting || createProductMutation.isPending
+                  ? "Creating..."
+                  : "Create Product"}
               </Button>
               <Button
                 variant="outline"
                 onClick={onClose}
                 className="w-full h-9"
+                disabled={isSubmitting || createProductMutation.isPending}
               >
                 Cancel
               </Button>

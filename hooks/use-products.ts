@@ -11,6 +11,7 @@ import {
   CreateBrandInput,
   UpdateBrandInput,
 } from "@/lib/schemas/product.schema";
+import { CreateProductFormData } from "@/lib/schemas/product-form.schema";
 import { PaginationOptions } from "@/lib/schemas/user.schema";
 import { apiClient } from "@/lib/api-client";
 
@@ -148,7 +149,9 @@ const productApi = {
     params.append("sortBy", pagination.sortBy);
     params.append("sortOrder", pagination.sortOrder);
 
-    const response = await apiClient.get<ProductsResponse>(`/api/products?${params}`);
+    const response = await apiClient.get<ProductsResponse>(
+      `/api/products?${params}`
+    );
     if (response.error) {
       throw new Error(response.error);
     }
@@ -226,7 +229,10 @@ const productApi = {
     id: string,
     data: UpdateCategoryInput
   ): Promise<Category> => {
-    const response = await apiClient.put<Category>(`/api/categories/${id}`, data);
+    const response = await apiClient.put<Category>(
+      `/api/categories/${id}`,
+      data
+    );
     if (response.error) {
       throw new Error(response.error);
     }
@@ -346,6 +352,29 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: productApi.createProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
+    },
+  });
+}
+
+export function useCreateProductWithForm() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (formData: CreateProductFormData) => {
+      // Import the adapter function
+      const { transformFormDataToApiSchema } = await import(
+        "@/lib/adapters/product-form.adapter"
+      );
+
+      // Transform form data to API schema (JSON)
+      const apiData = transformFormDataToApiSchema(formData);
+
+      // Call the API with JSON data
+      return productApi.createProduct(apiData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
       queryClient.invalidateQueries({ queryKey: productKeys.stats() });

@@ -5,8 +5,9 @@ import {
   productFiltersSchema,
   productPaginationSchema,
 } from "@/lib/schemas/product.schema";
+import { withAuth } from "@/lib/middleware/auth.middleware";
 
-export async function GET(request: NextRequest, context: any, user: any) {
+async function handleGET(request: NextRequest, context: any, user: any) {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -51,13 +52,12 @@ export async function GET(request: NextRequest, context: any, user: any) {
   }
 }
 
-export async function POST(request: NextRequest, context: any, user: any) {
+async function handlePOST(request: NextRequest, context: any, user: any) {
   try {
+    // Handle JSON data only
     const body = await request.json();
     const validatedData = createProductSchema.parse(body);
-
     const createdProduct = await productService.createProduct(validatedData);
-
     return NextResponse.json(createdProduct, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
@@ -73,8 +73,11 @@ export async function POST(request: NextRequest, context: any, user: any) {
     }
 
     return NextResponse.json(
-      { error: "Failed to create product" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+
+export const GET = withAuth(handleGET, { requiredRoles: ["ADMIN"] });
+export const POST = withAuth(handlePOST, { requiredRoles: ["ADMIN"] });

@@ -9,17 +9,17 @@ import { cn } from "@/lib/utils";
 
 const heroImages = [
   {
-    src: "/placeholder.svg?height=700&width=1400",
+    src: "/slideshow-1.jpg?height=700&width=1400",
     alt: "Hero Image 1: Woman in hoodie with plants",
     text: "PROTECT YOU PEACE VOL.1",
   },
   {
-    src: "/placeholder.svg?height=700&width=1400",
+    src: "/slideshow-2.jpg?height=700&width=1400",
     alt: "Hero Image 2: Abstract pattern",
     text: "NEW ARRIVALS",
   },
   {
-    src: "/placeholder.svg?height=700&width=1400",
+    src: "/slideshow-3.webp?height=700&width=1400",
     alt: "Hero Image 3: Urban streetwear",
     text: "EXPLORE THE COLLECTION",
   },

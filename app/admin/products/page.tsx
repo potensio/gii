@@ -26,9 +26,7 @@ export default function ProductsPage() {
   const [rowSelection, setRowSelection] = React.useState({});
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
   const [sheetMode, setSheetMode] = React.useState<"create" | "edit">("create");
-  const [productToEdit, setProductToEdit] = React.useState<Product | undefined>(
-    undefined
-  );
+  const [productToEdit, setProductToEdit] = React.useState<Product | undefined>(undefined);
 
   const {
     data: productsData,
@@ -63,21 +61,17 @@ export default function ProductsPage() {
     setProductToEdit(undefined);
   };
 
-  const columns = React.useMemo(
-    () =>
-      createProductColumns({
-        onEdit: handleEditProduct,
-        onDelete: (productId: string) => {
-          // TODO: Implement delete functionality
-          console.log("Delete product:", productId);
-        },
-        onViewDetails: (product: Product) => {
-          // TODO: Implement view details functionality
-          console.log("View details:", product);
-        },
-      }),
-    []
-  );
+  const columns = React.useMemo(() => createProductColumns({
+    onEdit: handleEditProduct,
+    onDelete: (productId: string) => {
+      // TODO: Implement delete functionality
+      console.log("Delete product:", productId);
+    },
+    onViewDetails: (product: Product) => {
+      // TODO: Implement view details functionality
+      console.log("View details:", product);
+    },
+  }), []);
 
   if (error) {
     return (

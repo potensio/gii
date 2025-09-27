@@ -305,9 +305,7 @@ export class ProductRepository {
   // Product Variant operations
   async createVariant(data: CreateVariantInput): Promise<ProductVariant> {
     // Generate SKU if not provided
-    const sku =
-      data.sku ||
-      `VAR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sku = data.sku || `VAR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Create proper Prisma data object
     const prismaData: Prisma.ProductVariantCreateInput = {
@@ -320,7 +318,7 @@ export class ProductRepository {
       isActive: data.isActive,
       isDefault: data.isDefault,
       product: {
-        connect: { id: data.productId },
+        connect: { id: data.productId }
       },
     };
 

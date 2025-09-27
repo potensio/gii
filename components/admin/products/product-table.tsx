@@ -146,9 +146,7 @@ export function ProductTable({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row.original)}
-                  className={
-                    onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
-                  }
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

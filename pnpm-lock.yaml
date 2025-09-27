@@ -23,12 +23,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.9.1(react-hook-form@7.54.1(react@19.0.0))
-      '@neondatabase/serverless':
-        specifier: ^1.0.1
-        version: 1.0.1
-      '@prisma/adapter-neon':
-        specifier: ^6.16.2
-        version: 6.16.2
       '@prisma/adapter-pg':
         specifier: ^6.16.2
         version: 6.16.2
@@ -152,9 +146,6 @@ importers:
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
-      dotenv:
-        specifier: ^17.2.2
-        version: 17.2.2
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -662,10 +653,6 @@ packages:
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
 
-  '@neondatabase/serverless@1.0.1':
-    resolution: {integrity: sha512-O6yC5TT0jbw86VZVkmnzCZJB0hfxBl0JJz6f+3KHoZabjb/X08r9eFA+vuY06z1/qaovykvdkrXYq3SPUuvogA==}
-    engines: {node: '>=19.0.0'}
-
   '@next/env@15.2.4':
     resolution: {integrity: sha512-+SFtMgoiYP3WoSswuNmxJOCwi06TdWE733D+WPjpXIe4LXGULwEaofiiAy6kbS0+XjM5xF5n3lKuBwN2SnqD9g==}
 
@@ -739,9 +726,6 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
-
-  '@prisma/adapter-neon@6.16.2':
-    resolution: {integrity: sha512-2dAApJrgQAULYOfyvTlbM7b632jPZQtKYOM24QPmMs23A4lIq5csKGBCwaKTIwInhDYSgfWsOEUkduMYcvuLHQ==}
 
   '@prisma/adapter-pg@6.16.2':
     resolution: {integrity: sha512-C+JZmKDBm13anIRhhJYxNw0EZ3zT11n9i6JCPBf2sg7HCNlQiYAPBegqYzAYwGw8VG8xlkM0aV9xJ4AH2mQqaQ==}
@@ -1534,9 +1518,6 @@ packages:
   '@types/node@22.0.0':
     resolution: {integrity: sha512-VT7KSYudcPOzP5Q0wfbowyNLaVR8QWUdw+088uFWwfvpY6uCWaXpqV6ieLAu9WBcnTa7H4Z5RLK8I5t2FuOcqw==}
 
-  '@types/node@22.18.6':
-    resolution: {integrity: sha512-r8uszLPpeIWbNKtvWRt/DbVi5zbqZyj1PTmhRMqBMvDnaz1QpmSKujUtJLrqGZeoM8v72MfYggDceY4K1itzWQ==}
-
   '@types/pg@8.15.5':
     resolution: {integrity: sha512-LF7lF6zWEKxuT3/OR8wAZGzkg4ENGXFNyiV/JeOt9z5B+0ZVwbql9McqX5c/WStFq1GaGso7H1AzP/qSzmlCKQ==}
 
@@ -2082,10 +2063,6 @@ packages:
 
   dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
-    engines: {node: '>=12'}
-
-  dotenv@17.2.2:
-    resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -3480,9 +3457,6 @@ packages:
   undici-types@6.11.1:
     resolution: {integrity: sha512-mIDEX2ek50x0OlRgxryxsenE5XaQD4on5U2inY7RApK3SOJpofyw7uW2AyfMKkhAxXIceo2DeWGVGwyvng1GNQ==}
 
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
   undici@5.29.0:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
     engines: {node: '>=14.0'}
@@ -3902,11 +3876,6 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@neondatabase/serverless@1.0.1':
-    dependencies:
-      '@types/node': 22.18.6
-      '@types/pg': 8.15.5
-
   '@next/env@15.2.4': {}
 
   '@next/eslint-plugin-next@15.5.4':
@@ -3953,12 +3922,6 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
-
-  '@prisma/adapter-neon@6.16.2':
-    dependencies:
-      '@neondatabase/serverless': 1.0.1
-      '@prisma/driver-adapter-utils': 6.16.2
-      postgres-array: 3.0.4
 
   '@prisma/adapter-pg@6.16.2':
     dependencies:
@@ -4787,10 +4750,6 @@ snapshots:
     dependencies:
       undici-types: 6.11.1
 
-  '@types/node@22.18.6':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/pg@8.15.5':
     dependencies:
       '@types/node': 22.0.0
@@ -5362,8 +5321,6 @@ snapshots:
       csstype: 3.1.3
 
   dotenv@16.6.1: {}
-
-  dotenv@17.2.2: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -7012,8 +6969,6 @@ snapshots:
       which-boxed-primitive: 1.1.1
 
   undici-types@6.11.1: {}
-
-  undici-types@6.21.0: {}
 
   undici@5.29.0:
     dependencies:

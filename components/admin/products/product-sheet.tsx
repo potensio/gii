@@ -33,7 +33,7 @@ import {
   defaultProductFormValues,
   type CreateProductFormData,
 } from "@/lib/schemas/product-form.schema";
-import { useCreateProductWithForm } from "@/hooks/use-products";
+import { useCreateProductWithForm, useUpdateProductWithForm } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import { transformProductToFormData } from "@/lib/adapters/product-form.adapter";
 
@@ -82,6 +82,9 @@ export function ProductSheet({
 
   // Create product mutation
   const createProductMutation = useCreateProductWithForm();
+  
+  // Update product mutation
+  const updateProductMutation = useUpdateProductWithForm();
 
   // UI state for drag and drop
   const [isDragOver, setIsDragOver] = useState(false);
@@ -353,52 +356,82 @@ export function ProductSheet({
 
         if (data.images && data.images.length > 0) {
           try {
-            // Create FormData for image upload
-            const formData = new FormData();
-            data.images.forEach((image, index) => {
-              if (image.file) {
-                formData.append("files", image.file);
-                formData.append(
-                  `metadata_${index}`,
-                  JSON.stringify({
-                    isThumbnail: image.isThumbnail,
-                    altText: `${data.productName} - Image ${index + 1}`,
-                  })
-                );
+            // Separate new images (with file) from existing images
+            const newImages = data.images.filter(image => image.file && !image.isExisting);
+            const existingImages = data.images.filter(image => image.isExisting);
+
+            // Only upload new images if there are any
+            if (newImages.length > 0) {
+              // Create FormData for new image upload
+              const formData = new FormData();
+              newImages.forEach((image, index) => {
+                if (image.file) {
+                  formData.append("files", image.file);
+                  formData.append(
+                    `metadata_${index}`,
+                    JSON.stringify({
+                      isThumbnail: image.isThumbnail,
+                      altText: `${data.productName} - Image ${index + 1}`,
+                    })
+                  );
+                }
+              });
+
+              // Upload new images to Vercel Blob
+              const uploadResponse = await fetch("/api/upload/images", {
+                method: "POST",
+                body: formData,
+              });
+
+              if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json();
+                throw new Error(errorData.error || "Failed to upload images");
               }
-            });
 
-            // Upload images to Vercel Blob
-            const uploadResponse = await fetch("/api/upload/images", {
-              method: "POST",
-              body: formData,
-            });
+              const uploadResult = await uploadResponse.json();
 
-            if (!uploadResponse.ok) {
-              const errorData = await uploadResponse.json();
-              throw new Error(errorData.error || "Failed to upload images");
-            }
-
-            const uploadResult = await uploadResponse.json();
-
-            if (!uploadResult.success || !uploadResult.files) {
-              throw new Error("Invalid upload response");
-            }
-
-            // Map uploaded images with form metadata
-            uploadedImages = uploadResult.files.map(
-              (uploadedFile: any, index: number) => {
-                const originalImage = data.images[index];
-                return {
-                  url: uploadedFile.url,
-                  filename: uploadedFile.filename,
-                  originalName: uploadedFile.originalName,
-                  size: uploadedFile.size,
-                  type: uploadedFile.type,
-                  isMain: originalImage?.isThumbnail || index === 0, // Convert isThumbnail to isMain
-                };
+              if (!uploadResult.success || !uploadResult.files) {
+                throw new Error("Invalid upload response");
               }
-            );
+
+              // Map uploaded new images with form metadata
+              const newUploadedImages = uploadResult.files.map(
+                (uploadedFile: any, index: number) => {
+                  const originalImage = newImages[index];
+                  return {
+                    url: uploadedFile.url,
+                    filename: uploadedFile.filename,
+                    originalName: uploadedFile.originalName,
+                    size: uploadedFile.size,
+                    type: uploadedFile.type,
+                    isMain: originalImage?.isThumbnail || false,
+                  };
+                }
+              );
+
+              // Combine new uploaded images with existing images
+              uploadedImages = [
+                ...newUploadedImages,
+                ...existingImages.map(image => ({
+                  url: image.existingImageData?.url || image.preview,
+                  filename: image.existingImageData?.publicId || image.id,
+                  originalName: image.existingImageData?.publicId || image.id,
+                  size: 0, // Size not available for existing images
+                  type: 'image/jpeg', // Default type for existing images
+                  isMain: image.isThumbnail,
+                }))
+              ];
+            } else {
+              // No new images to upload, just use existing images
+              uploadedImages = existingImages.map(image => ({
+                url: image.existingImageData?.url || image.preview,
+                filename: image.existingImageData?.publicId || image.id,
+                originalName: image.existingImageData?.publicId || image.id,
+                size: 0,
+                type: 'image/jpeg',
+                isMain: image.isThumbnail,
+              }));
+            }
           } catch (uploadError) {
             console.error("Image upload error:", uploadError);
             setError("root.uploadError", {
@@ -418,13 +451,26 @@ export function ProductSheet({
           uploadedImages, // Add uploaded images data
         };
 
-        // Use the mutation to create the product
-        await createProductMutation.mutateAsync(modifiedData);
+        // Use appropriate mutation based on mode
+        if (mode === "edit" && productToEdit) {
+          await updateProductMutation.mutateAsync({
+            productId: productToEdit.id,
+            formData: modifiedData,
+          });
+          
+          toast({
+            title: "Success",
+            description: "Product updated successfully!",
+          });
+        } else {
+          // Use the mutation to create the product
+          await createProductMutation.mutateAsync(modifiedData);
 
-        toast({
-          title: "Success",
-          description: "Product created successfully!",
-        });
+          toast({
+            title: "Success",
+            description: "Product created successfully!",
+          });
+        }
 
         // Close the sheet on success
         onClose();
@@ -643,9 +689,9 @@ export function ProductSheet({
               <Button
                 onClick={handleSave}
                 className="w-full h-9"
-                disabled={isSubmitting || createProductMutation.isPending}
+                disabled={isSubmitting || createProductMutation.isPending || updateProductMutation.isPending}
               >
-                {isSubmitting || createProductMutation.isPending
+                {isSubmitting || createProductMutation.isPending || updateProductMutation.isPending
                   ? (mode === "edit" ? "Updating..." : "Creating...")
                   : (mode === "edit" ? "Update Product" : "Create Product")}
               </Button>

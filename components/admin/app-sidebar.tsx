@@ -37,22 +37,22 @@ const data = {
   },
   navMain: [
     {
-      title: "Inventory",
+      title: "Inventori",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "Products",
-          url: "/admin/products",
+          title: "Produk",
+          url: "/admin/produk",
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Kategori",
+          url: "/admin/kategori",
         },
         {
-          title: "Settings",
-          url: "#",
+          title: "Merek",
+          url: "/admin/merek",
         },
       ],
     },
@@ -68,24 +68,16 @@ const data = {
       ],
     },
     {
-      title: "Documentation",
+      title: "Dokumentasi",
       url: "#",
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
+          title: "Privasi",
           url: "#",
         },
         {
           title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
           url: "#",
         },
       ],
@@ -173,8 +165,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Command className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-semibold">
+                    Global Inovasi Industri
+                  </span>
+                  <span className="truncate text-xs">Admin panel</span>
                 </div>
               </a>
             </SidebarMenuButton>

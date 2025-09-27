@@ -1,12 +1,19 @@
 import { CreateProductFormData } from "../schemas/product-form.schema";
-import { CreateProductInput } from "../schemas/product.schema";
+import {
+  CreateProductInput,
+  UpdateProductInput,
+} from "../schemas/product.schema";
 import {
   generateVariantName,
   generateVariantSku,
   VariantAttribute,
 } from "../utils/variant-naming";
 import { Product } from "../../components/admin/products/product-table-columns";
-import { ProductImage, SubDescription, ProductVariant } from "../../components/admin/products/types";
+import {
+  ProductImage,
+  SubDescription,
+  ProductVariant,
+} from "../../components/admin/products/types";
 import { VariantAttributeType } from "../generated/prisma/enums";
 
 /**
@@ -215,13 +222,19 @@ export function validateFormDataForApi(formData: CreateProductFormData) {
     } else {
       formData.variants.forEach((variant, index) => {
         if (!variant.price || parseFloat(variant.price) <= 0) {
-          errors.push(`Variant ${index + 1}: Price is required and must be positive`);
+          errors.push(
+            `Variant ${index + 1}: Price is required and must be positive`
+          );
         }
         if (!variant.stock || parseInt(variant.stock) < 0) {
-          errors.push(`Variant ${index + 1}: Stock is required and must be non-negative`);
+          errors.push(
+            `Variant ${index + 1}: Stock is required and must be non-negative`
+          );
         }
         if (!variant.attributes || variant.attributes.length === 0) {
-          errors.push(`Variant ${index + 1}: At least one attribute is required`);
+          errors.push(
+            `Variant ${index + 1}: At least one attribute is required`
+          );
         }
       });
     }
@@ -231,7 +244,9 @@ export function validateFormDataForApi(formData: CreateProductFormData) {
       errors.push("Price is required and must be positive for simple products");
     }
     if (!formData.simpleStock || parseInt(formData.simpleStock) < 0) {
-      errors.push("Stock is required and must be non-negative for simple products");
+      errors.push(
+        "Stock is required and must be non-negative for simple products"
+      );
     }
   }
 
@@ -253,7 +268,9 @@ export function validateFormDataForApi(formData: CreateProductFormData) {
  * @param product - The product data from API
  * @returns Form data compatible with CreateProductFormData
  */
-export function transformProductToFormData(product: Product): Partial<CreateProductFormData> {
+export function transformProductToFormData(
+  product: Product
+): Partial<CreateProductFormData> {
   // Transform basic product information
   const formData: Partial<CreateProductFormData> = {
     productName: product.name,
@@ -272,7 +289,7 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
   // Handle simple product vs variants
   if (!product.hasVariants) {
     // For simple products, get data from the default variant
-    const defaultVariant = product.variants?.find(v => v.isDefault);
+    const defaultVariant = product.variants?.find((v) => v.isDefault);
     if (defaultVariant) {
       formData.simplePrice = defaultVariant.price.toString();
       formData.simpleStock = defaultVariant.stock.toString();
@@ -283,7 +300,7 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
       formData.simpleStock = product.stock?.toString() || "";
       formData.simpleSku = product.sku || "";
     }
-    
+
     formData.selectedAttributes = [];
     formData.variants = [];
   } else {
@@ -292,8 +309,11 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
       // Extract unique attribute types from variants
       // Note: This is a simplified approach since the Product interface doesn't include variant attributes
       // In a real scenario, you'd need to fetch full variant data with attributes
-      formData.selectedAttributes = [VariantAttributeType.COLOR, VariantAttributeType.SIZE]; // Default selection
-      
+      formData.selectedAttributes = [
+        VariantAttributeType.COLOR,
+        VariantAttributeType.SIZE,
+      ]; // Default selection
+
       // Transform variants to form format
       formData.variants = product.variants.map((variant, index) => ({
         id: variant.id,
@@ -304,14 +324,14 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
           {
             type: VariantAttributeType.COLOR,
             name: "Color",
-            value: `Color ${index + 1}` // Placeholder since we don't have actual attribute data
+            value: `Color ${index + 1}`, // Placeholder since we don't have actual attribute data
           },
           {
             type: VariantAttributeType.SIZE,
-            name: "Size", 
-            value: `Size ${index + 1}` // Placeholder since we don't have actual attribute data
-          }
-        ]
+            name: "Size",
+            value: `Size ${index + 1}`, // Placeholder since we don't have actual attribute data
+          },
+        ],
       }));
     } else {
       formData.selectedAttributes = [];
@@ -329,10 +349,10 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
       isExisting: true,
       existingImageData: {
         url: image.url,
-        publicId: image.id // Use image.id as fallback since publicId is not available
-      }
+        publicId: image.id, // Use image.id as fallback since publicId is not available
+      },
     }));
-    
+
     // Clear uploadedImages since we're using unified images array
     formData.uploadedImages = [];
   } else {
@@ -344,4 +364,53 @@ export function transformProductToFormData(product: Product): Partial<CreateProd
   formData.subDescriptions = [];
 
   return formData;
+}
+
+/**
+ * Transforms form data from the product edit form to the UpdateProductInput schema format
+ * @param formData - The form data from React Hook Form
+ * @returns Transformed data compatible with the UpdateProductInput schema
+ */
+export function transformFormDataToUpdateSchema(
+  formData: CreateProductFormData
+): UpdateProductInput {
+  // Generate slug from product name if changed
+  const slug = formData.productName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .trim();
+
+  // Transform basic product data - only include fields that might have changed
+  const updateData: UpdateProductInput = {
+    name: formData.productName,
+    slug,
+    description: formData.description,
+    brandId: formData.brand,
+    categoryId: formData.category,
+    status: formData.status,
+    isFeatured: formData.isFeatured || false,
+    isLatest: formData.isLatest || false,
+    metaTitle: formData.metaTitle || undefined,
+    metaDescription: formData.metaDescription || undefined,
+
+    // Add subdescriptions directly as JSON array
+    subDescriptions:
+      formData.subDescriptions && formData.subDescriptions.length > 0
+        ? formData.subDescriptions.map((sub) => ({
+            id: sub.id,
+            title: sub.title,
+            content: sub.content,
+          }))
+        : undefined,
+
+    // Handle images - use uploadedImages if available (from handleSave)
+    imageUrls:
+      formData.uploadedImages && formData.uploadedImages.length > 0
+        ? formData.uploadedImages.map((image) => image.url)
+        : undefined,
+  };
+
+  return updateData;
 }

@@ -147,9 +147,42 @@ export class ProductRepository {
   }
 
   async update(id: string, data: UpdateProductInput): Promise<Product> {
+    // Extract brandId, categoryId, and imageUrls from data and convert to relationship updates
+    const { brandId, categoryId, imageUrls, ...restData } = data;
+    
+    const updateData: any = { ...restData };
+    
+    // Handle brand relationship update
+    if (brandId !== undefined) {
+      updateData.brand = {
+        connect: { id: brandId }
+      };
+    }
+    
+    // Handle category relationship update
+    if (categoryId !== undefined) {
+      updateData.category = {
+        connect: { id: categoryId }
+      };
+    }
+    
+    // Handle imageUrls - convert to images relationship updates
+    if (imageUrls !== undefined) {
+      // First delete existing images, then create new ones
+      updateData.images = {
+        deleteMany: {},
+        create: imageUrls.map((url, index) => ({
+          url,
+          altText: `Product image ${index + 1}`,
+          sortOrder: index,
+          isMain: index === 0,
+        })),
+      };
+    }
+    
     return db.product.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         brand: true,
         category: true,

@@ -68,7 +68,7 @@ export const updateProductSchema = z.object({
   brandId: z.string().min(1, "Brand is required").optional(),
   categoryId: z.string().min(1, "Category is required").optional(),
   status: z.nativeEnum(ProductStatus).optional(),
-  featured: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   isLatest: z.boolean().optional(),
   metaTitle: z
     .string()
@@ -79,6 +79,7 @@ export const updateProductSchema = z.object({
     .max(160, "Meta description must be less than 160 characters")
     .optional(),
   subDescriptions: z.array(subDescriptionSchema).optional(),
+  imageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 });
 
 export const productFiltersSchema = z.object({

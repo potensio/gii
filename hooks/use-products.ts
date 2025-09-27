@@ -14,9 +14,15 @@ import {
 import { CreateProductFormData } from "@/lib/schemas/product-form.schema";
 import { PaginationOptions } from "@/lib/schemas/user.schema";
 import { apiClient } from "@/lib/api-client";
-import { transformFormDataToApiSchema, transformVariantsToApiSchema } from "@/lib/adapters/product-form.adapter";
-import { generateVariantName, generateVariantSku } from "@/lib/utils/variant-naming";
-import { ProductVariantModel } from "@/lib/generated/prisma/models/ProductVariant";
+import {
+  transformFormDataToApiSchema,
+  transformVariantsToApiSchema,
+  transformFormDataToUpdateSchema,
+} from "@/lib/adapters/product-form.adapter";
+import {
+  generateVariantName,
+  generateVariantSku,
+} from "@/lib/utils/variant-naming";
 
 // Types for API responses
 interface SubDescription {
@@ -346,18 +352,6 @@ export function useProductStats() {
   });
 }
 
-export function useCreateProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: productApi.createProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
-    },
-  });
-}
-
 export function useCreateProductWithForm() {
   const queryClient = useQueryClient();
 
@@ -392,7 +386,9 @@ export function useCreateProductWithForm() {
         // Simple product: create a default variant using product name
         const defaultVariant = {
           productId: createdProduct.id,
-          sku: formData.simpleSku || generateVariantSku(formData.productName, 0, true),
+          sku:
+            formData.simpleSku ||
+            generateVariantSku(formData.productName, 0, true),
           name: generateVariantName(formData.productName, []), // Empty attributes for simple product
           price: parseFloat(formData.simplePrice || "0"),
           stock: parseInt(formData.simpleStock || "0"),
@@ -414,18 +410,61 @@ export function useCreateProductWithForm() {
   });
 }
 
-export function useUpdateProduct() {
+export function useUpdateProductWithForm() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProductInput }) =>
-      productApi.updateProduct(id, data),
-    onSuccess: (updatedProduct) => {
+    mutationFn: async ({
+      productId,
+      formData,
+    }: {
+      productId: string;
+      formData: CreateProductFormData;
+    }) => {
+      // Transform form data to UpdateProductInput schema
+      const updateData = transformFormDataToUpdateSchema(formData);
+
+      // Call the API to update the product
+      const updatedProduct = await productApi.updateProduct(
+        productId,
+        updateData
+      );
+
+      // Handle image updates if there are new uploaded images
+      if (formData.uploadedImages && formData.uploadedImages.length > 0) {
+        // For now, images are handled through the main update endpoint
+        // Future enhancement: separate image management API endpoints
+      }
+
+      // Handle variant updates for complex products
+      if (
+        formData.hasVariants &&
+        formData.variants &&
+        formData.variants.length > 0
+      ) {
+        // Future enhancement: update/create/delete variants
+        // For now, we'll focus on basic product information updates
+      } else if (!formData.hasVariants) {
+        // For simple products, update the default variant
+        const defaultVariantUpdate = {
+          sku:
+            formData.simpleSku ||
+            generateVariantSku(formData.productName, 0, true),
+          name: generateVariantName(formData.productName, []),
+          price: parseFloat(formData.simplePrice || "0"),
+          stock: parseInt(formData.simpleStock || "0"),
+        };
+
+        // Future enhancement: API call to update the default variant
+        // await apiClient.put(`/api/products/${productId}/variants/default`, defaultVariantUpdate);
+      }
+
+      return updatedProduct;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({
-        queryKey: productKeys.detail(updatedProduct.id),
-      });
       queryClient.invalidateQueries({ queryKey: productKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: productKeys.details() });
     },
   });
 }

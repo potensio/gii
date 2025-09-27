@@ -30,12 +30,14 @@ interface ProductTableProps {
   data: Product[];
   columns: ColumnDef<Product>[];
   isLoading?: boolean;
+  onRowClick?: (product: Product) => void;
 }
 
 export function ProductTable({
   data,
   columns,
   isLoading = false,
+  onRowClick,
 }: ProductTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -56,7 +58,7 @@ export function ProductTable({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    columnResizeMode: 'onChange',
+    columnResizeMode: "onChange",
     enableColumnResizing: false,
     state: {
       sorting,
@@ -76,7 +78,7 @@ export function ProductTable({
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead 
+                      <TableHead
                         key={header.id}
                         style={{ width: header.getSize() }}
                       >
@@ -96,7 +98,7 @@ export function ProductTable({
               {Array.from({ length: 8 }).map((_, index) => (
                 <TableRow key={index}>
                   {table.getHeaderGroups()[0]?.headers.map((header) => (
-                    <TableCell 
+                    <TableCell
                       key={header.id}
                       style={{ width: header.getSize() }}
                     >
@@ -121,7 +123,7 @@ export function ProductTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead 
+                    <TableHead
                       key={header.id}
                       style={{ width: header.getSize() }}
                     >
@@ -143,9 +145,13 @@ export function ProductTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => onRowClick?.(row.original)}
+                  className={
+                    onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell 
+                    <TableCell
                       key={cell.id}
                       style={{ width: cell.column.getSize() }}
                     >

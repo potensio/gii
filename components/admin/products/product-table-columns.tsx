@@ -22,6 +22,8 @@ export interface Product {
   name: string;
   status: ProductStatus;
   hasVariants: boolean;
+  isFeatured: boolean;
+  isLatest: boolean;
   description?: string | null;
   shortDescription?: string | null;
   price?: number | null;

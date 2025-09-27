@@ -19,7 +19,7 @@ import {
   ProductVariant,
   ProductImage,
   SubDescription,
-  CreateProductSheetProps,
+  ProductSheetProps,
   VariantAttribute,
 } from "./types";
 import { VariantAttributeType } from "@/lib/generated/prisma/enums";
@@ -35,17 +35,32 @@ import {
 } from "@/lib/schemas/product-form.schema";
 import { useCreateProductWithForm } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
+import { transformProductToFormData } from "@/lib/adapters/product-form.adapter";
 
-export function CreateProductSheet({
+export function ProductSheet({
   isOpen,
   onClose,
-}: CreateProductSheetProps) {
+  mode = "create",
+  productToEdit,
+}: ProductSheetProps) {
   const { toast } = useToast();
 
-  // React Hook Form setup
+  // React Hook Form setup with dynamic default values
+  const getDefaultValues = React.useMemo(() => {
+    if (mode === "edit" && productToEdit) {
+      // Transform product data to form data format
+      const transformedData = transformProductToFormData(productToEdit);
+      return {
+        ...defaultProductFormValues,
+        ...transformedData,
+      };
+    }
+    return defaultProductFormValues;
+  }, [mode, productToEdit]);
+
   const form = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductFormSchema),
-    defaultValues: defaultProductFormValues,
+    defaultValues: getDefaultValues,
     mode: "onChange", // Validate on change for real-time feedback
     reValidateMode: "onChange", // Re-validate on change after first error
   });
@@ -106,6 +121,20 @@ export function CreateProductSheet({
       setValue("variants", []);
     }
   };
+
+  // Reset form when productToEdit changes (for edit mode)
+  React.useEffect(() => {
+    if (mode === "edit" && productToEdit) {
+      const transformedData = transformProductToFormData(productToEdit);
+      const newFormData = {
+        ...defaultProductFormValues,
+        ...transformedData,
+      };
+      form.reset(newFormData);
+    } else if (mode === "create") {
+      form.reset(defaultProductFormValues);
+    }
+  }, [mode, productToEdit, form]);
 
   // Update variants when selected attributes change
   React.useEffect(() => {
@@ -474,10 +503,13 @@ export function CreateProductSheet({
           <div className="flex items-center justify-between">
             <div>
               <SheetTitle className="text-left text-xl font-semibold">
-                Create Product
+                {mode === "edit" ? "Edit Product" : "Create Product"}
               </SheetTitle>
               <p className="text-sm text-muted-foreground">
-                Add new products and manage variants
+                {mode === "edit" 
+                  ? "Update product information and manage variants"
+                  : "Add new products and manage variants"
+                }
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
@@ -614,8 +646,8 @@ export function CreateProductSheet({
                 disabled={isSubmitting || createProductMutation.isPending}
               >
                 {isSubmitting || createProductMutation.isPending
-                  ? "Creating..."
-                  : "Create Product"}
+                  ? (mode === "edit" ? "Updating..." : "Creating...")
+                  : (mode === "edit" ? "Update Product" : "Create Product")}
               </Button>
               <Button
                 variant="outline"

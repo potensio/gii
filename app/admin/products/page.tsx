@@ -7,7 +7,8 @@ import { ProductTable } from "@/components/admin/products/product-table";
 import { ProductStatsCards } from "@/components/admin/products/product-stats-cards";
 import { createProductColumns } from "@/components/admin/products/product-table-columns";
 import { useProducts } from "@/hooks/use-products";
-import { CreateProductSheet } from "@/components/admin/products/create-product-sheet";
+import { ProductSheet } from "@/components/admin/products/product-sheet";
+import { Product } from "@/components/admin/products/product-table-columns";
 
 export default function ProductsPage() {
   const [pagination, setPagination] = React.useState({
@@ -24,6 +25,10 @@ export default function ProductsPage() {
 
   const [rowSelection, setRowSelection] = React.useState({});
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
+  const [sheetMode, setSheetMode] = React.useState<"create" | "edit">("create");
+  const [productToEdit, setProductToEdit] = React.useState<Product | undefined>(
+    undefined
+  );
 
   const {
     data: productsData,
@@ -39,7 +44,40 @@ export default function ProductsPage() {
     }
   );
 
-  const columns = React.useMemo(() => createProductColumns(), []);
+  // Handler functions for sheet operations
+  const handleCreateProduct = () => {
+    setSheetMode("create");
+    setProductToEdit(undefined);
+    setIsCreateSheetOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSheetMode("edit");
+    setProductToEdit(product);
+    setIsCreateSheetOpen(true);
+  };
+
+  const handleCloseSheet = () => {
+    setIsCreateSheetOpen(false);
+    setSheetMode("create");
+    setProductToEdit(undefined);
+  };
+
+  const columns = React.useMemo(
+    () =>
+      createProductColumns({
+        onEdit: handleEditProduct,
+        onDelete: (productId: string) => {
+          // TODO: Implement delete functionality
+          console.log("Delete product:", productId);
+        },
+        onViewDetails: (product: Product) => {
+          // TODO: Implement view details functionality
+          console.log("View details:", product);
+        },
+      }),
+    []
+  );
 
   if (error) {
     return (
@@ -58,7 +96,7 @@ export default function ProductsPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-2xl font-medium tracking-tight">Products</h2>
-        <Button onClick={() => setIsCreateSheetOpen(true)} className="gap-2">
+        <Button onClick={handleCreateProduct} className="gap-2">
           <Plus className="h-4 w-4" />
           Product
         </Button>
@@ -70,11 +108,14 @@ export default function ProductsPage() {
         data={productsData?.products || []}
         columns={columns}
         isLoading={isLoading}
+        onRowClick={handleEditProduct}
       />
 
-      <CreateProductSheet
+      <ProductSheet
         isOpen={isCreateSheetOpen}
-        onClose={() => setIsCreateSheetOpen(false)}
+        onClose={handleCloseSheet}
+        mode={sheetMode}
+        productToEdit={productToEdit}
       />
     </div>
   );

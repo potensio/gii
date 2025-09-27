@@ -296,12 +296,14 @@ export class ProductService {
       throw new Error("Product not found");
     }
 
-    // Check if SKU already exists
-    const existingSkuVariants = await productRepository.findVariantsBySku(
-      validatedInput.sku
-    );
-    if (existingSkuVariants.length > 0) {
-      throw new Error("Variant with this SKU already exists");
+    // Check if SKU already exists (only if SKU is provided)
+    if (validatedInput.sku) {
+      const existingSkuVariants = await productRepository.findVariantsBySku(
+        validatedInput.sku
+      );
+      if (existingSkuVariants.length > 0) {
+        throw new Error("Variant with this SKU already exists");
+      }
     }
 
     return productRepository.createVariant(validatedInput);

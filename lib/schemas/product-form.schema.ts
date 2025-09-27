@@ -17,9 +17,14 @@ export const subDescriptionSchema = z.object({
 // Product image schema for form
 export const productImageSchema = z.object({
   id: z.string(),
-  file: z.instanceof(File, { message: "Invalid file" }),
+  file: z.instanceof(File, { message: "Invalid file" }).optional(), // Optional untuk gambar yang sudah ada
   preview: z.string().url("Invalid preview URL"),
   isThumbnail: z.boolean().default(false),
+  isExisting: z.boolean().optional(), // Flag untuk membedakan gambar baru vs yang sudah ada
+  existingImageData: z.object({
+    url: z.string().url("Invalid image URL"),
+    publicId: z.string(),
+  }).optional(), // Data untuk gambar yang sudah ada
 });
 
 // Variant attribute schema for form

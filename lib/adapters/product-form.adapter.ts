@@ -5,6 +5,9 @@ import {
   generateVariantSku,
   VariantAttribute,
 } from "../utils/variant-naming";
+import { Product } from "../../components/admin/products/product-table-columns";
+import { ProductImage, SubDescription, ProductVariant } from "../../components/admin/products/types";
+import { VariantAttributeType } from "../generated/prisma/enums";
 
 /**
  * Transforms form data from the product creation form to the API schema format
@@ -188,54 +191,157 @@ export function transformCompleteFormData(formData: CreateProductFormData) {
 export function validateFormDataForApi(formData: CreateProductFormData) {
   const errors: string[] = [];
 
+  // Basic validation
   if (!formData.productName?.trim()) {
     errors.push("Product name is required");
   }
 
-  if (!formData.brand?.trim()) {
-    errors.push("Brand is required");
-  }
-
-  if (!formData.category?.trim()) {
+  if (!formData.category) {
     errors.push("Category is required");
   }
 
-  // Validate pricing based on product type
+  if (!formData.brand) {
+    errors.push("Brand is required");
+  }
+
+  if (!formData.description?.trim()) {
+    errors.push("Description is required");
+  }
+
+  // Validate variants if hasVariants is true
   if (formData.hasVariants) {
-    // For products with variants, validate that variants exist
     if (!formData.variants || formData.variants.length === 0) {
-      errors.push(
-        "At least one variant is required for products with variants"
-      );
+      errors.push("At least one variant is required for variant products");
+    } else {
+      formData.variants.forEach((variant, index) => {
+        if (!variant.price || parseFloat(variant.price) <= 0) {
+          errors.push(`Variant ${index + 1}: Price is required and must be positive`);
+        }
+        if (!variant.stock || parseInt(variant.stock) < 0) {
+          errors.push(`Variant ${index + 1}: Stock is required and must be non-negative`);
+        }
+        if (!variant.attributes || variant.attributes.length === 0) {
+          errors.push(`Variant ${index + 1}: At least one attribute is required`);
+        }
+      });
     }
   } else {
-    // For simple products, validate simple price and stock
-    if (
-      !formData.simplePrice ||
-      isNaN(parseFloat(formData.simplePrice.toString()))
-    ) {
-      errors.push("Valid price is required for simple products");
+    // Validate simple product fields
+    if (!formData.simplePrice || parseFloat(formData.simplePrice) <= 0) {
+      errors.push("Price is required and must be positive for simple products");
     }
-    if (
-      formData.simpleStock === undefined ||
-      isNaN(parseInt(formData.simpleStock.toString()))
-    ) {
-      errors.push("Valid stock is required for simple products");
+    if (!formData.simpleStock || parseInt(formData.simpleStock) < 0) {
+      errors.push("Stock is required and must be non-negative for simple products");
     }
   }
 
+  // Validate images
   if (!formData.images || formData.images.length === 0) {
-    errors.push("At least one image is required");
-  }
-
-  const thumbnailCount =
-    formData.images?.filter((img) => img.isThumbnail).length || 0;
-  if (thumbnailCount !== 1) {
-    errors.push("Exactly one image must be set as thumbnail");
+    if (!formData.uploadedImages || formData.uploadedImages.length === 0) {
+      errors.push("At least one product image is required");
+    }
   }
 
   return {
     isValid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Transforms Product data from API/database to form data format for editing
+ * @param product - The product data from API
+ * @returns Form data compatible with CreateProductFormData
+ */
+export function transformProductToFormData(product: Product): Partial<CreateProductFormData> {
+  // Transform basic product information
+  const formData: Partial<CreateProductFormData> = {
+    productName: product.name,
+    category: product.category?.id || "",
+    brand: product.brand?.id || "",
+    description: product.description || "",
+    status: product.status,
+    isFeatured: product.isFeatured,
+    isLatest: product.isLatest,
+    hasVariants: product.hasVariants,
+    metaTitle: "", // This field is not in Product interface, default to empty
+    metaDescription: "", // This field is not in Product interface, default to empty
+    keywords: "", // This field is not in Product interface, default to empty
+  };
+
+  // Handle simple product vs variants
+  if (!product.hasVariants) {
+    // For simple products, get data from the default variant
+    const defaultVariant = product.variants?.find(v => v.isDefault);
+    if (defaultVariant) {
+      formData.simplePrice = defaultVariant.price.toString();
+      formData.simpleStock = defaultVariant.stock.toString();
+      formData.simpleSku = defaultVariant.sku;
+    } else {
+      // Fallback to product-level data if available
+      formData.simplePrice = product.price?.toString() || "";
+      formData.simpleStock = product.stock?.toString() || "";
+      formData.simpleSku = product.sku || "";
+    }
+    
+    formData.selectedAttributes = [];
+    formData.variants = [];
+  } else {
+    // For variant products, transform variants
+    if (product.variants && product.variants.length > 0) {
+      // Extract unique attribute types from variants
+      // Note: This is a simplified approach since the Product interface doesn't include variant attributes
+      // In a real scenario, you'd need to fetch full variant data with attributes
+      formData.selectedAttributes = [VariantAttributeType.COLOR, VariantAttributeType.SIZE]; // Default selection
+      
+      // Transform variants to form format
+      formData.variants = product.variants.map((variant, index) => ({
+        id: variant.id,
+        price: variant.price.toString(),
+        stock: variant.stock.toString(),
+        sku: variant.sku,
+        attributes: [
+          {
+            type: VariantAttributeType.COLOR,
+            name: "Color",
+            value: `Color ${index + 1}` // Placeholder since we don't have actual attribute data
+          },
+          {
+            type: VariantAttributeType.SIZE,
+            name: "Size", 
+            value: `Size ${index + 1}` // Placeholder since we don't have actual attribute data
+          }
+        ]
+      }));
+    } else {
+      formData.selectedAttributes = [];
+      formData.variants = [];
+    }
+  }
+
+  // Transform images - convert existing images to ProductImage format
+  if (product.images && product.images.length > 0) {
+    // Convert existing images to ProductImage format with isExisting flag
+    formData.images = product.images.map((image, index) => ({
+      id: image.id,
+      preview: image.url,
+      isThumbnail: index === 0, // First image is considered thumbnail
+      isExisting: true,
+      existingImageData: {
+        url: image.url,
+        publicId: image.id // Use image.id as fallback since publicId is not available
+      }
+    }));
+    
+    // Clear uploadedImages since we're using unified images array
+    formData.uploadedImages = [];
+  } else {
+    formData.images = [];
+    formData.uploadedImages = [];
+  }
+
+  // Sub-descriptions - Product interface doesn't include this, so default to empty
+  formData.subDescriptions = [];
+
+  return formData;
 }

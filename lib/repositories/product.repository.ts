@@ -304,8 +304,36 @@ export class ProductRepository {
 
   // Product Variant operations
   async createVariant(data: CreateVariantInput): Promise<ProductVariant> {
+    // Generate SKU if not provided
+    const sku =
+      data.sku ||
+      `VAR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create proper Prisma data object
+    const prismaData: Prisma.ProductVariantCreateInput = {
+      name: data.name,
+      sku: sku,
+      price: data.price,
+      stock: data.stock,
+      lowStockThreshold: data.lowStockThreshold,
+      trackInventory: data.trackInventory,
+      isActive: data.isActive,
+      isDefault: data.isDefault,
+      product: {
+        connect: { id: data.productId },
+      },
+    };
+
+    // Add optional fields only if they exist
+    if (data.compareAtPrice) {
+      prismaData.compareAtPrice = data.compareAtPrice;
+    }
+    if (data.costPrice) {
+      prismaData.costPrice = data.costPrice;
+    }
+
     return db.productVariant.create({
-      data,
+      data: prismaData,
       include: {
         product: true,
         attributes: true,

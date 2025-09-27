@@ -14,8 +14,17 @@ import {
 import { CreateProductFormData } from "@/lib/schemas/product-form.schema";
 import { PaginationOptions } from "@/lib/schemas/user.schema";
 import { apiClient } from "@/lib/api-client";
+import { transformFormDataToApiSchema, transformVariantsToApiSchema } from "@/lib/adapters/product-form.adapter";
+import { generateVariantName, generateVariantSku } from "@/lib/utils/variant-naming";
+import { ProductVariantModel } from "@/lib/generated/prisma/models/ProductVariant";
 
 // Types for API responses
+interface SubDescription {
+  id: string;
+  title: string;
+  content: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -26,18 +35,18 @@ interface Product {
   categoryId: string;
   basePrice: number;
   status: ProductStatus;
-  featured: boolean;
+  isFeatured: boolean;
+  isLatest: boolean;
+  hasVariants: boolean;
   metaTitle?: string | null;
   metaDescription?: string | null;
-  fabricFit?: string | null;
-  careInstructions?: string | null;
+  subDescriptions?: SubDescription[] | null;
   createdAt: Date;
   updatedAt: Date;
   brand?: Brand;
   category?: Category;
   variants?: ProductVariant[];
   images?: ProductImage[];
-  specifications?: ProductSpecification[];
 }
 
 interface ProductVariant {
@@ -66,17 +75,6 @@ interface ProductImage {
   altText: string;
   sortOrder: number;
   isMain: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ProductSpecification {
-  id: string;
-  productId: string;
-  name: string;
-  value: string;
-  iconUrl?: string | null;
-  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,6 +115,7 @@ interface ProductStats {
   discontinued: number;
   outOfStock: number;
   featured: number;
+  latest: number;
   byCategory: Array<{
     categoryId: string;
     categoryName: string;
@@ -364,16 +363,49 @@ export function useCreateProductWithForm() {
 
   return useMutation({
     mutationFn: async (formData: CreateProductFormData) => {
-      // Import the adapter function
-      const { transformFormDataToApiSchema } = await import(
-        "@/lib/adapters/product-form.adapter"
-      );
-
       // Transform form data to API schema (JSON)
       const apiData = transformFormDataToApiSchema(formData);
 
-      // Call the API with JSON data
-      return productApi.createProduct(apiData);
+      // Call the API with JSON data to create the product
+      const createdProduct = await productApi.createProduct(apiData);
+
+      // Always create variants - either user-defined or default
+      if (
+        formData.hasVariants &&
+        formData.variants &&
+        formData.variants.length > 0
+      ) {
+        // Complex product: create user-defined variants
+        const variantData = transformVariantsToApiSchema(
+          formData,
+          createdProduct.id
+        );
+
+        // Create variants by calling the variant creation API
+        for (const variant of variantData) {
+          await apiClient.post(
+            `/api/products/${createdProduct.id}/variants`,
+            variant
+          );
+        }
+      } else {
+        // Simple product: create a default variant using product name
+        const defaultVariant = {
+          productId: createdProduct.id,
+          sku: formData.simpleSku || generateVariantSku(formData.productName, 0, true),
+          name: generateVariantName(formData.productName, []), // Empty attributes for simple product
+          price: parseFloat(formData.simplePrice || "0"),
+          stock: parseInt(formData.simpleStock || "0"),
+          isDefault: true,
+        };
+
+        await apiClient.post(
+          `/api/products/${createdProduct.id}/variants`,
+          defaultVariant
+        );
+      }
+
+      return createdProduct;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });

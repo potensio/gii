@@ -4,14 +4,15 @@ import { updateBrandSchema } from "@/lib/schemas/product.schema";
 import { withAuth } from "@/lib/middleware/auth.middleware";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 async function handleGET(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    const brand = await productService.getBrandById(params.id);
+    const { id } = await params;
+    const brand = await productService.getBrandById(id);
 
     if (!brand) {
       return NextResponse.json({ error: "Brand not found" }, { status: 404 });
@@ -29,10 +30,11 @@ async function handleGET(request: NextRequest, { params }: RouteParams, user: an
 
 async function handlePUT(request: NextRequest, { params }: RouteParams, user: any) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateBrandSchema.parse(body);
 
-    const brand = await productService.updateBrand(params.id, validatedData);
+    const brand = await productService.updateBrand(id, validatedData);
 
     return NextResponse.json(brand);
   } catch (error) {
@@ -60,7 +62,8 @@ async function handlePUT(request: NextRequest, { params }: RouteParams, user: an
 
 async function handleDELETE(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    await productService.deleteBrand(params.id);
+    const { id } = await params;
+    await productService.deleteBrand(id);
 
     return NextResponse.json(
       { message: "Brand deleted successfully" },

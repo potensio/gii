@@ -3,14 +3,15 @@ import { userService } from "@/lib/services/user.service";
 import { updateUserSchema } from "@/lib/schemas/user.schema";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const user = await userService.getUserById(params.id);
+    const { id } = await params;
+    const user = await userService.getUserById(id);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -28,10 +29,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateUserSchema.parse(body);
 
-    const user = await userService.updateUser(params.id, validatedData);
+    const user = await userService.updateUser(id, validatedData);
 
     return NextResponse.json(user);
   } catch (error) {
@@ -59,7 +61,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    await userService.deleteUser(params.id);
+    const { id } = await params;
+    await userService.deleteUser(id);
 
     return NextResponse.json(
       { message: "User deleted successfully" },

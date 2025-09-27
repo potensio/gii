@@ -9,6 +9,12 @@ import { JoinClubSidebar } from "@/components/join-club-sidebar";
 import { ProductCarouselSection } from "@/components/product-carousel-section";
 
 // Define a type for product data
+interface SubDescription {
+  id: string;
+  title: string;
+  content: string;
+}
+
 interface Product {
   id: string;
   slug: string;
@@ -21,8 +27,7 @@ interface Product {
   sizes: string[];
   stock: number;
   description: string;
-  fabricFit: string;
-  careInstructions: string;
+  subDescriptions?: SubDescription[];
   specifications: {
     iconSrc: string;
     iconAlt: string;
@@ -78,8 +83,18 @@ const productData: Product = {
   sizes: ["128GB", "256GB", "512GB", "1TB"],
   stock: 8,
   description: `iPhone 15 Pro menghadirkan desain titanium yang super ringan, kamera Pro canggih dengan zoom optik hingga 5x, serta chip A17 Pro yang super cepat untuk pengalaman gaming dan produktivitas level dewa.`,
-  fabricFit: `Desain ramping dengan layar 6.1 inci Super Retina XDR yang sangat responsif dan nyaman digenggam. Ideal untuk penggunaan sehari-hari hingga kebutuhan profesional.`,
-  careInstructions: `Gunakan case dan screen protector. Hindari paparan air meski tahan cipratan. Update iOS secara berkala untuk performa maksimal.`,
+  subDescriptions: [
+    {
+      id: "1",
+      title: "Design & Fit",
+      content: "Desain ramping dengan layar 6.1 inci Super Retina XDR yang sangat responsif dan nyaman digenggam. Ideal untuk penggunaan sehari-hari hingga kebutuhan profesional."
+    },
+    {
+      id: "2", 
+      title: "Care Instructions",
+      content: "Gunakan case dan screen protector. Hindari paparan air meski tahan cipratan. Update iOS secara berkala untuk performa maksimal."
+    }
+  ],
   specifications: [
     {
       iconSrc: "/placeholder.svg?height=64&width=64",
@@ -221,8 +236,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               {/* Description and Specifications */}
               <ProductDescription
                 description={product.description}
-                fabricFit={product.fabricFit}
-                careInstructions={product.careInstructions}
+                subDescriptions={product.subDescriptions}
               />
             </div>
 

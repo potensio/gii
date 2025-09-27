@@ -25,6 +25,7 @@ export interface ProductVariant {
   attributes: VariantAttribute[];
   price: string;
   stock: string;
+  sku?: string;
 }
 
 export interface ProductImage {

@@ -2,7 +2,6 @@ import {
   Product,
   ProductVariant,
   ProductImage,
-  ProductSpecification,
   Category,
   Brand,
   VariantAttribute,
@@ -20,8 +19,6 @@ import {
   updateVariantAttributeSchema,
   createProductImageSchema,
   updateProductImageSchema,
-  createProductSpecificationSchema,
-  updateProductSpecificationSchema,
   createCategorySchema,
   updateCategorySchema,
   createBrandSchema,
@@ -36,8 +33,6 @@ import {
   type UpdateVariantAttributeInput,
   type CreateProductImageInput,
   type UpdateProductImageInput,
-  type CreateProductSpecificationInput,
-  type UpdateProductSpecificationInput,
   type CreateCategoryInput,
   type UpdateCategoryInput,
   type CreateBrandInput,
@@ -54,7 +49,9 @@ export class ProductService {
       validatedInput.slug
     );
     if (existingProduct) {
-      throw new Error(`Product with slug "${validatedInput.slug}" already exists`);
+      throw new Error(
+        `Product with slug "${validatedInput.slug}" already exists`
+      );
     }
 
     // Verify brand exists
@@ -74,6 +71,9 @@ export class ProductService {
 
     // Create the product
     const createdProduct = await productRepository.create(productData);
+
+    // Note: Variant creation is now handled by the frontend hook (useCreateProductWithForm)
+    // This service only creates the base product
 
     // Handle image creation if imageUrls are provided
     if (imageUrls && imageUrls.length > 0) {
@@ -296,14 +296,6 @@ export class ProductService {
       throw new Error("Product not found");
     }
 
-    // Check if variant with slug already exists
-    const existingVariant = await productRepository.findVariantBySlug(
-      validatedInput.slug
-    );
-    if (existingVariant) {
-      throw new Error("Variant with this slug already exists");
-    }
-
     // Check if SKU already exists
     const existingSkuVariants = await productRepository.findVariantsBySku(
       validatedInput.sku
@@ -328,19 +320,6 @@ export class ProductService {
     return variant;
   }
 
-  async getVariantBySlug(slug: string): Promise<ProductVariant> {
-    if (!slug) {
-      throw new Error("Variant slug is required");
-    }
-
-    const variant = await productRepository.findVariantBySlug(slug);
-    if (!variant) {
-      throw new Error("Variant not found");
-    }
-
-    return variant;
-  }
-
   async updateVariant(
     id: string,
     input: UpdateVariantInput
@@ -356,16 +335,6 @@ export class ProductService {
     const existingVariant = await productRepository.findVariantById(id);
     if (!existingVariant) {
       throw new Error("Variant not found");
-    }
-
-    // If slug is being updated, check for conflicts
-    if (validatedInput.slug && validatedInput.slug !== existingVariant.slug) {
-      const slugConflict = await productRepository.findVariantBySlug(
-        validatedInput.slug
-      );
-      if (slugConflict) {
-        throw new Error("Slug is already in use by another variant");
-      }
     }
 
     // If SKU is being updated, check for conflicts
@@ -487,44 +456,6 @@ export class ProductService {
     }
 
     return productRepository.deleteProductImage(id);
-  }
-
-  // Product Specification operations
-  async createProductSpecification(
-    input: CreateProductSpecificationInput
-  ): Promise<ProductSpecification> {
-    // Validate input
-    const validatedInput = createProductSpecificationSchema.parse(input);
-
-    // Check if product exists
-    const product = await productRepository.findById(validatedInput.productId);
-    if (!product) {
-      throw new Error("Product not found");
-    }
-
-    return productRepository.createProductSpecification(validatedInput);
-  }
-
-  async updateProductSpecification(
-    id: string,
-    input: UpdateProductSpecificationInput
-  ): Promise<ProductSpecification> {
-    if (!id) {
-      throw new Error("Product specification ID is required");
-    }
-
-    // Validate input
-    const validatedInput = updateProductSpecificationSchema.parse(input);
-
-    return productRepository.updateProductSpecification(id, validatedInput);
-  }
-
-  async deleteProductSpecification(id: string): Promise<ProductSpecification> {
-    if (!id) {
-      throw new Error("Product specification ID is required");
-    }
-
-    return productRepository.deleteProductSpecification(id);
   }
 
   // Category operations

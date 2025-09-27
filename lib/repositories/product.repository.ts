@@ -3,7 +3,6 @@ import {
   Product,
   ProductVariant,
   ProductImage,
-  ProductSpecification,
   Category,
   Brand,
   VariantAttribute,
@@ -21,8 +20,6 @@ import {
   UpdateVariantAttributeInput,
   CreateProductImageInput,
   UpdateProductImageInput,
-  CreateProductSpecificationInput,
-  UpdateProductSpecificationInput,
   CreateCategoryInput,
   UpdateCategoryInput,
   CreateBrandInput,
@@ -45,7 +42,6 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
     });
   }
@@ -63,7 +59,6 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
     });
   }
@@ -81,7 +76,6 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
     });
   }
@@ -96,7 +90,15 @@ export class ProductRepository {
       sortBy = "createdAt",
       sortOrder = "desc",
     } = pagination;
-    const { status, brandId, categoryId, featured, search, minPrice, maxPrice } = filters;
+    const {
+      status,
+      brandId,
+      categoryId,
+      featured,
+      search,
+      minPrice,
+      maxPrice,
+    } = filters;
 
     const where: Prisma.ProductWhereInput = {
       ...(status && { status }),
@@ -105,9 +107,10 @@ export class ProductRepository {
       ...(featured !== undefined && { featured }),
       ...(minPrice !== undefined && { basePrice: { gte: minPrice } }),
       ...(maxPrice !== undefined && { basePrice: { lte: maxPrice } }),
-      ...(minPrice !== undefined && maxPrice !== undefined && {
-        basePrice: { gte: minPrice, lte: maxPrice },
-      }),
+      ...(minPrice !== undefined &&
+        maxPrice !== undefined && {
+          basePrice: { gte: minPrice, lte: maxPrice },
+        }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: "insensitive" } },
@@ -135,7 +138,6 @@ export class ProductRepository {
             },
           },
           images: true,
-          specifications: true,
         },
       }),
       db.product.count({ where }),
@@ -158,7 +160,6 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
     });
   }
@@ -180,7 +181,7 @@ export class ProductRepository {
   async getFeaturedProducts(limit: number = 10): Promise<Product[]> {
     return db.product.findMany({
       where: {
-        featured: true,
+        isFeatured: true,
         status: ProductStatus.ACTIVE,
       },
       take: limit,
@@ -194,13 +195,15 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async getProductsByCategory(categoryId: string, limit?: number): Promise<Product[]> {
+  async getProductsByCategory(
+    categoryId: string,
+    limit?: number
+  ): Promise<Product[]> {
     return db.product.findMany({
       where: {
         categoryId,
@@ -217,13 +220,15 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async getProductsByBrand(brandId: string, limit?: number): Promise<Product[]> {
+  async getProductsByBrand(
+    brandId: string,
+    limit?: number
+  ): Promise<Product[]> {
     return db.product.findMany({
       where: {
         brandId,
@@ -240,7 +245,6 @@ export class ProductRepository {
           },
         },
         images: true,
-        specifications: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -256,27 +260,21 @@ export class ProductRepository {
     byCategory: Record<string, number>;
     byBrand: Record<string, number>;
   }> {
-    const [
-      total,
-      active,
-      inactive,
-      featured,
-      categories,
-      brands,
-    ] = await Promise.all([
-      db.product.count(),
-      db.product.count({ where: { status: ProductStatus.ACTIVE } }),
-      db.product.count({ where: { status: ProductStatus.INACTIVE } }),
-      db.product.count({ where: { featured: true } }),
-      db.product.groupBy({
-        by: ["categoryId"],
-        _count: { _all: true },
-      }),
-      db.product.groupBy({
-        by: ["brandId"],
-        _count: { _all: true },
-      }),
-    ]);
+    const [total, active, inactive, featured, categories, brands] =
+      await Promise.all([
+        db.product.count(),
+        db.product.count({ where: { status: ProductStatus.ACTIVE } }),
+        db.product.count({ where: { status: ProductStatus.INACTIVE } }),
+        db.product.count({ where: { isFeatured: true } }),
+        db.product.groupBy({
+          by: ["categoryId"],
+          _count: { _all: true },
+        }),
+        db.product.groupBy({
+          by: ["brandId"],
+          _count: { _all: true },
+        }),
+      ]);
 
     const byCategory: Record<string, number> = {};
     categories.forEach((cat) => {
@@ -327,17 +325,6 @@ export class ProductRepository {
     });
   }
 
-  async findVariantBySlug(slug: string): Promise<ProductVariant | null> {
-    return db.productVariant.findUnique({
-      where: { slug },
-      include: {
-        product: true,
-        attributes: true,
-        images: true,
-      },
-    });
-  }
-
   async findVariantsBySku(sku: string): Promise<ProductVariant[]> {
     return db.productVariant.findMany({
       where: { sku: { contains: sku, mode: "insensitive" } },
@@ -349,7 +336,10 @@ export class ProductRepository {
     });
   }
 
-  async updateVariant(id: string, data: UpdateVariantInput): Promise<ProductVariant> {
+  async updateVariant(
+    id: string,
+    data: UpdateVariantInput
+  ): Promise<ProductVariant> {
     return db.productVariant.update({
       where: { id },
       data,
@@ -385,7 +375,9 @@ export class ProductRepository {
   }
 
   // Variant Attribute operations
-  async createVariantAttribute(data: CreateVariantAttributeInput): Promise<VariantAttribute> {
+  async createVariantAttribute(
+    data: CreateVariantAttributeInput
+  ): Promise<VariantAttribute> {
     return db.variantAttribute.create({
       data,
       include: {
@@ -394,7 +386,10 @@ export class ProductRepository {
     });
   }
 
-  async updateVariantAttribute(id: string, data: UpdateVariantAttributeInput): Promise<VariantAttribute> {
+  async updateVariantAttribute(
+    id: string,
+    data: UpdateVariantAttributeInput
+  ): Promise<VariantAttribute> {
     return db.variantAttribute.update({
       where: { id },
       data,
@@ -411,7 +406,9 @@ export class ProductRepository {
   }
 
   // Product Image operations
-  async createProductImage(data: CreateProductImageInput): Promise<ProductImage> {
+  async createProductImage(
+    data: CreateProductImageInput
+  ): Promise<ProductImage> {
     return db.productImage.create({
       data,
       include: {
@@ -421,7 +418,10 @@ export class ProductRepository {
     });
   }
 
-  async updateProductImage(id: string, data: UpdateProductImageInput): Promise<ProductImage> {
+  async updateProductImage(
+    id: string,
+    data: UpdateProductImageInput
+  ): Promise<ProductImage> {
     return db.productImage.update({
       where: { id },
       data,
@@ -434,32 +434,6 @@ export class ProductRepository {
 
   async deleteProductImage(id: string): Promise<ProductImage> {
     return db.productImage.delete({
-      where: { id },
-    });
-  }
-
-  // Product Specification operations
-  async createProductSpecification(data: CreateProductSpecificationInput): Promise<ProductSpecification> {
-    return db.productSpecification.create({
-      data,
-      include: {
-        product: true,
-      },
-    });
-  }
-
-  async updateProductSpecification(id: string, data: UpdateProductSpecificationInput): Promise<ProductSpecification> {
-    return db.productSpecification.update({
-      where: { id },
-      data,
-      include: {
-        product: true,
-      },
-    });
-  }
-
-  async deleteProductSpecification(id: string): Promise<ProductSpecification> {
-    return db.productSpecification.delete({
       where: { id },
     });
   }
@@ -511,7 +485,10 @@ export class ProductRepository {
     });
   }
 
-  async updateCategory(id: string, data: UpdateCategoryInput): Promise<Category> {
+  async updateCategory(
+    id: string,
+    data: UpdateCategoryInput
+  ): Promise<Category> {
     return db.category.update({
       where: { id },
       data,

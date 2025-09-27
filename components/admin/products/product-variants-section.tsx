@@ -44,7 +44,7 @@ interface ProductVariantsSectionProps {
   ) => void;
   onUpdateVariantField: (
     variantId: string,
-    field: "price" | "stock",
+    field: "price" | "stock" | "sku",
     value: string
   ) => void;
   errors?: FieldErrors<CreateProductFormData>;
@@ -201,7 +201,7 @@ export function ProductVariantsSection({
                 className="grid gap-3"
                 style={{
                   gridTemplateColumns: `repeat(${
-                    selectedAttributes.length + 2
+                    selectedAttributes.length + 3
                   }, 1fr)`,
                 }}
               >
@@ -278,6 +278,20 @@ export function ProductVariantsSection({
                       {stockError.message}
                     </p>
                   )}
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-xs">SKU</Label>
+                  <Input
+                    placeholder="Optional"
+                    value={variant.sku || ""}
+                    onChange={(e) =>
+                      onUpdateVariantField(variant.id, "sku", e.target.value)
+                    }
+                    className="h-8"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-generated if empty
+                  </p>
                 </div>
               </div>
             </div>

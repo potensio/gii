@@ -4,14 +4,15 @@ import { updateCategorySchema } from "@/lib/schemas/product.schema";
 import { withAuth } from "@/lib/middleware/auth.middleware";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 async function handleGET(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    const category = await productService.getCategoryById(params.id);
+    const { id } = await params;
+    const category = await productService.getCategoryById(id);
 
     if (!category) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
@@ -29,10 +30,11 @@ async function handleGET(request: NextRequest, { params }: RouteParams, user: an
 
 async function handlePUT(request: NextRequest, { params }: RouteParams, user: any) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateCategorySchema.parse(body);
 
-    const category = await productService.updateCategory(params.id, validatedData);
+    const category = await productService.updateCategory(id, validatedData);
 
     return NextResponse.json(category);
   } catch (error) {
@@ -60,7 +62,8 @@ async function handlePUT(request: NextRequest, { params }: RouteParams, user: an
 
 async function handleDELETE(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    await productService.deleteCategory(params.id);
+    const { id } = await params;
+    await productService.deleteCategory(id);
 
     return NextResponse.json(
       { message: "Category deleted successfully" },

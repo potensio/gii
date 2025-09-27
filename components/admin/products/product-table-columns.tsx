@@ -15,14 +15,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Define types locally to avoid import issues
-type ProductStatus = "ACTIVE" | "INACTIVE" | "DRAFT" | "DISCONTINUED" | "OUT_OF_STOCK";
+type ProductStatus = "ACTIVE" | "INACTIVE" | "DRAFT";
 
 export interface Product {
   id: string;
   name: string;
-  slug: string;
-  basePrice: number;
   status: ProductStatus;
+  hasVariants: boolean;
+  description?: string | null;
+  shortDescription?: string | null;
+  price?: number | null;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  stock?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
   category?: {
     id: string;
     name: string;
@@ -34,17 +41,15 @@ export interface Product {
   variants?: Array<{
     id: string;
     sku: string;
+    price: number;
     stock: number;
     isDefault: boolean;
   }>;
   images?: Array<{
     id: string;
     url: string;
-    altText: string;
-    isMain: boolean;
+    altText?: string | null;
   }>;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 interface ProductActionsProps {
@@ -65,7 +70,7 @@ function ProductActions({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-8 w-8 p-0">
           <span className="sr-only">Open menu</span>
-          <MoreHorizontal />
+          <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -75,19 +80,10 @@ function ProductActions({
         >
           Copy product ID
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() =>
-            navigator.clipboard.writeText(
-              product.variants?.[0]?.sku || product.slug
-            )
-          }
-        >
-          Copy SKU
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {onViewDetails && (
           <DropdownMenuItem onClick={() => onViewDetails(product)}>
-            View product details
+            View details
           </DropdownMenuItem>
         )}
         {onEdit && (
@@ -97,8 +93,8 @@ function ProductActions({
         )}
         {onDelete && (
           <DropdownMenuItem
-            className="text-red-600"
             onClick={() => onDelete(product.id)}
+            className="text-destructive"
           >
             Delete product
           </DropdownMenuItem>
@@ -177,32 +173,6 @@ export function createProductColumns(actions?: {
       size: 200,
     },
     {
-      id: "sku",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="p-0"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            SKU
-            <ArrowUpDown />
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const product = row.original;
-        const defaultVariant =
-          product.variants?.find((v) => v.isDefault) || product.variants?.[0];
-        return (
-          <div className="font-mono text-xs">
-            {defaultVariant?.sku || product.slug}
-          </div>
-        );
-      },
-      size: 150,
-    },
-    {
       accessorKey: "category",
       header: "Category",
       cell: ({ row }) => {
@@ -240,10 +210,45 @@ export function createProductColumns(actions?: {
       },
       cell: ({ row }) => {
         const product = row.original;
-        const price = product.basePrice;
-        return (
-          <div className="font-medium">Rp{price.toLocaleString("id-ID")}</div>
-        );
+        
+        // For simple products (no variants), get price from default variant
+        if (!product.hasVariants) {
+          const defaultVariant = product.variants?.find((v: any) => v.isDefault);
+          if (!defaultVariant || defaultVariant.price == null) {
+            return <div className="text-muted-foreground">No price</div>;
+          }
+          return (
+            <div className="font-medium">Rp{defaultVariant.price.toLocaleString("id-ID")}</div>
+          );
+        }
+        
+        // For products with variants
+        if (!product.variants || product.variants.length === 0) {
+          return <div className="text-muted-foreground">No variants</div>;
+        }
+        
+        const prices = product.variants.map((v: any) => v.price).filter((p: any) => p != null);
+        if (prices.length === 0) {
+          return <div className="text-muted-foreground">No price</div>;
+        }
+        
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        
+        if (minPrice === maxPrice) {
+          // All variants have the same price
+          return (
+            <div className="font-medium">Rp{minPrice.toLocaleString("id-ID")}</div>
+          );
+        } else {
+          // Multiple different prices
+          return (
+            <div className="font-medium">
+              <span className="text-xs text-muted-foreground">start from </span>
+              Rp{minPrice.toLocaleString("id-ID")}
+            </div>
+          );
+        }
       },
       size: 120,
     },
@@ -257,7 +262,7 @@ export function createProductColumns(actions?: {
             className={`capitalize inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
               status === "ACTIVE"
                 ? "bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400"
-                : status === "INACTIVE"
+                : status === "DRAFT"
                 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400"
                 : "bg-gray-100 text-gray-800 dark:bg-gray-500/10 dark:text-gray-400"
             }`}

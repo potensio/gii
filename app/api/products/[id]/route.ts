@@ -4,14 +4,15 @@ import { updateProductSchema } from "@/lib/schemas/product.schema";
 import { withAuth } from "@/lib/middleware/auth.middleware";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 async function handleGET(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    const product = await productService.getProductById(params.id);
+    const { id } = await params;
+    const product = await productService.getProductById(id);
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -29,10 +30,11 @@ async function handleGET(request: NextRequest, { params }: RouteParams, user: an
 
 async function handlePUT(request: NextRequest, { params }: RouteParams, user: any) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateProductSchema.parse(body);
 
-    const product = await productService.updateProduct(params.id, validatedData);
+    const product = await productService.updateProduct(id, validatedData);
 
     return NextResponse.json(product);
   } catch (error) {
@@ -60,7 +62,8 @@ async function handlePUT(request: NextRequest, { params }: RouteParams, user: an
 
 async function handleDELETE(request: NextRequest, { params }: RouteParams, user: any) {
   try {
-    await productService.deleteProduct(params.id);
+    const { id } = await params;
+    await productService.deleteProduct(id);
 
     return NextResponse.json(
       { message: "Product deleted successfully" },

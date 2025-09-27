@@ -77,6 +77,7 @@ export function CreateProductSheet({
   const images = watchedValues.images || [];
   const selectedAttributes = watchedValues.selectedAttributes || [];
   const variants = watchedValues.variants || [];
+  const hasVariants = watchedValues.hasVariants || false;
 
   // Helper functions to update form values
   const setSubDescriptions = (newSubDescriptions: SubDescription[]) => {
@@ -93,6 +94,17 @@ export function CreateProductSheet({
 
   const setVariants = (newVariants: ProductVariant[]) => {
     setValue("variants", newVariants);
+  };
+
+  // Handle hasVariants toggle
+  const handleHasVariantsChange = (hasVariants: boolean) => {
+    setValue("hasVariants", hasVariants);
+
+    // Clear variant-related fields when switching to simple product
+    if (!hasVariants) {
+      setValue("selectedAttributes", []);
+      setValue("variants", []);
+    }
   };
 
   // Update variants when selected attributes change
@@ -165,7 +177,7 @@ export function CreateProductSheet({
 
   const updateVariantField = (
     variantId: string,
-    field: "price" | "stock",
+    field: "price" | "stock" | "sku",
     value: string
   ) => {
     const updatedVariants = variants.map((variant) =>
@@ -362,9 +374,10 @@ export function CreateProductSheet({
             console.error("Image upload error:", uploadError);
             setError("root.uploadError", {
               type: "manual",
-              message: uploadError instanceof Error
-                ? `Image upload failed: ${uploadError.message}`
-                : "Failed to upload images. Please try again."
+              message:
+                uploadError instanceof Error
+                  ? `Image upload failed: ${uploadError.message}`
+                  : "Failed to upload images. Please try again.",
             });
             return;
           }
@@ -378,7 +391,7 @@ export function CreateProductSheet({
 
         // Use the mutation to create the product
         await createProductMutation.mutateAsync(modifiedData);
-        
+
         toast({
           title: "Success",
           description: "Product created successfully!",
@@ -394,18 +407,20 @@ export function CreateProductSheet({
           if (error.message.includes("already exists")) {
             setError("root.duplicateError", {
               type: "manual",
-              message: "A product with this slug already exists. Please use a different slug."
+              message:
+                "A product with this slug already exists. Please use a different slug.",
             });
             toast({
               title: "Duplicate Product",
-              description: "A product with this slug already exists. Please use a different slug.",
+              description:
+                "A product with this slug already exists. Please use a different slug.",
               variant: "destructive",
             });
           } else {
             // Handle server/network errors
             setError("root.serverError", {
               type: "manual",
-              message: error.message
+              message: error.message,
             });
             toast({
               title: "Error",
@@ -416,7 +431,7 @@ export function CreateProductSheet({
         } else {
           setError("root.unexpectedError", {
             type: "manual",
-            message: "An unexpected error occurred. Please try again."
+            message: "An unexpected error occurred. Please try again.",
           });
           toast({
             title: "Error",
@@ -430,7 +445,7 @@ export function CreateProductSheet({
       // Let React Hook Form handle field validation errors automatically
       // Only show a general toast for user feedback
       console.log("Form validation errors:", validationErrors);
-      
+
       toast({
         title: "Validation Errors",
         description: "Please check the highlighted fields and fix any errors.",
@@ -479,6 +494,8 @@ export function CreateProductSheet({
                 register={register}
                 control={control}
                 errors={errors}
+                hasVariants={hasVariants}
+                onHasVariantsChange={handleHasVariantsChange}
               />
 
               {/* Sub-Descriptions */}
@@ -503,18 +520,21 @@ export function CreateProductSheet({
                 errors={errors}
               />
 
-              <ProductVariantsSection
-                variants={variants}
-                selectedAttributes={selectedAttributes}
-                open={open}
-                onOpenChange={setOpen}
-                onAddVariant={addVariant}
-                onRemoveVariant={removeVariant}
-                onAttributeSelect={handleAttributeSelect}
-                onUpdateVariantAttribute={updateVariantAttribute}
-                onUpdateVariantField={updateVariantField}
-                errors={errors}
-              />
+              {/* Product Variants - Only show when hasVariants is true */}
+              {hasVariants && (
+                <ProductVariantsSection
+                  variants={variants}
+                  selectedAttributes={selectedAttributes}
+                  open={open}
+                  onOpenChange={setOpen}
+                  onAddVariant={addVariant}
+                  onRemoveVariant={removeVariant}
+                  onAttributeSelect={handleAttributeSelect}
+                  onUpdateVariantAttribute={updateVariantAttribute}
+                  onUpdateVariantField={updateVariantField}
+                  errors={errors}
+                />
+              )}
 
               <SEOSection
                 metaTitle={watchedValues.metaTitle || ""}
@@ -547,7 +567,10 @@ export function CreateProductSheet({
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-semibold text-sm">
-                      Rp{watchedValues.basePrice || "-"}
+                      Rp
+                      {hasVariants
+                        ? watchedValues.variants?.[0]?.price || "-"
+                        : watchedValues.simplePrice || "-"}
                     </span>
                   </div>
                 </CardContent>
@@ -572,11 +595,13 @@ export function CreateProductSheet({
                   <AlertDescription>
                     {Object.values(errors.root).map((error, index) => (
                       <div key={index}>
-                        {typeof error === 'string' 
-                          ? error 
-                          : typeof error === 'object' && error && 'message' in error 
-                            ? error.message 
-                            : 'An error occurred'}
+                        {typeof error === "string"
+                          ? error
+                          : typeof error === "object" &&
+                            error &&
+                            "message" in error
+                          ? error.message
+                          : "An error occurred"}
                       </div>
                     ))}
                   </AlertDescription>

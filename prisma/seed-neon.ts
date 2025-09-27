@@ -1,19 +1,24 @@
 import { PrismaClient } from '../lib/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import { Pool } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-// Create adapter with proper configuration for Neon DB
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!
+// Create connection pool for Neon DB with proper configuration
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL!,
+  ssl: { rejectUnauthorized: false }
 });
+
+// Create adapter with proper type handling
+const adapter = new PrismaNeon(pool as any);
 
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Starting database seeding...');
+  console.log('Starting database seeding with Neon adapter...');
 
   // Seed brands
   const brands = [
@@ -38,10 +43,14 @@ async function main() {
   ];
 
   for (const brand of brands) {
-    const createdBrand = await prisma.brand.create({
-      data: brand,
-    });
-    console.log(`Created brand: ${createdBrand.name}`);
+    try {
+      const createdBrand = await prisma.brand.create({
+        data: brand,
+      });
+      console.log(`Created brand: ${createdBrand.name}`);
+    } catch (error) {
+      console.log(`Brand ${brand.name} might already exist`);
+    }
   }
 
   // Seed categories
@@ -64,10 +73,14 @@ async function main() {
   ];
 
   for (const category of categories) {
-    const createdCategory = await prisma.category.create({
-      data: category,
-    });
-    console.log(`Created category: ${createdCategory.name}`);
+    try {
+      const createdCategory = await prisma.category.create({
+        data: category,
+      });
+      console.log(`Created category: ${createdCategory.name}`);
+    } catch (error) {
+      console.log(`Category ${category.name} might already exist`);
+    }
   }
 
   console.log('Seeding completed!');

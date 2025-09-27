@@ -1,19 +1,9 @@
-import { PrismaClient } from '../lib/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import dotenv from 'dotenv';
+import { PrismaClient } from "../lib/generated/prisma/client";
 
-// Load environment variables
-dotenv.config();
-
-// Create adapter with proper configuration for Neon DB
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!
-});
-
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting database seeding...');
+  console.log("Starting database seeding...");
 
   // Seed brands
   const brands = [
@@ -25,14 +15,14 @@ async function main() {
     },
     {
       name: "Urban Afterdark",
-      slug: "urban-afterdark", 
+      slug: "urban-afterdark",
       description: "Street culture inspired clothing",
       logoUrl: "/placeholder-logo.svg",
     },
     {
       name: "Nocturne Style",
       slug: "nocturne-style",
-      description: "Dark aesthetic fashion brand", 
+      description: "Dark aesthetic fashion brand",
       logoUrl: "/placeholder-logo.svg",
     },
   ];
@@ -53,7 +43,7 @@ async function main() {
     },
     {
       name: "Hoodies",
-      slug: "hoodies", 
+      slug: "hoodies",
       description: "Comfortable hoodies and sweatshirts",
     },
     {
@@ -70,7 +60,7 @@ async function main() {
     console.log(`Created category: ${createdCategory.name}`);
   }
 
-  console.log('Seeding completed!');
+  console.log("Seeding completed!");
 }
 
 main()

@@ -1,5 +1,10 @@
 import { CreateProductFormData } from "../schemas/product-form.schema";
 import { CreateProductInput } from "../schemas/product.schema";
+import {
+  generateVariantName,
+  generateVariantSku,
+  VariantAttribute,
+} from "../utils/variant-naming";
 
 /**
  * Transforms form data from the product creation form to the API schema format
@@ -24,26 +29,21 @@ export function transformFormDataToApiSchema(
     description: formData.description,
     brandId: formData.brand,
     categoryId: formData.category,
-    basePrice: parseFloat(formData.basePrice),
     status: formData.status,
-    featured: false, // Default to false, can be updated later
+    isFeatured: formData.isFeatured || false,
+    isLatest: formData.isLatest || false,
     metaTitle: formData.metaTitle || undefined,
     metaDescription: formData.metaDescription || undefined,
 
-    // Transform sub-descriptions into fabricFit and careInstructions
-    fabricFit:
-      formData.subDescriptions.find(
-        (sub) =>
-          sub.title.toLowerCase().includes("fabric") ||
-          sub.title.toLowerCase().includes("fit")
-      )?.content || undefined,
-
-    careInstructions:
-      formData.subDescriptions.find(
-        (sub) =>
-          sub.title.toLowerCase().includes("care") ||
-          sub.title.toLowerCase().includes("instruction")
-      )?.content || undefined,
+    // Add subdescriptions directly as JSON array
+    subDescriptions:
+      formData.subDescriptions && formData.subDescriptions.length > 0
+        ? formData.subDescriptions.map((sub) => ({
+            id: sub.id,
+            title: sub.title,
+            content: sub.content,
+          }))
+        : undefined,
 
     // Add uploaded images if available
     imageUrls: formData.uploadedImages
@@ -91,37 +91,35 @@ export function transformVariantsToApiSchema(
   formData: CreateProductFormData,
   productId: string
 ) {
+  if (!formData.variants) {
+    return [];
+  }
+
   return formData.variants.map((variant, index) => {
-    // Generate variant name from attributes
-    const variantName = variant.attributes
-      .map((attr) => attr.value)
-      .join(" / ");
+    // Convert form attributes to VariantAttribute format
+    const attributes: VariantAttribute[] = variant.attributes.map((attr) => ({
+      type: attr.type,
+      name: attr.name,
+      value: attr.value,
+    }));
 
-    // Generate variant slug
-    const variantSlug = `${formData.productName}-${variantName}`
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .trim();
+    // Generate variant name using the new naming system
+    const variantName = generateVariantName(formData.productName, attributes);
 
-    // Generate SKU if not provided (using base SKU + variant index)
-    const variantSku = `${formData.sku}-${String(index + 1).padStart(2, "0")}`;
+    // Generate SKU - use provided SKU or auto-generate
+    const variantSku =
+      variant.sku && variant.sku.trim()
+        ? variant.sku.trim()
+        : generateVariantSku(formData.productName, index, false);
 
     return {
       productId,
       sku: variantSku,
       name: variantName,
-      slug: variantSlug,
       price: parseFloat(variant.price),
       stock: parseInt(variant.stock),
       isDefault: index === 0, // First variant is default
-      attributes: variant.attributes.map((attr, attrIndex) => ({
-        type: attr.type,
-        name: attr.name,
-        value: attr.value,
-        sortOrder: attrIndex,
-      })),
+      // Note: attributes will be created separately via variant attributes API
     };
   });
 }
@@ -153,26 +151,14 @@ export function transformImagesToApiSchema(
  * @param formData - The form data containing sub-descriptions
  * @param productId - The ID of the created product
  * @returns Array of specification data compatible with the API
+ * @deprecated This function is no longer needed as subdescriptions are stored directly in the product
  */
 export function transformSubDescriptionsToSpecifications(
   formData: CreateProductFormData,
   productId: string
 ) {
-  return formData.subDescriptions
-    .filter(
-      (sub) =>
-        // Only include sub-descriptions that aren't used for fabricFit or careInstructions
-        !sub.title.toLowerCase().includes("fabric") &&
-        !sub.title.toLowerCase().includes("fit") &&
-        !sub.title.toLowerCase().includes("care") &&
-        !sub.title.toLowerCase().includes("instruction")
-    )
-    .map((sub, index) => ({
-      productId,
-      name: sub.title,
-      value: sub.content,
-      sortOrder: index,
-    }));
+  // This function is deprecated - subdescriptions are now stored directly in the product
+  return [];
 }
 
 /**
@@ -190,8 +176,7 @@ export function transformCompleteFormData(formData: CreateProductFormData) {
       transformVariantsToApiSchema(formData, productId),
     getImages: (productId: string) =>
       transformImagesToApiSchema(formData, productId),
-    getSpecifications: (productId: string) =>
-      transformSubDescriptionsToSpecifications(formData, productId),
+    // Specifications are no longer used - subdescriptions are stored directly in product
   };
 }
 
@@ -215,12 +200,28 @@ export function validateFormDataForApi(formData: CreateProductFormData) {
     errors.push("Category is required");
   }
 
-  if (!formData.basePrice || isNaN(parseFloat(formData.basePrice))) {
-    errors.push("Valid base price is required");
-  }
-
-  if (!formData.variants || formData.variants.length === 0) {
-    errors.push("At least one variant is required");
+  // Validate pricing based on product type
+  if (formData.hasVariants) {
+    // For products with variants, validate that variants exist
+    if (!formData.variants || formData.variants.length === 0) {
+      errors.push(
+        "At least one variant is required for products with variants"
+      );
+    }
+  } else {
+    // For simple products, validate simple price and stock
+    if (
+      !formData.simplePrice ||
+      isNaN(parseFloat(formData.simplePrice.toString()))
+    ) {
+      errors.push("Valid price is required for simple products");
+    }
+    if (
+      formData.simpleStock === undefined ||
+      isNaN(parseInt(formData.simpleStock.toString()))
+    ) {
+      errors.push("Valid stock is required for simple products");
+    }
   }
 
   if (!formData.images || formData.images.length === 0) {

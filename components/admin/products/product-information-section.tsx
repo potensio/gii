@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PriceInput } from "@/components/ui/price-input";
-import { FieldErrors, UseFormRegister, Control, Controller } from "react-hook-form";
+import {
+  FieldErrors,
+  UseFormRegister,
+  Control,
+  Controller,
+} from "react-hook-form";
 import { CreateProductFormData } from "@/lib/schemas/product-form.schema";
 import { useBrands, useCategories } from "@/hooks/use-products";
 
@@ -19,12 +25,16 @@ interface ProductInformationSectionProps {
   register: UseFormRegister<CreateProductFormData>;
   control: Control<CreateProductFormData>;
   errors?: FieldErrors<CreateProductFormData>;
+  hasVariants?: boolean;
+  onHasVariantsChange?: (value: boolean) => void;
 }
 
 export function ProductInformationSection({
   register,
   control,
   errors,
+  hasVariants,
+  onHasVariantsChange,
 }: ProductInformationSectionProps) {
   const { data: brands, isLoading: brandsLoading } = useBrands();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -125,16 +135,26 @@ export function ProductInformationSection({
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="sku">SKU</Label>
-            <Input
-              id="sku"
-              placeholder="Nomor SKU"
-              {...register("sku")}
-              className={errors?.sku ? "border-destructive" : ""}
-            />
-            {errors?.sku && (
-              <p className="text-sm text-destructive">{errors.sku.message}</p>
-            )}
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="hasVariants">Has Variants</Label>
+              <Controller
+                name="hasVariants"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="hasVariants"
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      onHasVariantsChange?.(checked);
+                    }}
+                  />
+                )}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Toggle to enable product variants with different attributes
+            </p>
           </div>
         </div>
 
@@ -155,53 +175,132 @@ export function ProductInformationSection({
           )}
         </div>
 
+        {/* Simple Product Fields - Only show when hasVariants is false */}
+        {!hasVariants && (
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="font-medium text-sm text-muted-foreground">
+              Simple Product Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="simplePrice">Price</Label>
+                <Controller
+                  name="simplePrice"
+                  control={control}
+                  render={({ field }) => (
+                    <PriceInput
+                      id="simplePrice"
+                      placeholder="0"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className={
+                        errors?.simplePrice ? "border-destructive" : ""
+                      }
+                    />
+                  )}
+                />
+                {errors?.simplePrice && (
+                  <p className="text-sm text-destructive">
+                    {errors.simplePrice.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="simpleStock">Stock</Label>
+                <Input
+                  id="simpleStock"
+                  type="number"
+                  placeholder="0"
+                  {...register("simpleStock")}
+                  className={errors?.simpleStock ? "border-destructive" : ""}
+                />
+                {errors?.simpleStock && (
+                  <p className="text-sm text-destructive">
+                    {errors.simpleStock.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="simpleSku">SKU</Label>
+                <Input
+                  id="simpleSku"
+                  placeholder="PROD-001"
+                  {...register("simpleSku")}
+                  className={errors?.simpleSku ? "border-destructive" : ""}
+                />
+                {errors?.simpleSku && (
+                  <p className="text-sm text-destructive">
+                    {errors.simpleSku.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <Label htmlFor="status">Status</Label>
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  className={errors?.status ? "border-destructive" : ""}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors?.status && (
+            <p className="text-sm text-destructive">{errors.status.message}</p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label htmlFor="basePrice">Harga Dasar</Label>
-            <Controller
-              name="basePrice"
-              control={control}
-              render={({ field }) => (
-                <PriceInput
-                  id="basePrice"
-                  placeholder="0"
-                  value={field.value}
-                  onChange={field.onChange}
-                  className={errors?.basePrice ? "border-destructive" : ""}
-                />
-              )}
-            />
-            {errors?.basePrice && (
-              <p className="text-sm text-destructive">
-                {errors.basePrice.message}
-              </p>
-            )}
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="isFeatured">Featured Product</Label>
+              <Controller
+                name="isFeatured"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="isFeatured"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mark this product as featured
+            </p>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="status">Status</Label>
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger
-                    className={errors?.status ? "border-destructive" : ""}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors?.status && (
-              <p className="text-sm text-destructive">
-                {errors.status.message}
-              </p>
-            )}
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="isLatest">Latest Product</Label>
+              <Controller
+                name="isLatest"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="isLatest"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mark this product as latest
+            </p>
           </div>
         </div>
       </div>

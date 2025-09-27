@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { ProductStatus, VariantAttributeType } from "../generated/prisma/enums";
 
+// Sub-description schema
+export const subDescriptionSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, "Title is required").max(100, "Title too long"),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(1000, "Content too long"),
+});
+
 // Product schemas
 export const createProductSchema = z.object({
   name: z
@@ -21,12 +31,9 @@ export const createProductSchema = z.object({
     .optional(),
   brandId: z.string().min(1, "Brand is required"),
   categoryId: z.string().min(1, "Category is required"),
-  basePrice: z
-    .number()
-    .positive("Base price must be positive")
-    .max(999999.99, "Base price too large"),
   status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.ACTIVE),
-  featured: z.boolean().optional().default(false),
+  isFeatured: z.boolean().optional().default(false),
+  isLatest: z.boolean().optional().default(false),
   metaTitle: z
     .string()
     .max(60, "Meta title must be less than 60 characters")
@@ -35,8 +42,7 @@ export const createProductSchema = z.object({
     .string()
     .max(160, "Meta description must be less than 160 characters")
     .optional(),
-  fabricFit: z.string().optional(),
-  careInstructions: z.string().optional(),
+  subDescriptions: z.array(subDescriptionSchema).optional(),
   imageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 });
 
@@ -61,13 +67,9 @@ export const updateProductSchema = z.object({
     .optional(),
   brandId: z.string().min(1, "Brand is required").optional(),
   categoryId: z.string().min(1, "Category is required").optional(),
-  basePrice: z
-    .number()
-    .positive("Base price must be positive")
-    .max(999999.99, "Base price too large")
-    .optional(),
   status: z.nativeEnum(ProductStatus).optional(),
   featured: z.boolean().optional(),
+  isLatest: z.boolean().optional(),
   metaTitle: z
     .string()
     .max(60, "Meta title must be less than 60 characters")
@@ -76,8 +78,7 @@ export const updateProductSchema = z.object({
     .string()
     .max(160, "Meta description must be less than 160 characters")
     .optional(),
-  fabricFit: z.string().optional(),
-  careInstructions: z.string().optional(),
+  subDescriptions: z.array(subDescriptionSchema).optional(),
 });
 
 export const productFiltersSchema = z.object({
@@ -94,7 +95,7 @@ export const productPaginationSchema = z.object({
   page: z.number().int().min(1).default(1),
   limit: z.number().int().min(1).max(100).default(10),
   sortBy: z
-    .enum(["name", "basePrice", "status", "featured", "createdAt", "updatedAt"])
+    .enum(["name", "status", "featured", "createdAt", "updatedAt"])
     .optional()
     .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
@@ -106,18 +107,12 @@ export const createVariantSchema = z.object({
   sku: z
     .string()
     .min(1, "SKU is required")
-    .max(50, "SKU must be less than 50 characters"),
+    .max(50, "SKU must be less than 50 characters")
+    .optional(),
   name: z
     .string()
     .min(1, "Variant name is required")
     .max(200, "Variant name must be less than 200 characters"),
-  slug: z
-    .string()
-    .min(1, "Slug is required")
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Slug must be lowercase with hyphens only"
-    ),
   price: z
     .number()
     .positive("Price must be positive")
@@ -153,14 +148,6 @@ export const updateVariantSchema = z.object({
     .string()
     .min(1, "Variant name is required")
     .max(200, "Variant name must be less than 200 characters")
-    .optional(),
-  slug: z
-    .string()
-    .min(1, "Slug is required")
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Slug must be lowercase with hyphens only"
-    )
     .optional(),
   price: z
     .number()
@@ -255,36 +242,6 @@ export const updateProductImageSchema = z.object({
   isMain: z.boolean().optional(),
 });
 
-// Product Specification schemas
-export const createProductSpecificationSchema = z.object({
-  productId: z.string().min(1, "Product ID is required"),
-  name: z
-    .string()
-    .min(1, "Specification name is required")
-    .max(100, "Specification name must be less than 100 characters"),
-  value: z
-    .string()
-    .min(1, "Specification value is required")
-    .max(500, "Specification value must be less than 500 characters"),
-  iconUrl: z.string().url("Invalid icon URL").optional(),
-  sortOrder: z.number().int().min(0).default(0),
-});
-
-export const updateProductSpecificationSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Specification name is required")
-    .max(100, "Specification name must be less than 100 characters")
-    .optional(),
-  value: z
-    .string()
-    .min(1, "Specification value is required")
-    .max(500, "Specification value must be less than 500 characters")
-    .optional(),
-  iconUrl: z.string().url("Invalid icon URL").optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
-
 // Category schemas
 export const createCategorySchema = z.object({
   name: z
@@ -375,13 +332,6 @@ export type UpdateVariantAttributeInput = z.infer<
 
 export type CreateProductImageInput = z.infer<typeof createProductImageSchema>;
 export type UpdateProductImageInput = z.infer<typeof updateProductImageSchema>;
-
-export type CreateProductSpecificationInput = z.infer<
-  typeof createProductSpecificationSchema
->;
-export type UpdateProductSpecificationInput = z.infer<
-  typeof updateProductSpecificationSchema
->;
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

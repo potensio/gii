@@ -5,16 +5,20 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+interface SubDescription {
+  id: string;
+  title: string;
+  content: string;
+}
+
 interface ProductDescriptionProps {
   description: string;
-  fabricFit: string;
-  careInstructions: string;
+  subDescriptions?: SubDescription[] | null;
 }
 
 export function ProductDescription({
   description,
-  fabricFit,
-  careInstructions,
+  subDescriptions,
 }: ProductDescriptionProps) {
   return (
     <div className="space-y-8 px-4 md:px-10">
@@ -23,24 +27,20 @@ export function ProductDescription({
         <p>{description}</p>
       </div>
 
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="fabric-fit">
-          <AccordionTrigger className="text-lg font-semibold">
-            Relax Crew Fabric & Fit
-          </AccordionTrigger>
-          <AccordionContent className="prose max-w-none text-gray-700">
-            {fabricFit}
-          </AccordionContent>
-        </AccordionItem>
-        <AccordionItem value="care-instructions">
-          <AccordionTrigger className="text-lg font-semibold">
-            Relax Crew Care Instructions
-          </AccordionTrigger>
-          <AccordionContent className="prose max-w-none text-gray-700">
-            {careInstructions}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      {subDescriptions && subDescriptions.length > 0 && (
+        <Accordion type="single" collapsible className="w-full">
+          {subDescriptions.map((subDesc) => (
+            <AccordionItem key={subDesc.id} value={subDesc.id}>
+              <AccordionTrigger className="text-lg font-semibold">
+                {subDesc.title}
+              </AccordionTrigger>
+              <AccordionContent className="prose max-w-none text-gray-700">
+                {subDesc.content}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      )}
     </div>
   );
 }

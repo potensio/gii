@@ -38,6 +38,7 @@ export const variantAttributeSchema = z.object({
 // Product variant schema for form
 export const productVariantSchema = z.object({
   id: z.string(),
+  sku: z.string().optional(), // Make SKU optional
   attributes: z
     .array(variantAttributeSchema)
     .min(1, "At least one attribute is required"),
@@ -75,8 +76,8 @@ export const uploadedImageSchema = z.object({
   isMain: z.boolean().default(false),
 });
 
-// Main product creation form schema
-export const createProductFormSchema = z.object({
+// Base schema without superRefine for pick operations
+const baseProductFormSchema = z.object({
   // Basic product information
   productName: z
     .string()
@@ -88,33 +89,26 @@ export const createProductFormSchema = z.object({
 
   brand: z.string().min(1, "Brand is required"),
 
-  sku: z
-    .string()
-    .min(1, "SKU is required")
-    .max(50, "SKU must be less than 50 characters")
-    .regex(
-      /^[A-Z0-9-_]+$/,
-      "SKU must contain only uppercase letters, numbers, hyphens, and underscores"
-    ),
+  // Product type toggle
+  hasVariants: z.boolean().default(false),
+
+  // Simple product fields (only required when hasVariants is false)
+  simplePrice: z.string().optional(),
+
+  simpleStock: z.string().optional(),
+
+  simpleSku: z.string().optional(),
 
   description: z
     .string()
     .min(1, "Description is required")
     .max(2000, "Description must be less than 2000 characters"),
 
-  basePrice: z
-    .string()
-    .min(1, "Base price is required")
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num > 0;
-    }, "Base price must be a positive number")
-    .refine((val) => {
-      const num = parseFloat(val);
-      return num <= 999999.99;
-    }, "Base price cannot exceed 999,999.99"),
-
   status: z.nativeEnum(ProductStatus).default(ProductStatus.ACTIVE),
+
+  // Product flags
+  isFeatured: z.boolean().default(false),
+  isLatest: z.boolean().default(false),
 
   // SEO fields
   metaTitle: z
@@ -138,8 +132,17 @@ export const createProductFormSchema = z.object({
   // Sub-descriptions
   subDescriptions: z
     .array(subDescriptionSchema)
-    .min(1, "At least one sub-description is required")
-    .max(10, "Maximum 10 sub-descriptions allowed"),
+    .optional()
+    .refine((subDescriptions) => {
+      if (!subDescriptions) return true;
+      return subDescriptions.every(
+        (sub) => sub.title.trim() !== "" && sub.content.trim() !== ""
+      );
+    }, "All sub-descriptions must have both title and content filled")
+    .refine(
+      (subDescriptions) => !subDescriptions || subDescriptions.length <= 10,
+      "Maximum 10 sub-descriptions allowed"
+    ),
 
   // Images (for form UI)
   images: z
@@ -154,54 +157,168 @@ export const createProductFormSchema = z.object({
   // Uploaded images (for API processing)
   uploadedImages: z.array(uploadedImageSchema).optional(),
 
-  // Variant attributes
-  selectedAttributes: z
-    .array(z.nativeEnum(VariantAttributeType))
-    .min(1, "At least one variant attribute must be selected")
-    .max(5, "Maximum 5 variant attributes allowed"),
+  // Variant attributes (only required when hasVariants is true)
+  selectedAttributes: z.array(z.nativeEnum(VariantAttributeType)).optional(),
 
-  variants: z
-    .array(productVariantSchema)
-    .min(1, "At least one product variant is required")
-    .max(50, "Maximum 50 variants allowed")
-    .refine((variants) => {
-      const combinations = variants.map((variant) =>
-        variant.attributes
-          .map((attr) => `${attr.type}:${attr.value}`)
-          .sort()
-          .join("|")
-      );
-      const uniqueCombinations = new Set(combinations);
-      return uniqueCombinations.size === combinations.length;
-    }, "Duplicate variant combinations are not allowed"),
+  variants: z.array(productVariantSchema).optional(),
 });
 
+// Main product creation form schema with validation
+export const createProductFormSchema = baseProductFormSchema.superRefine(
+  (data, ctx) => {
+    // Validate simple product fields when hasVariants is false
+    if (!data.hasVariants) {
+      if (!data.simplePrice || data.simplePrice.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Price is required for simple products",
+          path: ["simplePrice"],
+        });
+      } else {
+        const num = parseFloat(data.simplePrice);
+        if (isNaN(num) || num <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Price must be a positive number",
+            path: ["simplePrice"],
+          });
+        } else if (num > 999999.99) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Price cannot exceed 999,999.99",
+            path: ["simplePrice"],
+          });
+        }
+      }
+
+      if (!data.simpleStock || data.simpleStock.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Stock is required for simple products",
+          path: ["simpleStock"],
+        });
+      } else {
+        const num = parseInt(data.simpleStock);
+        if (isNaN(num) || num < 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Stock must be a non-negative integer",
+            path: ["simpleStock"],
+          });
+        } else if (num > 999999) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Stock cannot exceed 999,999",
+            path: ["simpleStock"],
+          });
+        }
+      }
+
+      if (!data.simpleSku || data.simpleSku.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SKU is required for simple products",
+          path: ["simpleSku"],
+        });
+      } else {
+        if (!/^[A-Z0-9-_]+$/.test(data.simpleSku)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "SKU must contain only uppercase letters, numbers, hyphens, and underscores",
+            path: ["simpleSku"],
+          });
+        } else if (data.simpleSku.length > 50) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "SKU must be less than 50 characters",
+            path: ["simpleSku"],
+          });
+        }
+      }
+    }
+
+    // Validate variant fields when hasVariants is true
+    if (data.hasVariants) {
+      if (!data.selectedAttributes || data.selectedAttributes.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "At least one variant attribute must be selected for complex products",
+          path: ["selectedAttributes"],
+        });
+      } else if (data.selectedAttributes.length > 5) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Maximum 5 variant attributes allowed",
+          path: ["selectedAttributes"],
+        });
+      }
+
+      if (!data.variants || data.variants.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "At least one product variant is required for complex products",
+          path: ["variants"],
+        });
+      } else if (data.variants.length > 50) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Maximum 50 variants allowed",
+          path: ["variants"],
+        });
+      } else {
+        // Check for duplicate variant combinations
+        const combinations = data.variants.map((variant) =>
+          variant.attributes
+            .map((attr) => `${attr.type}:${attr.value}`)
+            .sort()
+            .join("|")
+        );
+        const uniqueCombinations = new Set(combinations);
+        if (uniqueCombinations.size !== combinations.length) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Duplicate variant combinations are not allowed",
+            path: ["variants"],
+          });
+        }
+      }
+    }
+  }
+);
+
 // Additional validation schemas for specific sections
-export const productInformationSchema = createProductFormSchema.pick({
+export const productInformationSchema = baseProductFormSchema.pick({
   productName: true,
   category: true,
   brand: true,
-  sku: true,
+  hasVariants: true,
+  simplePrice: true,
+  simpleStock: true,
+  simpleSku: true,
   description: true,
-  basePrice: true,
   status: true,
+  isFeatured: true,
+  isLatest: true,
 });
 
-export const seoSectionSchema = createProductFormSchema.pick({
+export const seoSectionSchema = baseProductFormSchema.pick({
   metaTitle: true,
   metaDescription: true,
   keywords: true,
 });
 
-export const subDescriptionsSectionSchema = createProductFormSchema.pick({
+export const subDescriptionsSectionSchema = baseProductFormSchema.pick({
   subDescriptions: true,
 });
 
-export const productImagesSectionSchema = createProductFormSchema.pick({
+export const productImagesSectionSchema = baseProductFormSchema.pick({
   images: true,
 });
 
-export const productVariantsSectionSchema = createProductFormSchema.pick({
+export const productVariantsSectionSchema = baseProductFormSchema.pick({
   selectedAttributes: true,
   variants: true,
 });
@@ -233,25 +350,18 @@ export const defaultProductFormValues: Partial<CreateProductFormData> = {
   productName: "",
   category: "",
   brand: "",
-  sku: "",
+  hasVariants: false,
+  simplePrice: "",
+  simpleStock: "",
+  simpleSku: "",
   description: "",
-  basePrice: "",
   status: ProductStatus.ACTIVE,
+  isFeatured: false,
+  isLatest: false,
   metaTitle: "",
   metaDescription: "",
   keywords: "",
-  subDescriptions: [
-    {
-      id: "1",
-      title: "Fabric & Fit",
-      content: "",
-    },
-    {
-      id: "2",
-      title: "Care Instructions",
-      content: "",
-    },
-  ],
+  subDescriptions: [], // Start with empty array instead of pre-filled items
   images: [],
   selectedAttributes: [VariantAttributeType.COLOR, VariantAttributeType.SIZE],
   variants: [],

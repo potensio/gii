@@ -253,7 +253,7 @@ export default function ShopPage() {
 
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = allProducts.filter((product) => {
+    const filtered = allProducts.filter((product) => {
       const categoryMatch =
         filters.categories.length === 0 ||
         filters.categories.includes(product.category);

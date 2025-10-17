@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/hooks/use-auth";
-import { QueryProvider } from "@/lib/providers/query-provider";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import "./globals.css";
@@ -35,14 +34,10 @@ html {
           enableSystem
           disableTransitionOnChange
         >
-          <QueryProvider>
-            <AuthProvider>
-              {children}
+          {children}
 
-              <Toaster />
-              <Sonner />
-            </AuthProvider>
-          </QueryProvider>
+          <Toaster />
+          <Sonner />
         </ThemeProvider>
       </body>
     </html>

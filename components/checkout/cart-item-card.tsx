@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import Image from "next/image";
 
 interface CartItem {
   id: string;
@@ -25,12 +26,12 @@ export function CartItemCard({
   note,
   showNote,
   onNoteChange,
-  onToggleNote
+  onToggleNote,
 }: CartItemCardProps) {
   return (
     <div className="p-4 border border-gray-200 rounded-lg">
       <div className="flex gap-4">
-        <img
+        <Image
           src={item.imageSrc}
           alt={item.imageAlt}
           className="w-16 h-16 object-cover rounded-md"
@@ -38,9 +39,9 @@ export function CartItemCard({
         <div className="flex-1">
           <h3 className="font-medium text-gray-900">{item.title}</h3>
           <p className="text-sm text-gray-600">{item.brand}</p>
-                           {item.capacity && (
-                             <p className="text-sm text-gray-600">{item.capacity}</p>
-                           )}
+          {item.capacity && (
+            <p className="text-sm text-gray-600">{item.capacity}</p>
+          )}
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">
@@ -60,11 +61,14 @@ export function CartItemCard({
           </div>
         </div>
       </div>
-      
+
       {/* Note section - hidden by default */}
       {showNote && (
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <Label htmlFor={`note-${item.id}`} className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor={`note-${item.id}`}
+            className="text-sm font-medium text-gray-700"
+          >
             Catatan untuk {item.title}
           </Label>
           <Textarea

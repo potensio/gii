@@ -50,7 +50,18 @@ const VARIANT_ATTRIBUTE_TYPES = [
   { value: "FEATURE", label: "Feature" },
 ];
 
-import { VariantAttributeType } from "@/lib/generated/prisma/enums";
+// Define the VariantAttributeType enum locally since Prisma is removed
+type VariantAttributeType = 
+  | "COLOR"
+  | "SIZE" 
+  | "STORAGE"
+  | "MEMORY"
+  | "PROCESSOR"
+  | "MATERIAL"
+  | "CAPACITY"
+  | "MODEL"
+  | "DIMENSION"
+  | "FEATURE";
 
 interface VariantAttribute {
   type: VariantAttributeType;

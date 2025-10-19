@@ -153,13 +153,13 @@ export function SiteFooter() {
         </p>
         <div className="flex flex-wrap justify-center space-x-4">
           <Link href="#" className="hover:text-white">
-            Privacy policy
+            Kebijakan Privasi
           </Link>
           <Link href="#" className="hover:text-white">
             Refund policy
           </Link>
           <Link href="#" className="hover:text-white">
-            Terms of service
+            Kebijakan Layanan
           </Link>
           <Link href="#" className="hover:text-white">
             Shipping policy

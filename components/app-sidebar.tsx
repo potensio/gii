@@ -48,10 +48,6 @@ const data = {
           title: "Stock",
           url: "#",
         },
-        {
-          title: "Settings",
-          url: "#",
-        },
       ],
     },
     {
@@ -65,7 +61,7 @@ const data = {
         },
         {
           title: "Users",
-          url: "#",
+          url: "/d/users",
         },
       ],
     },

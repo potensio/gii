@@ -17,7 +17,7 @@ export function VerifyForm({ type, code }: VerifyFormProps) {
     if (type && code) {
       verifyMutation.mutate();
     }
-  }, [type, code, verifyMutation]);
+  }, [type, code]);
 
   if (verifyMutation.error) {
     return (

@@ -161,8 +161,8 @@ export function SiteFooter() {
           <Link href="#" className="hover:text-white">
             Kebijakan Layanan
           </Link>
-          <Link href="#" className="hover:text-white">
-            Shipping policy
+          <Link href="/d" className="hover:text-white">
+            Admin
           </Link>
         </div>
         <div className="mt-6 flex space-x-4">

@@ -4,6 +4,7 @@ import { users, verifyCodes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { RegisterFormInput } from "@/lib/validations/auth.validation";
 import { nanoid } from "nanoid";
+import { emailService } from "./email.service";
 
 // Function to generate 6-digit verification code
 const generateVerificationCode = (): string => {
@@ -50,6 +51,21 @@ export const authService = {
         code: verificationCode,
         expiresAt: expiresAt,
       });
+
+      // 6. Send confirmation email
+      const confirmationLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify?code=${verificationCode}&type=register`;
+      
+      const emailResult = await emailService.sendConfirmationEmail({
+        to: result[0].email,
+        name: result[0].name,
+        confirmationLink,
+      });
+
+      // Log email result but don't fail registration if email fails
+      if (!emailResult.success) {
+        console.error("Failed to send confirmation email:", emailResult.message);
+        // You might want to add this to a retry queue or monitoring service
+      }
 
       return {
         success: true,

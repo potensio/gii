@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { RegisterFormInput } from "@/lib/validations/auth.validation";
+import {
+  RegisterFormInput,
+  LoginFormInput,
+} from "@/lib/validations/auth.validation";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+interface LoginResponse {
+  success: boolean;
+  message: string;
+}
 
 interface RegisterResponse {
   success: boolean;
@@ -30,6 +38,23 @@ interface VerifyResponse {
 }
 
 const authApi = {
+  login: async (data: LoginFormInput): Promise<LoginResponse> => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Terjadi kesalahan saat login");
+    }
+
+    return response.json();
+  },
+
   logout: async () => {
     const response = await fetch("/api/auth/logout", {
       method: "POST",
@@ -83,6 +108,23 @@ const authApi = {
 
     return response.json();
   },
+};
+
+export const useLogin = () => {
+  const mutation = useMutation({
+    mutationFn: (data: LoginFormInput) => authApi.login(data),
+    onSuccess: (data) =>
+      // Show success toast
+      toast.success(data.message),
+    onError: (error) => {
+      // Show error toast
+      toast.error(error.message);
+    },
+  });
+
+  return {
+    ...mutation,
+  };
 };
 
 export const useLogout = () => {

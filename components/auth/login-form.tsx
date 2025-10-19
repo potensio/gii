@@ -4,6 +4,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginFormInput, loginSchema } from "@/lib/validations/auth.validation";
+import { useLogin } from "@/hooks/use-auth";
 
 import { GalleryVerticalEnd } from "lucide-react";
 
@@ -18,6 +19,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { emailService } from "@/lib/services/email.service";
 
 export function LoginForm({
   className,
@@ -28,9 +30,16 @@ export function LoginForm({
     resolver: zodResolver(loginSchema),
   });
 
+  // Login mutation
+  const loginMutation = useLogin();
+
+  const onSubmit = async (data: LoginFormInput) => {
+    await loginMutation.mutate(data);
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a
@@ -66,8 +75,14 @@ export function LoginForm({
           </Field>
 
           <Field>
-            <Button type="submit" size={"lg"}>
-              Masuk
+            <Button
+              type="submit"
+              size={"lg"}
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending
+                ? "Mengirim Magic Link"
+                : "Kirim Magic Link"}
             </Button>
           </Field>
           <FieldSeparator>Atau</FieldSeparator>

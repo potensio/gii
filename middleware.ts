@@ -19,7 +19,6 @@ export function middleware(req: NextRequest) {
 
   // If no token, redirect to auth
   if (!token) {
-    console.log("Middleware - No token, redirecting to /auth");
     return NextResponse.redirect(new URL("/auth", req.url));
   }
 
@@ -31,10 +30,8 @@ async function verifyTokenAsync(token: string, req: NextRequest) {
   try {
     const secret = new TextEncoder().encode(JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    console.log("Middleware - Token valid, decoded:", payload);
     return NextResponse.next();
   } catch (error) {
-    console.log("Middleware - Token invalid:", error);
     // Token is invalid, redirect to auth
     return NextResponse.redirect(new URL("/auth", req.url));
   }

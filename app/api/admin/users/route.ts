@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { db } from "@/lib/db/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { userSchema } from "@/lib/validations/user.validation";
 
 // Helper function to verify admin access
 async function verifyAdminAccess(request: NextRequest) {
@@ -80,6 +81,62 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get users API error:", error);
+    return NextResponse.json(
+      { success: false, message: "Terjadi kesalahan server" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Verify admin access
+    const authResult = await verifyAdminAccess(request);
+    if (!authResult.success) {
+      return NextResponse.json(
+        { success: false, message: authResult.message },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validationResult = userSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Data tidak valid",
+          errors: validationResult.error.errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, role } = validationResult.data;
+
+    // Create user using service
+    const result = await userService.createUser({
+      name,
+      email,
+      role,
+    });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, message: result.message },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: result.message,
+      data: result.user,
+    });
+  } catch (error) {
+    console.error("Create user API error:", error);
     return NextResponse.json(
       { success: false, message: "Terjadi kesalahan server" },
       { status: 500 }

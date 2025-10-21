@@ -43,38 +43,37 @@ import {
 
 dayjs.extend(relativeTime);
 
-export type User = {
+export type Product = {
   id: string;
   name: string | null;
-  email: string;
-  role: "user" | "admin" | "super_admin";
+  brand: string | null;
+  category: string | null;
   isActive: boolean;
-  isConfirmed: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
 
-interface UserTableProps {
-  users: User[];
+interface ProductTableProps {
+  products: Product[];
   isLoading: boolean;
-  onRowClick: (user: User) => void;
-  onEditUser: (user: User) => void;
-  onDeleteUser: (user: User) => void;
+  onRowClick: (product: Product) => void;
+  // onEditProduct: (product: Product) => void;
+  // onDeleteProduct: (product: Product) => void;
 }
 
-export function UserTable({
-  users,
+export function ProductTable({
+  products,
   isLoading,
   onRowClick,
-  onEditUser,
-  onDeleteUser,
-}: UserTableProps) {
+  // onEditProduct,
+  // onDeleteProduct,
+}: ProductTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<Product>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -112,26 +111,14 @@ export function UserTable({
       ),
     },
     {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => (
-        <div className="lowercase">{row.getValue("email")}</div>
-      ),
+      accessorKey: "brand",
+      header: "Brand",
+      cell: ({ row }) => <div>{row.getValue("brand")}</div>,
     },
     {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const role = row.getValue("role") as string;
-        return (
-          <Badge variant="outline">
-            {role !== "user" ? (
-              <span className="mr-1 size-1.5 rounded-full bg-green-400" />
-            ) : null}
-            <p className="capitalize">{role.replace("_", " ")}</p>
-          </Badge>
-        );
-      },
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ row }) => <div>{row.getValue("category")}</div>,
     },
     {
       accessorKey: "isActive",
@@ -146,13 +133,13 @@ export function UserTable({
       },
     },
     {
-      accessorKey: "lastLoginAt",
-      header: "Terakhir Login",
+      accessorKey: "updatedAt",
+      header: "Terakhir Diupdate",
       cell: ({ row }) => {
-        const lastLoginAt = row.getValue("lastLoginAt") as Date | undefined;
+        const updatedAt = row.getValue("updatedAt") as Date | undefined;
         return (
           <div className="text-sm">
-            {lastLoginAt ? `${dayjs(lastLoginAt).fromNow()}` : "-"}
+            {updatedAt ? `${dayjs(updatedAt).fromNow()}` : "-"}
           </div>
         );
       },
@@ -185,9 +172,9 @@ export function UserTable({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600"
-                  onClick={() => onDeleteUser(user)}
+                  // onClick={() => onDeleteProduct(user)}
                 >
-                  Hapus user
+                  Hapus produk
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -198,7 +185,7 @@ export function UserTable({
   ];
 
   const table = useReactTable({
-    data: users,
+    data: products,
     columns,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

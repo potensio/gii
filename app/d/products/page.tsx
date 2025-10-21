@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { UserTable, User } from "./_components/user-table";
+import { ProductTable, Product } from "./_components/product-table";
 import { UserFilters } from "./_components/user-filters";
-import { UserSheet } from "./_components/user-sheet";
-import { useUsers, useUpdateUser, useDeleteUser, useCreateUser } from "@/hooks/use-users";
+import { ProductSheet } from "./_components/product-sheet";
+import {
+  useUsers,
+  useUpdateUser,
+  useDeleteUser,
+  useCreateUser,
+} from "@/hooks/use-users";
 
 export default function UsersPage() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [filters, setFilters] = useState({
@@ -48,21 +53,42 @@ export default function UsersPage() {
   const deleteUserMutation = useDeleteUser();
   const createUserMutation = useCreateUser();
 
-  const handleRowClick = (user: User) => {
-    setSelectedUser(user);
+  const productsData = [
+    {
+      id: "1",
+      name: "Produk 1",
+      brand: "Apple",
+      category: "Elektronik",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: "2",
+      name: "Produk 2",
+      brand: "Apple",
+      category: "Elektronik",
+      isActive: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const handleRowClick = (product: Product) => {
+    setSelectedUser(product);
     setSheetMode("edit");
     setIsSheetOpen(true);
   };
 
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    setSheetMode("edit");
-    setIsSheetOpen(true);
-  };
+  // const handleEditProduct = (product: Product) => {
+  //   setSelectedUser(product);
+  //   setSheetMode("edit");
+  //   setIsSheetOpen(true);
+  // };
 
-  const handleDeleteUser = (user: User) => {
-    deleteUserMutation.mutate(user.id);
-  };
+  // const handleDeleteProduct = (product: Product) => {
+  //   deleteUserMutation.mutate(product.id);
+  // };
 
   const handleAddUser = () => {
     setSelectedUser(null);
@@ -70,7 +96,7 @@ export default function UsersPage() {
     setIsSheetOpen(true);
   };
 
-  const handleSaveUser = (userData: Partial<User>) => {
+  const handleSaveUser = (userData: Partial<Product>) => {
     if (sheetMode === "edit" && selectedUser) {
       // Update existing user
       updateUserMutation.mutate({
@@ -79,11 +105,11 @@ export default function UsersPage() {
       });
     } else {
       // Create new user
-      createUserMutation.mutate({
-        name: userData.name!,
-        email: userData.email!,
-        role: userData.role!,
-      });
+      // createUserMutation.mutate({
+      //   name: userData.name!,
+      //   email: userData.email!,
+      //   role: userData.role!,
+      // });
     }
 
     // Close sheet and reset state
@@ -112,9 +138,9 @@ export default function UsersPage() {
     <div className="container mx-auto py-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-medium tracking-tight">User</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Produk</h1>
         <Button size={"sm"} onClick={handleAddUser}>
-          Tambahkan User
+          Tambahkan Produk
         </Button>
       </div>
 
@@ -134,20 +160,20 @@ export default function UsersPage() {
         }
       />
 
-      {/* User Table */}
-      <UserTable
-        users={usersData?.users || []}
+      {/* Product Table */}
+      <ProductTable
+        products={productsData || []}
         onRowClick={handleRowClick}
-        onEditUser={handleEditUser}
-        onDeleteUser={handleDeleteUser}
+        // onEditProduct={handleEditUser}
+        // onDeleteProduct={handleDeleteUser}
         isLoading={isLoading}
       />
 
       {/* User Sheet */}
-      <UserSheet
+      <ProductSheet
         isOpen={isSheetOpen}
         onClose={handleCloseSheet}
-        selectedUser={selectedUser}
+        selectedUser={null}
         onSave={handleSaveUser}
         mode={sheetMode}
       />

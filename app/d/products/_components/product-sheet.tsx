@@ -42,7 +42,7 @@ interface UserSheetProps {
   mode: "create" | "edit";
 }
 
-export function UserSheet({
+export function ProductSheet({
   isOpen,
   onClose,
   selectedUser,

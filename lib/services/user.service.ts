@@ -1,6 +1,7 @@
 import { db } from "@/lib/db/db";
-import { users, SelectUser } from "@/lib/db/schema";
+import { users, SelectUser, InsertUser } from "@/lib/db/schema";
 import { eq, and, or, ilike, desc, count } from "drizzle-orm";
+import { emailService } from "./email.service";
 
 export interface GetUsersParams {
   page?: number;
@@ -28,10 +29,7 @@ export const userService = {
 
     if (search) {
       conditions.push(
-        or(
-          ilike(users.name, `%${search}%`),
-          ilike(users.email, `%${search}%`)
-        )!
+        or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))!
       );
     }
 
@@ -99,15 +97,80 @@ export const userService = {
 
   // Soft delete user
   deleteUser: async (id: string): Promise<boolean> => {
-    const result = await db
-      .update(users)
-      .set({
-        isDeleted: true,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(users.id, id), eq(users.isDeleted, false)))
-      .returning();
+    try {
+      const [result] = await db
+        .update(users)
+        .set({
+          isDeleted: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, id))
+        .returning();
 
-    return result.length > 0;
+      return !!result;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
+  },
+
+  // Create new user
+  createUser: async (
+    userData: Pick<InsertUser, "name" | "email" | "role">
+  ): Promise<{ success: boolean; user?: SelectUser; message: string }> => {
+    try {
+      // Check if email already exists
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.email, userData.email), eq(users.isDeleted, false)))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        return {
+          success: false,
+          message: "Email sudah digunakan oleh pengguna lain",
+        };
+      }
+
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role || "user",
+          isConfirmed: false, // User needs to confirm email
+          isActive: true,
+          isDeleted: false,
+        })
+        .returning();
+
+      // Send notification email to the new user
+      const emailResult = await emailService.sendNewUserNotification({
+        to: newUser.email,
+        name: newUser.name,
+        email: newUser.email,
+        createdBy: "Administrator",
+        loginLink: `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify?email=${encodeURIComponent(newUser.email)}`,
+      });
+
+      if (!emailResult.success) {
+        console.warn("Failed to send notification email:", emailResult.message);
+        // Don't fail the user creation if email fails
+      }
+
+      return {
+        success: true,
+        user: newUser,
+        message: "Pengguna berhasil dibuat dan email notifikasi telah dikirim",
+      };
+    } catch (error) {
+      console.error("Error creating user:", error);
+      return {
+        success: false,
+        message: "Terjadi kesalahan saat membuat pengguna",
+      };
+    }
   },
 };

@@ -46,7 +46,7 @@ async function verifyAdminAccess(request: NextRequest) {
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -58,7 +58,8 @@ export async function GET(
       );
     }
 
-    const user = await userService.getUserById(params.id);
+    const { id } = await params;
+    const user = await userService.getUserById(id);
 
     if (!user) {
       return NextResponse.json(
@@ -83,7 +84,7 @@ export async function GET(
 // PATCH /api/admin/users/[id] - Update user
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -105,7 +106,8 @@ export async function PATCH(
     if (role !== undefined) updateData.role = role;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedUser = await userService.updateUser(params.id, updateData);
+    const { id } = await params;
+    const updatedUser = await userService.updateUser(id, updateData);
 
     if (!updatedUser) {
       return NextResponse.json(
@@ -131,7 +133,7 @@ export async function PATCH(
 // DELETE /api/admin/users/[id] - Soft delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -143,7 +145,8 @@ export async function DELETE(
       );
     }
 
-    const success = await userService.deleteUser(params.id);
+    const { id } = await params;
+    const success = await userService.deleteUser(id);
 
     if (!success) {
       return NextResponse.json(

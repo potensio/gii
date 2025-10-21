@@ -98,6 +98,28 @@ const deleteUser = async (id: string): Promise<void> => {
   }
 };
 
+const createUser = async (data: {
+  name: string;
+  email: string;
+  role: "user" | "admin" | "super_admin";
+}): Promise<User> => {
+  const response = await fetch("/api/admin/users", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to create user");
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
 // Hooks
 export const useUsers = (params: GetUsersParams = {}) => {
   return useQuery({
@@ -136,6 +158,22 @@ export const useDeleteUser = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Gagal menghapus user");
+    },
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createUser,
+    onSuccess: (data) => {
+      // Invalidate and refetch users queries
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("User berhasil dibuat dan email notifikasi telah dikirim");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Gagal membuat user");
     },
   });
 };

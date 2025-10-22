@@ -11,153 +11,382 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from "react";
+import { Plus, X, Settings, ShoppingCart, Eye } from "lucide-react";
 
 // Form & Validation
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  UserFormInput,
-  EditUserFormInput,
-  userSchema,
-  editUserSchema,
-} from "@/lib/validations/user.validation";
 
-export type User = {
+export type Product = {
   id: string;
-  name: string | null;
-  email: string;
-  role: "user" | "admin" | "super_admin";
+  name: string;
+  category: string;
+  brand: string;
+  description?: string;
   isActive: boolean;
-  isConfirmed: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
 
-interface UserSheetProps {
+interface ProductSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedUser: User | null;
-  onSave: (user: Partial<User>) => void;
+  selectedProduct: Product | null;
+  onSave: (product: Partial<Product>) => void;
   mode: "create" | "edit";
+}
+
+// ProductForm Component - UI Only
+function ProductForm() {
+  const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
+  const [productCombinations, setProductCombinations] = useState<any[]>([
+    {
+      id: 1,
+      variants: {},
+      sku: "",
+      name: "",
+      price: "",
+      stock: "",
+      active: true,
+    },
+    {
+      id: 2,
+      variants: {},
+      sku: "",
+      name: "",
+      price: "",
+      stock: "",
+      active: true,
+    },
+    {
+      id: 3,
+      variants: {},
+      sku: "",
+      name: "",
+      price: "",
+      stock: "",
+      active: true,
+    },
+  ]);
+  const [productWeight, setProductWeight] = useState<string>("");
+
+  const addProductCombination = () => {
+    const newId = Math.max(...productCombinations.map((p) => p.id), 0) + 1;
+    const newCombination = {
+      id: newId,
+      variants: {},
+      sku: "",
+      name: "",
+      price: "",
+      stock: "",
+      active: true,
+    };
+    setProductCombinations((prev) => [...prev, newCombination]);
+  };
+
+  const removeProductCombination = (id: number) => {
+    setProductCombinations((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const updateCombination = (id: number, field: string, value: any) => {
+    setProductCombinations((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
+  };
+
+  return (
+    <div className="space-y-8 py-4">
+      {/* Basic Product Information */}
+      <div className="space-y-4">
+        <h3 className="tracking-tight font-medium text-muted-foreground">
+          Info Produk
+        </h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="productName">Nama Produk *</Label>
+            <Input id="productName" placeholder="iPhone 17 Pro Max" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Kategori *</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Smartphones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="smartphones">Smartphones</SelectItem>
+                <SelectItem value="televisions">Televisions</SelectItem>
+                <SelectItem value="smart-watches">Smart Watches</SelectItem>
+                <SelectItem value="home-appliances">Home Appliances</SelectItem>
+                <SelectItem value="computer-laptops">
+                  Computer & Laptops
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brand">Brand *</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Apple" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="apple">Apple</SelectItem>
+                <SelectItem value="samsung">Samsung</SelectItem>
+                <SelectItem value="xiaomi">Xiaomi</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="weight"> Berat Produk (grams)</Label>
+            <Input
+              id="weight"
+              type="number"
+              placeholder="Masukkan berat produk dalam gram"
+              value={productWeight}
+              onChange={(e) => setProductWeight(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Deskripsi Produk</Label>
+          <Textarea
+            id="description"
+            placeholder="Deskripsikan fitur dan spesifikasi produk..."
+            rows={3}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="isActive">Status Aktif</Label>
+            <p className="text-sm text-muted-foreground">
+              Aktifkan grup ini untuk dijual
+            </p>
+          </div>
+          <Switch id="isActive" defaultChecked />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Product Variants */}
+      <div className="space-y-6 flex justify-between items-start">
+        <div className="flex flex-col space-y-4">
+          <h3 className="tracking-tight font-medium text-muted-foreground">
+            Varian Produk
+          </h3>
+
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-4">
+                {["color", "screen", "storage", "type"].map((variantType) => (
+                  <div
+                    key={variantType}
+                    className="flex items-center space-x-2"
+                  >
+                    <input
+                      type="checkbox"
+                      id={`variant-${variantType}`}
+                      checked={selectedVariants.includes(variantType)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedVariants((prev) => [...prev, variantType]);
+                        } else {
+                          setSelectedVariants((prev) =>
+                            prev.filter((v) => v !== variantType)
+                          );
+                          // Clear variant values from all combinations when unchecked
+                          setProductCombinations((prev) =>
+                            prev.map((combination) => ({
+                              ...combination,
+                              variants: Object.fromEntries(
+                                Object.entries(combination.variants).filter(
+                                  ([key]) => key !== variantType
+                                )
+                              ),
+                            }))
+                          );
+                        }
+                      }}
+                      className="rounded border-gray-300 size-4"
+                    />
+                    <Label
+                      htmlFor={`variant-${variantType}`}
+                      className="capitalize cursor-pointer"
+                    >
+                      {variantType}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Pilih variant yang akan digunakan
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Button onClick={addProductCombination} size="sm">
+          <Plus className="w-5 h-5" />
+          Tambah Varian
+        </Button>
+      </div>
+
+      {/* Product Combinations */}
+      <div>
+        {/* Add Product Button */}
+        <div className="flex justify-center"></div>
+
+        {/* Product combination items */}
+        <div className="space-y-4">
+          {productCombinations.map((combination, index) => (
+            <div
+              key={combination.id}
+              className="p-4 bg-card border rounded-lg shadow-sm space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Varian #{index + 1}
+                </p>
+                <div className="flex space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <Label className="text-sm font-normal text-muted-foreground">
+                      Visible
+                    </Label>
+                    <Button variant="secondary" size="sm">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => removeProductCombination(combination.id)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>{" "}
+              </div>
+
+              {/* Dynamic variant fields */}
+
+              <div className="flex gap-4">
+                {selectedVariants.map((variantType) => (
+                  <div key={variantType} className="space-y-2 w-full">
+                    <Label className="text-sm font-medium capitalize">
+                      {variantType}
+                    </Label>
+                    <Input
+                      placeholder={`Enter ${variantType}`}
+                      className="text-sm"
+                      value={combination.variants[variantType] || ""}
+                      onChange={(e) => {
+                        const newVariants = {
+                          ...combination.variants,
+                          [variantType]: e.target.value,
+                        };
+                        updateCombination(
+                          combination.id,
+                          "variants",
+                          newVariants
+                        );
+                      }}
+                    />
+                  </div>
+                ))}
+                <div className="space-y-2 w-full">
+                  <Label className="text-sm font-medium">SKU</Label>
+                  <Input
+                    placeholder="Nomor sku"
+                    className="text-sm"
+                    value={combination.sku}
+                    onChange={(e) =>
+                      updateCombination(combination.id, "sku", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2 w-full">
+                  <Label className="text-sm font-medium">Price (IDR)</Label>
+                  <Input
+                    placeholder="15,000,000"
+                    type="number"
+                    className="text-sm"
+                    value={combination.price}
+                    onChange={(e) =>
+                      updateCombination(combination.id, "price", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2 w-full">
+                  <Label className="text-sm font-medium">Stock</Label>
+                  <Input
+                    placeholder="0"
+                    type="number"
+                    className="text-sm"
+                    value={combination.stock}
+                    onChange={(e) =>
+                      updateCombination(combination.id, "stock", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ProductSheet({
   isOpen,
   onClose,
-  selectedUser,
+  selectedProduct,
   onSave,
   mode,
-}: UserSheetProps) {
-  // Form & Validation
-  const form = useForm<UserFormInput | EditUserFormInput>({
-    resolver: zodResolver(mode === "edit" ? editUserSchema : userSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      role: "user" as "user" | "admin",
-    },
-  });
-
-  // Reset form when sheet opens/closes or selectedUser changes
-  useEffect(() => {
-    if (mode === "edit" && selectedUser) {
-      form.reset({
-        id: selectedUser.id,
-        name: selectedUser.name || "",
-        email: selectedUser.email,
-        role: selectedUser.role === "super_admin" ? "admin" : selectedUser.role,
-      });
-    } else {
-      form.reset({
-        name: "",
-        email: "",
-        role: "user",
-      });
-    }
-  }, [mode, selectedUser, isOpen, form]);
-
-  const handleSave = (data: UserFormInput | EditUserFormInput) => {
-    onSave(data);
-  };
-
+}: ProductSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="flex flex-col h-full gap-0">
-        <SheetHeader className="flex-shrink-0">
-          <SheetTitle>
-            {mode === "edit" ? "Edit User" : "Tambahkan User"}
-          </SheetTitle>
+      <SheetContent side="bottom" className="max-h-[100vh] w-full ">
+        <SheetHeader className="pb-4">
+          <SheetTitle>Add New Product</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-6">
-          <form onSubmit={form.handleSubmit(handleSave)}>
-            <div className="grid gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="sheet-name">Nama</Label>
-                <Input
-                  id="sheet-name"
-                  placeholder="Budi Santoso"
-                  {...form.register("name")}
-                />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.name.message}
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="sheet-email">Email</Label>
-                <Input
-                  id="sheet-email"
-                  placeholder="budi@gmail.com"
-                  type="email"
-                  disabled={mode === "edit"}
-                  {...form.register("email")}
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="sheet-role">Role</Label>
-                <Tabs
-                  value={form.watch("role")}
-                  onValueChange={(value) =>
-                    form.setValue("role", value as "user" | "admin")
-                  }
-                >
-                  <TabsList>
-                    <TabsTrigger value="user">User</TabsTrigger>
-                    <TabsTrigger value="admin">Admin</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                {form.formState.errors.role && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.role.message}
-                  </p>
-                )}
-              </div>
-            </div>
-          </form>
+        <div className="flex-1 overflow-y-scroll max-h-[calc(100vh-160px)]">
+          <ProductForm />
         </div>
 
-        <SheetFooter className="flex-shrink-0 pt-4">
-          <Button
-            type="submit"
-            onClick={form.handleSubmit(handleSave)}
-            disabled={!form.formState.isValid}
-          >
-            {mode === "edit" ? "Update User" : "Tambahkan User"}
-          </Button>
-          <SheetClose asChild>
+        <div className="flex-shrink-0 p-6 border-t bg-background">
+          <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={onClose}>
-              Batal
+              Cancel
             </Button>
-          </SheetClose>
-        </SheetFooter>
+            <Button>Save Product</Button>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );

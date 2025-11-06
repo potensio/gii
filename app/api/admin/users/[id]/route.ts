@@ -8,36 +8,49 @@ import { eq } from "drizzle-orm";
 // Helper function to verify admin access
 async function verifyAdminAccess(request: NextRequest) {
   try {
-    // Get token from cookies (same as middleware)
     const token = request.cookies.get("token")?.value;
     if (!token) {
-      return { success: false, message: "Noxx authentication token found" };
+      return { success: false, message: "No authentication token found" };
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
+      role?: "user" | "admin" | "super_admin";
+      isActive?: boolean;
+      isDeleted?: boolean;
     };
 
-    // Get user from database
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, decoded.userId))
-      .limit(1);
+    let role = decoded.role;
+    let isActive = decoded.isActive;
+    let isDeleted = decoded.isDeleted;
 
-    if (!user[0] || !user[0].isActive || user[0].isDeleted) {
+    // Fallback ke DB bila claim belum tersedia (kompatibel dengan token lama)
+    if (role === undefined || isActive === undefined || isDeleted === undefined) {
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, decoded.userId))
+        .limit(1);
+      if (!user[0]) {
+        return { success: false, message: "User tidak valid" };
+      }
+      role = user[0].role as any;
+      isActive = user[0].isActive;
+      isDeleted = user[0].isDeleted;
+    }
+
+    if (!isActive || isDeleted) {
       return { success: false, message: "User tidak valid" };
     }
 
-    // Check if user is admin or super_admin
-    if (user[0].role !== "admin" && user[0].role !== "super_admin") {
+    if (role !== "admin" && role !== "super_admin") {
       return {
         success: false,
         message: "Akses ditolak. Hanya admin yang diizinkan",
       };
     }
 
-    return { success: true, user: user[0] };
+    return { success: true };
   } catch (error) {
     return { success: false, message: "Token tidak valid" };
   }

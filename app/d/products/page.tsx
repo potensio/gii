@@ -2,86 +2,37 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ProductTable, Product } from "./_components/product-table";
-import { UserFilters } from "./_components/user-filters";
+import { ProductTable } from "./_components/product-table";
+import { ProductFilters } from "./_components/product-filters";
 import { ProductSheet } from "./_components/product-sheet";
-import {
-  useUsers,
-  useUpdateUser,
-  useDeleteUser,
-  useCreateUser,
-} from "@/hooks/use-users";
+import { CompleteProduct } from "@/hooks/use-products";
+import { useProducts } from "@/hooks/use-products";
 
 export default function UsersPage() {
-  const [selectedUser, setSelectedUser] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] =
+    useState<CompleteProduct | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [filters, setFilters] = useState({
     page: 1,
     search: "",
-    role: undefined as "user" | "admin" | "super_admin" | undefined,
     isActive: undefined as boolean | undefined,
+    category: "",
+    brand: "",
+    pageSize: 10,
   });
-
-  // Separate state for UI filter controls
-  const [uiFilters, setUiFilters] = useState({
-    search: "",
-    role: "all",
-    isActive: "all",
-  });
-
-  // Update filters when UI filters change
-  const updateFilters = (newUiFilters: typeof uiFilters) => {
-    setUiFilters(newUiFilters);
-    setFilters({
-      page: 1, // Reset to first page when filtering
-      search: newUiFilters.search,
-      role:
-        newUiFilters.role !== "all"
-          ? (newUiFilters.role as "user" | "admin" | "super_admin")
-          : undefined,
-      isActive:
-        newUiFilters.isActive !== "all"
-          ? newUiFilters.isActive === "true"
-          : undefined,
-    });
-  };
 
   // TanStack Query hooks
-  const { data: usersData, isLoading, error } = useUsers(filters);
-  const updateUserMutation = useUpdateUser();
-  const deleteUserMutation = useDeleteUser();
-  const createUserMutation = useCreateUser();
+  const { data: productsData, isLoading, error } = useProducts(filters);
 
-  const productsData = [
-    {
-      id: "1",
-      name: "Produk 1",
-      brand: "Apple",
-      category: "Elektronik",
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "2",
-      name: "Produk 2",
-      brand: "Apple",
-      category: "Elektronik",
-      isActive: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ];
-
-  const handleRowClick = (product: Product) => {
-    setSelectedUser(product);
+  const handleRowClick = (data: CompleteProduct) => {
+    setSelectedProduct(data);
     setSheetMode("edit");
     setIsSheetOpen(true);
   };
 
   // const handleEditProduct = (product: Product) => {
-  //   setSelectedUser(product);
+  //   setSelectedProduct(product);
   //   setSheetMode("edit");
   //   setIsSheetOpen(true);
   // };
@@ -91,48 +42,36 @@ export default function UsersPage() {
   // };
 
   const handleAddUser = () => {
-    setSelectedUser(null);
+    setSelectedProduct(null);
     setSheetMode("create");
     setIsSheetOpen(true);
   };
 
-  const handleSaveUser = (userData: Partial<Product>) => {
-    if (sheetMode === "edit" && selectedUser) {
-      // Update existing user
-      updateUserMutation.mutate({
-        id: selectedUser.id,
-        data: userData,
-      });
-    } else {
-      // Create new user
-      // createUserMutation.mutate({
-      //   name: userData.name!,
-      //   email: userData.email!,
-      //   role: userData.role!,
-      // });
-    }
+  // const handleSaveUser = (userData: Partial<CompleteProduct>) => {
+  //   if (sheetMode === "edit" && selectedProduct) {
+  //     // Update existing user
+  //     updateUserMutation.mutate({
+  //       id: selectedProduct.productGroup.id,
+  //       data: userData,
+  //     });
+  //   } else {
+  //     // Create new user
+  //     // createUserMutation.mutate({
+  //     //   name: userData.name!,
+  //     //   email: userData.email!,
+  //     //   role: userData.role!,
+  //     // });
+  //   }
 
-    // Close sheet and reset state
-    setIsSheetOpen(false);
-    setSelectedUser(null);
-  };
+  //   // Close sheet and reset state
+  //   setIsSheetOpen(false);
+  //   setSelectedProduct(null);
+  // };
 
   const handleCloseSheet = () => {
     setIsSheetOpen(false);
-    setSelectedUser(null);
+    setSelectedProduct(null);
   };
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-destructive-foreground">
-            Error loading users: {error.message}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-6">
@@ -145,18 +84,32 @@ export default function UsersPage() {
       </div>
 
       {/* User Filters */}
-      <UserFilters
-        searchValue={uiFilters.search}
+      <ProductFilters
+        searchValue={filters.search}
         onSearchChange={(value: string) =>
-          updateFilters({ ...uiFilters, search: value })
+          setFilters({ ...filters, search: value })
         }
-        roleFilter={uiFilters.role}
-        onRoleFilterChange={(value: string) =>
-          updateFilters({ ...uiFilters, role: value })
+        brandFilter={filters.brand || "all"}
+        onBrandFilterChange={(value: string) =>
+          setFilters({ ...filters, brand: value === "all" ? "" : value })
         }
-        statusFilter={uiFilters.isActive}
-        onStatusFilterChange={(value: string) =>
-          updateFilters({ ...uiFilters, isActive: value })
+        categoryFilter={filters.category || "all"}
+        onCategoryFilterChange={(value: string) =>
+          setFilters({ ...filters, category: value === "all" ? "" : value })
+        }
+        statusFilter={
+          filters.isActive === undefined
+            ? "all"
+            : filters.isActive
+            ? "active"
+            : "inactive"
+        }
+        onStatusFilterChange={(value) =>
+          setFilters({
+            ...filters,
+            isActive:
+              value === "all" ? undefined : value === "active" ? true : false,
+          })
         }
       />
 
@@ -173,8 +126,7 @@ export default function UsersPage() {
       <ProductSheet
         isOpen={isSheetOpen}
         onClose={handleCloseSheet}
-        selectedUser={null}
-        onSave={handleSaveUser}
+        selectedProduct={selectedProduct}
         mode={sheetMode}
       />
     </div>

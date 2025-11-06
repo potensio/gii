@@ -10,7 +10,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,38 +19,23 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState } from "react";
-import { Plus, X, Settings, ShoppingCart, Eye } from "lucide-react";
+import { useState } from "react";
+import { Plus, X, Eye } from "lucide-react";
 
 // Form & Validation
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CompleteProduct } from "@/hooks/use-products";
 
-export type Product = {
-  id: string;
-  name: string;
-  category: string;
-  brand: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Import enums
+import { VARIANT_TYPES, PRODUCT_CATEGORIES, PRODUCT_BRANDS } from "@/lib/enums";
 
 interface ProductSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedProduct: Product | null;
-  onSave: (product: Partial<Product>) => void;
+  selectedProduct: CompleteProduct | null;
   mode: "create" | "edit";
 }
 
@@ -61,24 +45,6 @@ function ProductForm() {
   const [productCombinations, setProductCombinations] = useState<any[]>([
     {
       id: 1,
-      variants: {},
-      sku: "",
-      name: "",
-      price: "",
-      stock: "",
-      active: true,
-    },
-    {
-      id: 2,
-      variants: {},
-      sku: "",
-      name: "",
-      price: "",
-      stock: "",
-      active: true,
-    },
-    {
-      id: 3,
       variants: {},
       sku: "",
       name: "",
@@ -133,13 +99,11 @@ function ProductForm() {
                 <SelectValue placeholder="Smartphones" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="smartphones">Smartphones</SelectItem>
-                <SelectItem value="televisions">Televisions</SelectItem>
-                <SelectItem value="smart-watches">Smart Watches</SelectItem>
-                <SelectItem value="home-appliances">Home Appliances</SelectItem>
-                <SelectItem value="computer-laptops">
-                  Computer & Laptops
-                </SelectItem>
+                {Object.values(PRODUCT_CATEGORIES).map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -151,9 +115,11 @@ function ProductForm() {
                 <SelectValue placeholder="Apple" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="samsung">Samsung</SelectItem>
-                <SelectItem value="xiaomi">Xiaomi</SelectItem>
+                {Object.values(PRODUCT_BRANDS).map((brand) => (
+                  <SelectItem key={brand.value} value={brand.value}>
+                    {brand.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -187,6 +153,15 @@ function ProductForm() {
           </div>
           <Switch id="isActive" defaultChecked />
         </div>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="isActive">Aktifkan Variasi</Label>
+            <p className="text-sm text-muted-foreground">
+              Aktifkan variasi produk ini
+            </p>
+          </div>
+          <Switch id="isActive" defaultChecked />
+        </div>
       </div>
 
       <Separator />
@@ -201,21 +176,24 @@ function ProductForm() {
           <div className="space-y-4">
             <div className="space-y-3">
               <div className="flex flex-wrap gap-4">
-                {["color", "screen", "storage", "type"].map((variantType) => (
+                {Object.values(VARIANT_TYPES).map((variantType) => (
                   <div
-                    key={variantType}
+                    key={variantType.value}
                     className="flex items-center space-x-2"
                   >
                     <input
                       type="checkbox"
-                      id={`variant-${variantType}`}
-                      checked={selectedVariants.includes(variantType)}
+                      id={`variant-${variantType.value}`}
+                      checked={selectedVariants.includes(variantType.value)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedVariants((prev) => [...prev, variantType]);
+                          setSelectedVariants((prev) => [
+                            ...prev,
+                            variantType.value,
+                          ]);
                         } else {
                           setSelectedVariants((prev) =>
-                            prev.filter((v) => v !== variantType)
+                            prev.filter((v) => v !== variantType.value)
                           );
                           // Clear variant values from all combinations when unchecked
                           setProductCombinations((prev) =>
@@ -223,7 +201,7 @@ function ProductForm() {
                               ...combination,
                               variants: Object.fromEntries(
                                 Object.entries(combination.variants).filter(
-                                  ([key]) => key !== variantType
+                                  ([key]) => key !== variantType.value
                                 )
                               ),
                             }))
@@ -233,10 +211,10 @@ function ProductForm() {
                       className="rounded border-gray-300 size-4"
                     />
                     <Label
-                      htmlFor={`variant-${variantType}`}
+                      htmlFor={`variant-${variantType.value}`}
                       className="capitalize cursor-pointer"
                     >
-                      {variantType}
+                      {variantType.label}
                     </Label>
                   </div>
                 ))}
@@ -365,7 +343,7 @@ export function ProductSheet({
   isOpen,
   onClose,
   selectedProduct,
-  onSave,
+
   mode,
 }: ProductSheetProps) {
   return (

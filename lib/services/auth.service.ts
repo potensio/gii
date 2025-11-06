@@ -195,15 +195,6 @@ export const authService = {
         };
       }
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: existingCode[0].userId },
-        process.env.JWT_SECRET!,
-        {
-          expiresIn: "1h",
-        }
-      );
-
       // Mark verification code as used
       await db
         .update(verifyCodes)
@@ -212,7 +203,7 @@ export const authService = {
         })
         .where(eq(verifyCodes.id, existingCode[0].id));
 
-      // Return user
+      // Update user confirmation and get latest user
       const user = await db
         .update(users)
         .set({
@@ -220,6 +211,20 @@ export const authService = {
         })
         .where(eq(users.id, existingCode[0].userId))
         .returning();
+
+      // Generate JWT token with role and status claims
+      const token = jwt.sign(
+        {
+          userId: user[0].id,
+          role: user[0].role,
+          isActive: user[0].isActive,
+          isDeleted: user[0].isDeleted,
+        },
+        process.env.JWT_SECRET!,
+        {
+          expiresIn: "1h",
+        }
+      );
 
       return {
         success: true,
@@ -268,15 +273,6 @@ export const authService = {
         };
       }
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: existingCode[0].userId },
-        process.env.JWT_SECRET!,
-        {
-          expiresIn: "24h", // Extended for better UX
-        }
-      );
-
       // Mark verification code as used
       await db
         .update(verifyCodes)
@@ -290,6 +286,20 @@ export const authService = {
         .select()
         .from(users)
         .where(eq(users.id, existingCode[0].userId));
+
+      // Generate JWT token with role and status claims
+      const token = jwt.sign(
+        {
+          userId: user[0].id,
+          role: user[0].role,
+          isActive: user[0].isActive,
+          isDeleted: user[0].isDeleted,
+        },
+        process.env.JWT_SECRET!,
+        {
+          expiresIn: "24h", // Extended for better UX
+        }
+      );
 
       // Return user & token
       return {

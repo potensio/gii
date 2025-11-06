@@ -52,48 +52,12 @@ export const verifyCodes = pgTable("verify_codes", {
 export type InsertVerifyCode = typeof verifyCodes.$inferInsert;
 export type SelectVerifyCode = typeof verifyCodes.$inferSelect;
 
-// Category options
-const categoryEnum = pgEnum("category", [
-  "smartphones",
-  "televisions",
-  "smart-watches",
-  "home-appliances",
-  "computer-laptops",
-]);
-
-export const categoryOptions = {
-  SMARTPHONES: "smartphones",
-  TELEVISIONS: "televisions",
-  SMART_WATCHES: "smart-watches",
-  HOME_APPLIANCES: "home-appliances",
-  LAPTOPS: "laptops",
-} as const;
-
-// Brand options
-const brandEnum = pgEnum("brand", ["apple", "samsung", "xiaomi"]);
-
-export const brandOptions = {
-  APPLE: "apple",
-  SAMSUNG: "samsung",
-  XIAOMI: "xiaomi",
-} as const;
-
-// Variant options
-const variantEnum = pgEnum("variant", ["color", "screen", "storage", "type"]);
-
-export const variantOptions = {
-  COLOR: "color",
-  SCREEN: "screen",
-  STORAGE: "storage",
-  TYPE: "type",
-} as const;
-
 // Product Group Table (Template/Base Product)
 export const productGroups = pgTable("product_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  category: categoryEnum("category").notNull(),
-  brand: brandEnum("brand").notNull(),
+  category: text("category").notNull(),
+  brand: text("brand").notNull(),
   description: text("description"), // Optional: deskripsi produk
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
@@ -112,7 +76,7 @@ export const productVariants = pgTable(
     productGroupId: uuid("product_group_id")
       .references(() => productGroups.id, { onDelete: "cascade" })
       .notNull(),
-    variant: variantEnum("variant").notNull(),
+    variant: text("variant").notNull(),
     value: text("value").notNull(),
     isActive: boolean("is_active").notNull().default(true),
     isDeleted: boolean("is_deleted").notNull().default(false),

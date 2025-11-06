@@ -40,23 +40,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CompleteProduct } from "@/hooks/use-products";
 
 dayjs.extend(relativeTime);
 
-export type Product = {
-  id: string;
-  name: string | null;
-  brand: string | null;
-  category: string | null;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 interface ProductTableProps {
-  products: Product[];
+  products: CompleteProduct[];
   isLoading: boolean;
-  onRowClick: (product: Product) => void;
+  onRowClick: (product: CompleteProduct) => void;
   // onEditProduct: (product: Product) => void;
   // onDeleteProduct: (product: Product) => void;
 }
@@ -73,7 +64,7 @@ export function ProductTable({
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const columns: ColumnDef<Product>[] = [
+  const columns: ColumnDef<CompleteProduct>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -99,32 +90,33 @@ export function ProductTable({
       enableHiding: false,
     },
     {
-      accessorKey: "name",
-      header: "Nama",
+      accessorKey: "productGroup.name",
+      header: "Name",
+      cell: ({ row }) => <div>{row.original.productGroup.name || "-"}</div>,
+    },
+    {
+      accessorKey: "productGroup.brand",
+      header: "Brand",
       cell: ({ row }) => (
-        <div
-          className="cursor-pointer"
-          onClick={() => onRowClick(row.original)}
-        >
-          {row.getValue("name") || "No Name"}
+        <div className="capitalize">
+          {row.original.productGroup.brand || "-"}
         </div>
       ),
     },
     {
-      accessorKey: "brand",
-      header: "Brand",
-      cell: ({ row }) => <div>{row.getValue("brand")}</div>,
-    },
-    {
-      accessorKey: "category",
+      accessorKey: "productGroup.category",
       header: "Category",
-      cell: ({ row }) => <div>{row.getValue("category")}</div>,
+      cell: ({ row }) => (
+        <div className="capitalize">
+          {row.original.productGroup.category || "-"}
+        </div>
+      ),
     },
     {
-      accessorKey: "isActive",
+      accessorKey: "productGroup.isActive",
       header: "Aktif",
       cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
+        const isActive = row.original.productGroup.isActive;
         return (
           <Badge variant={isActive ? "default" : "destructive"}>
             {isActive ? "Aktif" : "Tidak Aktif"}
@@ -133,10 +125,12 @@ export function ProductTable({
       },
     },
     {
-      accessorKey: "updatedAt",
+      accessorKey: "productGroup.updatedAt",
       header: "Terakhir Diupdate",
       cell: ({ row }) => {
-        const updatedAt = row.getValue("updatedAt") as Date | undefined;
+        const updatedAt = row.original.productGroup.updatedAt as
+          | Date
+          | undefined;
         return (
           <div className="text-sm">
             {updatedAt ? `${dayjs(updatedAt).fromNow()}` : "-"}
@@ -162,7 +156,7 @@ export function ProductTable({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                 <DropdownMenuItem
-                  onClick={() => navigator.clipboard.writeText(user.id)}
+                  onClick={() => navigator.clipboard.writeText("test")}
                 >
                   Kopi user ID
                 </DropdownMenuItem>

@@ -147,7 +147,9 @@ function ProductForm({
 
       const initialCombinations = (selectedProduct.products ?? []).map((p) => ({
         id: p.id,
-        variants: {},
+        variants:
+          (selectedProduct.variantSelectionsByProductId &&
+            selectedProduct.variantSelectionsByProductId[p.id]) || {},
         sku: p.sku ?? "",
         name: p.name ?? "",
         price: String(p.price ?? 0),
@@ -158,8 +160,8 @@ function ProductForm({
       setSelectedVariants(initialVariantTypes);
       setProductCombinations(initialCombinations);
       setProductWeight(
-        selectedProduct.products?.[0]?.weight != null
-          ? String(selectedProduct.products[0].weight)
+        selectedProduct.productGroup?.weight != null
+          ? String(selectedProduct.productGroup.weight)
           : ""
       );
 
@@ -170,7 +172,7 @@ function ProductForm({
         brand: selectedProduct.productGroup.brand as ProductBrand,
         isActive: !!selectedProduct.productGroup.isActive,
         hasVariants: initialVariantTypes.length > 0,
-        weight: selectedProduct.products?.[0]?.weight ?? undefined,
+        weight: selectedProduct.productGroup?.weight ?? undefined,
         description: selectedProduct.productGroup.description ?? undefined,
         variantTypes: initialVariantTypes,
         combinations: initialCombinations.map(toCombinationPayload),
@@ -403,9 +405,12 @@ function ProductForm({
                         <Label className="text-sm font-normal text-muted-foreground">
                           Visible
                         </Label>
-                        <Button variant="secondary" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <Switch
+                          checked={!!combination.active}
+                          onCheckedChange={(checked) =>
+                            updateCombination(combination.id, "active", checked)
+                          }
+                        />
                       </div>
                       <Button
                         variant="secondary"

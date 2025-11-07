@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { productGroups, productVariants, products } from "@/lib/db/schema";
+import { toast } from "sonner";
 
 export interface CompleteProduct {
   productGroup: typeof productGroups.$inferSelect;
   variants: (typeof productVariants.$inferSelect)[];
   products: (typeof products.$inferSelect)[];
+  // Map per productId of its selected variant key->value (e.g., color: "black")
+  variantSelectionsByProductId?: Record<string, Record<string, string>>;
 }
 
 export interface ProductFilters {
@@ -34,7 +36,9 @@ const productApi = {
 
     // Check if response is ok
     if (!response.ok) {
-      throw new Error("Failed to fetch products");
+      const error = await response.json();
+      toast.error(error.message || "Failed to fetch products");
+      throw new Error(error.message || "Failed to fetch products");
     }
     // Parse response JSON
     return response.json();
@@ -92,7 +96,7 @@ export function useProducts(filters: ProductFilters) {
   return useQuery({
     queryKey: ["products", filters],
     queryFn: () => productApi.getProducts(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 

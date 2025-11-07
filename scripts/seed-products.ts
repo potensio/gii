@@ -12,6 +12,7 @@ async function ensureProductGroup(input: {
   category: string;
   brand: string;
   description?: string;
+  weight?: number | null;
 }) {
   const existing = await db
     .select()
@@ -57,7 +58,6 @@ async function ensureProduct(input: {
   name: string;
   price: number;
   stock: number;
-  weight?: number | null;
 }) {
   const existing = await db
     .select()
@@ -99,6 +99,7 @@ async function main() {
     category: "smartphones",
     brand: "apple",
     description: "Smartphone premium dari Apple.",
+    weight: 200,
   });
 
   // 2) Variants untuk group tsb
@@ -114,7 +115,6 @@ async function main() {
     name: "iPhone 15 128GB Black",
     price: 14999000,
     stock: 10,
-    weight: 200,
   });
   await linkCombo(p1.id, colorBlack.id);
   await linkCombo(p1.id, storage128.id);
@@ -125,7 +125,6 @@ async function main() {
     name: "iPhone 15 256GB Blue",
     price: 16999000,
     stock: 8,
-    weight: 200,
   });
   await linkCombo(p2.id, colorBlue.id);
   await linkCombo(p2.id, storage256.id);
@@ -136,7 +135,6 @@ async function main() {
     name: "iPhone 15 128GB Blue",
     price: 14999000,
     stock: 5,
-    weight: 200,
   });
   await linkCombo(p3.id, colorBlue.id);
   await linkCombo(p3.id, storage128.id);
@@ -147,6 +145,7 @@ async function main() {
     category: "smartphones",
     brand: "samsung",
     description: "Flagship dari Samsung.",
+    weight: 195,
   });
 
   const g2ColorBlack = await ensureVariant(group2.id, "color", "black");
@@ -160,7 +159,6 @@ async function main() {
     name: "Galaxy S24 256GB Black",
     price: 13999000,
     stock: 12,
-    weight: 195,
   });
   await linkCombo(s1.id, g2ColorBlack.id);
   await linkCombo(s1.id, g2Storage256.id);
@@ -171,7 +169,6 @@ async function main() {
     name: "Galaxy S24 512GB Cream",
     price: 15999000,
     stock: 7,
-    weight: 195,
   });
   await linkCombo(s2.id, g2ColorCream.id);
   await linkCombo(s2.id, g2Storage512.id);
@@ -182,7 +179,6 @@ async function main() {
     name: "Galaxy S24 256GB Cream",
     price: 13999000,
     stock: 9,
-    weight: 195,
   });
   await linkCombo(s3.id, g2ColorCream.id);
   await linkCombo(s3.id, g2Storage256.id);
@@ -193,6 +189,7 @@ async function main() {
     category: "smart-watches",
     brand: "apple",
     description: "Jam tangan pintar Apple.",
+    weight: 52,
   });
 
   const g3Size41 = await ensureVariant(group3.id, "size", "41mm");
@@ -207,7 +204,6 @@ async function main() {
     name: "Apple Watch S9 41mm GPS Midnight",
     price: 7999000,
     stock: 20,
-    weight: 50,
   });
   await linkCombo(w1.id, g3Size41.id);
   await linkCombo(w1.id, g3TypeGPS.id);
@@ -219,7 +215,6 @@ async function main() {
     name: "Apple Watch S9 45mm Cellular Midnight",
     price: 9999000,
     stock: 5,
-    weight: 52,
   });
   await linkCombo(w2.id, g3Size45.id);
   await linkCombo(w2.id, g3TypeCellular.id);
@@ -231,13 +226,14 @@ async function main() {
     name: "Apple Watch S9 45mm GPS Midnight",
     price: 8999000,
     stock: 12,
-    weight: 52,
   });
   await linkCombo(w3.id, g3Size45.id);
   await linkCombo(w3.id, g3TypeGPS.id);
   await linkCombo(w3.id, g3ColorMidnight.id);
 
-  console.log("Seed selesai: 3 product group, variants, dan produk ditambahkan.");
+  console.log(
+    "Seed selesai: 3 product group, variants, dan produk ditambahkan."
+  );
 }
 
 main()

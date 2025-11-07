@@ -17,7 +17,6 @@ function decodeUserRole(request: NextRequest): UserRole | undefined {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       role?: UserRole;
     };
-
     return decoded.role;
   } catch {
     return undefined;
@@ -32,6 +31,8 @@ function parseProductFilters(searchParams: URLSearchParams): ProductFilters {
     category: searchParams.get("category") || undefined,
     brand: searchParams.get("brand") || undefined,
     search: searchParams.get("search") || undefined,
+    page: parseInt(searchParams.get("page") || "1", 10),
+    pageSize: parseInt(searchParams.get("pageSize") || "10", 10),
     isActive: isActiveParam ? isActiveParam === "true" : undefined,
   };
 }

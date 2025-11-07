@@ -59,6 +59,8 @@ export const productGroups = pgTable("product_groups", {
   category: text("category").notNull(),
   brand: text("brand").notNull(),
   description: text("description"), // Optional: deskripsi produk
+  // Berat berpindah ke level product group
+  weight: integer("weight"), // Optional: berat dalam gram untuk shipping
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -105,7 +107,6 @@ export const products = pgTable(
     name: text("name").notNull(), // e.g., "iPhone 15 128GB Black"
     price: integer("price").notNull(), // Harga dalam smallest currency unit (e.g., cents/rupiah)
     stock: integer("stock").notNull().default(0),
-    weight: integer("weight"), // Optional: berat dalam gram untuk shipping
     isActive: boolean("is_active").notNull().default(true),
     isDeleted: boolean("is_deleted").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -4,25 +4,33 @@ import {
   productGroups,
   productVariants,
   products,
+  productVariantCombinations,
   type SelectProductGroup,
   type SelectProductVariant,
   type SelectProduct,
 } from "../db/schema";
 import { CompleteProduct, ProductFilters } from "@/hooks/use-products";
+import { UserRole } from "../enums";
 
-export type UserRole = "user" | "admin" | "super_admin";
 type WhereCondition = SQL<unknown> | undefined;
 
 // ==================== Constants ====================
 const ROLE_PERMISSIONS = {
   user: {
     canViewInactive: false,
+    canEdit: false,
   },
   admin: {
     canViewInactive: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
   },
   super_admin: {
     canViewInactive: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
   },
 } as const;
 
@@ -48,11 +56,12 @@ function buildProductGroupFilters(
   }
 
   if (typeof filters.isActive === "boolean") {
-    if (!canViewInactiveItems(viewerRole)) {
-      filters.isActive = true;
-    } else {
-      conditions.push(eq(productGroups.isActive, filters.isActive));
-    }
+    const activeStatus = !canViewInactiveItems(viewerRole)
+      ? true
+      : filters.isActive;
+    conditions.push(eq(productGroups.isActive, activeStatus));
+  } else if (!canViewInactiveItems(viewerRole)) {
+    conditions.push(eq(productGroups.isActive, true));
   }
 
   if (filters.search) {
@@ -63,18 +72,32 @@ function buildProductGroupFilters(
   return conditions;
 }
 
-function buildVariantFilters(groupIds: string[]): WhereCondition[] {
+function buildVariantFilters(
+  groupIds: string[],
+  viewerRole: UserRole
+): WhereCondition[] {
   const conditions: WhereCondition[] = [
     inArray(productVariants.productGroupId, groupIds),
   ];
 
+  if (!canViewInactiveItems(viewerRole)) {
+    conditions.push(eq(productVariants.isActive, true));
+  }
+
   return conditions;
 }
 
-function buildProductFilters(groupIds: string[]): WhereCondition[] {
+function buildProductFilters(
+  groupIds: string[],
+  viewerRole: UserRole
+): WhereCondition[] {
   const conditions: WhereCondition[] = [
     inArray(products.productGroupId, groupIds),
   ];
+
+  if (!canViewInactiveItems(viewerRole)) {
+    conditions.push(eq(products.isActive, true));
+  }
 
   return conditions;
 }
@@ -153,12 +176,33 @@ async function fetchProducts(
   }
 }
 
+async function fetchProductVariantCombinationsForProducts(
+  productIds: string[]
+) {
+  try {
+    if (productIds.length === 0)
+      return [] as { productId: string; variantId: string }[];
+
+    return await db
+      .select()
+      .from(productVariantCombinations)
+      .where(inArray(productVariantCombinations.productId, productIds));
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch product variant combinations: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}
+
 // ==================== Data Grouping ====================
+// Function to group product variants by product group ID
 function groupVariantsByProductGroup(
   variants: SelectProductVariant[]
 ): Map<string, SelectProductVariant[]> {
+  // Define a map to store product variants grouped by product group ID
   const grouped = new Map<string, SelectProductVariant[]>();
 
+  // Group product variants by product group ID
   for (const variant of variants) {
     const existingVariants = grouped.get(variant.productGroupId) ?? [];
     existingVariants.push(variant);
@@ -168,11 +212,14 @@ function groupVariantsByProductGroup(
   return grouped;
 }
 
+// Function to group products by product group ID
 function groupProductsByProductGroup(
   products: SelectProduct[]
 ): Map<string, SelectProduct[]> {
+  // Define a map to store products grouped by product group ID
   const grouped = new Map<string, SelectProduct[]>();
 
+  // Group products by product group ID
   for (const product of products) {
     const existingProducts = grouped.get(product.productGroupId) ?? [];
     existingProducts.push(product);
@@ -183,32 +230,35 @@ function groupProductsByProductGroup(
 }
 
 // ==================== Result Builder ====================
+// Function to build complete products with grouped variants and products
 function buildCompleteProducts(
   groups: SelectProductGroup[],
   variantsByGroup: Map<string, SelectProductVariant[]>,
-  productsByGroup: Map<string, SelectProduct[]>
+  productsByGroup: Map<string, SelectProduct[]>,
+  variantSelectionsByProductIdMap: Map<string, Record<string, string>>
 ): CompleteProduct[] {
+  // Map each product group to a complete product object
   return groups.map((group) => ({
     productGroup: group,
     variants: variantsByGroup.get(group.id) ?? [],
     products: productsByGroup.get(group.id) ?? [],
+    variantSelectionsByProductId: Object.fromEntries(
+      (productsByGroup.get(group.id) ?? []).map((p) => [
+        p.id,
+        variantSelectionsByProductIdMap.get(p.id) ?? {},
+      ])
+    ),
   }));
 }
 
 // ==================== Main Service ====================
 export const productService = {
-  /**
-   * Fetch products with optional filters and role-based access control
-   * @param filters - Optional filters for category, brand, search, etc.
-   * @returns Array of complete products with their variants and products
-   * @throws Error if validation fails or database query fails
-   */
   async getProducts(
     filters: ProductFilters,
     viewerRole: UserRole
   ): Promise<CompleteProduct[]> {
     try {
-      // 2. Build and execute product groups query
+      // Build and execute product groups query
       const groupConditions = buildProductGroupFilters(filters, viewerRole);
       const groups = await fetchProductGroups(groupConditions);
 
@@ -217,25 +267,46 @@ export const productService = {
         return [];
       }
 
-      // 3. Extract group IDs for child queries
+      // Extract group IDs for child queries
       const groupIds = groups.map((group) => group.id);
 
-      // 4. Build conditions for variants and products
-      const variantConditions = buildVariantFilters(groupIds);
-      const productConditions = buildProductFilters(groupIds);
+      // Build conditions for variants and products
+      const variantConditions = buildVariantFilters(groupIds, viewerRole);
+      const productConditions = buildProductFilters(groupIds, viewerRole);
 
-      // 5. Fetch variants and products in parallel
+      // Fetch variants and products in parallel
       const [variantRows, productRows] = await Promise.all([
         fetchVariants(variantConditions),
         fetchProducts(productConditions),
       ]);
 
-      // 6. Group variants and products by their product group ID
+      // Group variants and products by their product group ID
       const variantsByGroup = groupVariantsByProductGroup(variantRows);
       const productsByGroup = groupProductsByProductGroup(productRows);
 
-      // 7. Build and return complete products
-      return buildCompleteProducts(groups, variantsByGroup, productsByGroup);
+      // Fetch product-variant combinations and build per-product selections mapping
+      const productIds = productRows.map((p) => p.id);
+      const comboRows =
+        await fetchProductVariantCombinationsForProducts(productIds);
+
+      // Build variant selection map per product ID
+      const variantsById = new Map(variantRows.map((v) => [v.id, v]));
+      const selectionsByProductId = new Map<string, Record<string, string>>();
+      for (const combo of comboRows) {
+        const variant = variantsById.get(combo.variantId);
+        if (!variant) continue;
+        const existing = selectionsByProductId.get(combo.productId) ?? {};
+        existing[variant.variant] = variant.value;
+        selectionsByProductId.set(combo.productId, existing);
+      }
+
+      // Build and return complete products including selections map
+      return buildCompleteProducts(
+        groups,
+        variantsByGroup,
+        productsByGroup,
+        selectionsByProductId
+      );
     } catch (error) {
       // Re-throw with context if it's already an Error
       if (error instanceof Error) {
@@ -245,24 +316,6 @@ export const productService = {
       throw new Error("Failed to fetch products: Unknown error occurred");
     }
   },
-
-  //   async getProductById(
-  //     groupId: string,
-  //     viewerRole?: UserRole
-  //   ): Promise<CompleteProduct | null> {
-  //     try {
-  //       const results = await this.getProducts({
-  //         viewerRole,
-  //         includeInactiveChildren: canViewInactiveItems(viewerRole),
-  //       });
-
-  //       return results.find((p) => p.productGroup.id === groupId) ?? null;
-  //     } catch (error) {
-  //       throw new Error(
-  //         `Failed to fetch product by ID: ${error instanceof Error ? error.message : "Unknown error"}`
-  //       );
-  //     }
-  //   },
 };
 
 // Export convenience function

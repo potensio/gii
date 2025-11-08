@@ -2,26 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services/product.service";
 import { UserRole } from "@/lib/enums";
 import { ProductFilters } from "@/hooks/use-products";
-import jwt from "jsonwebtoken";
-
-// ==================== Token Utils ====================
-function extractToken(request: NextRequest): string | undefined {
-  return request.cookies.get("token")?.value;
-}
-
-function decodeUserRole(request: NextRequest): UserRole | undefined {
-  try {
-    const token = extractToken(request);
-    if (!token) return undefined;
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role?: UserRole;
-    };
-    return decoded.role;
-  } catch {
-    return undefined;
-  }
-}
+import { decodeUserRole } from "@/lib/utils/token.utils";
+import { formatErrorResponse, AuthorizationError } from "@/lib/errors";
 
 // ==================== Request Parsers ====================
 function parseProductFilters(searchParams: URLSearchParams): ProductFilters {
@@ -37,33 +19,6 @@ function parseProductFilters(searchParams: URLSearchParams): ProductFilters {
   };
 }
 
-// ==================== Error Handlers ====================
-function handleForbiddenError() {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Akses ditolak. Hanya admin yang diizinkan",
-    },
-    { status: 403 }
-  );
-}
-
-function handleServerError(error: unknown) {
-  console.error("Get products API error:", error);
-
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Terjadi kesalahan server",
-    },
-    { status: 500 }
-  );
-}
-
-function isForbiddenError(error: any): boolean {
-  return error?.message === "FORBIDDEN";
-}
-
 // ==================== Route Handler ====================
 export async function GET(request: NextRequest) {
   try {
@@ -72,22 +27,15 @@ export async function GET(request: NextRequest) {
     const filters = parseProductFilters(searchParams);
 
     if (!viewerRole) {
-      return handleForbiddenError();
+      throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
     }
 
-    const products = await productService.getProducts(
-      {
-        ...filters,
-      },
-      viewerRole
-    );
+    const products = await productService.getProducts(filters, viewerRole);
 
     return NextResponse.json(products, { status: 200 });
   } catch (error) {
-    if (isForbiddenError(error)) {
-      return handleForbiddenError();
-    }
-
-    return handleServerError(error);
+    const { response, statusCode } = formatErrorResponse(error);
+    console.error("API Error [GET /api/admin/products]:", error);
+    return NextResponse.json(response, { status: statusCode });
   }
 }

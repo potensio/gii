@@ -108,6 +108,25 @@ const authApi = {
 
     return response.json();
   },
+
+  me: async () => {
+    const response = await fetch("/api/auth/me", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message || "Terjadi kesalahan saat mengambil data pengguna"
+      );
+    }
+
+    return response.json();
+  },
 };
 
 export const useLogin = () => {
@@ -187,6 +206,24 @@ export const useVerify = (type: string, code: string) => {
       toast.success(data.message);
       // Redirect to login page
       router.push("/");
+    },
+    onError: (error) => {
+      // Show error toast
+      toast.error(error.message);
+    },
+  });
+
+  return {
+    ...mutation,
+  };
+};
+
+export const useMe = () => {
+  const mutation = useMutation({
+    mutationFn: authApi.me,
+    onSuccess: (data) => {
+      // Show success toast
+      toast.success(data.message);
     },
     onError: (error) => {
       // Show error toast

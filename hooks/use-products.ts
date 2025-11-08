@@ -37,8 +37,7 @@ const productApi = {
     // Check if response is ok
     if (!response.ok) {
       const error = await response.json();
-      toast.error(error.message || "Failed to fetch products");
-      throw new Error(error.message || "Failed to fetch products");
+      throw new Error(error.message || "Gagal memuat produk");
     }
     // Parse response JSON
     return response.json();
@@ -97,6 +96,11 @@ export function useProducts(filters: ProductFilters) {
     queryKey: ["products", filters],
     queryFn: () => productApi.getProducts(filters),
     staleTime: 10 * 60 * 1000, // 10 minutes
+    meta: {
+      onError: (error: Error) => {
+        toast.error(error.message || "Gagal memuat produk");
+      },
+    },
   });
 }
 
@@ -108,12 +112,17 @@ export function useProduct(id: string) {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch product");
+        const error = await response.json();
+        throw new Error(error.message || "Gagal memuat produk");
       }
-      console.log(response.json());
       return response.json();
     },
     enabled: !!id,
+    meta: {
+      onError: (error: Error) => {
+        toast.error(error.message || "Gagal memuat produk");
+      },
+    },
   });
 }
 

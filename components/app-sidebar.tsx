@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -26,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 
 const data = {
   user: {
@@ -123,6 +123,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { me, isMeLoading, isMeError } = useAuth();
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -147,7 +149,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            name: me?.data?.name || "",
+            email: me?.data?.email || "",
+            avatar: me?.data?.avatar || "",
+          }}
+        />
       </SidebarFooter>
     </Sidebar>
   );

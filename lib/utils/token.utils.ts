@@ -19,3 +19,17 @@ export function decodeUserRole(request: NextRequest): UserRole | undefined {
     return undefined;
   }
 }
+
+export function decodeUserId(request: NextRequest): string | undefined {
+  try {
+    const token = extractToken(request);
+    if (!token) return undefined;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId?: string;
+    };
+    return decoded.userId;
+  } catch {
+    return undefined;
+  }
+}

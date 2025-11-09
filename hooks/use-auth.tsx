@@ -1,13 +1,15 @@
-"use client  ";
+"use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   RegisterFormInput,
   LoginFormInput,
 } from "@/lib/validations/auth.validation";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import type { InferSelectModel } from "drizzle-orm";
+import type { users } from "@/lib/db/schema";
 
 interface LoginResponse {
   success: boolean;
@@ -36,6 +38,14 @@ interface VerifyResponse {
     token: string;
   } | null;
 }
+
+interface CurrentUserResponse {
+  success: boolean;
+  message: string;
+  data: InferSelectModel<typeof users> | null;
+}
+
+// The /api/auth/me route returns a raw user object (SelectUser)
 
 const authApi = {
   login: async (data: LoginFormInput): Promise<LoginResponse> => {
@@ -109,7 +119,7 @@ const authApi = {
     return response.json();
   },
 
-  me: async () => {
+  me: async (): Promise<CurrentUserResponse> => {
     const response = await fetch("/api/auth/me", {
       method: "GET",
       headers: {
@@ -219,19 +229,54 @@ export const useVerify = (type: string, code: string) => {
 };
 
 export const useMe = () => {
-  const mutation = useMutation({
-    mutationFn: authApi.me,
-    onSuccess: (data) => {
-      // Show success toast
-      toast.success(data.message);
-    },
-    onError: (error) => {
-      // Show error toast
-      toast.error(error.message);
-    },
+  const mutation = useQuery<CurrentUserResponse>({
+    queryKey: ["me"],
+    queryFn: authApi.me,
   });
 
   return {
     ...mutation,
+  };
+};
+
+export const useAuth = () => {
+  const {
+    mutate: login,
+    isPending: isLoginLoading,
+    isError: isLoginError,
+  } = useLogin();
+  const {
+    mutate: logout,
+    isPending: isLogoutLoading,
+    isError: isLogoutError,
+  } = useLogout();
+  const {
+    mutate: register,
+    isPending: isRegisterLoading,
+    isError: isRegisterError,
+  } = useRegister();
+  const {
+    mutate: verify,
+    isPending: isVerifyLoading,
+    isError: isVerifyError,
+  } = useVerify("email", "");
+  const { data: me, isPending: isMeLoading, isError: isMeError } = useMe();
+
+  return {
+    login,
+    logout,
+    register,
+    verify,
+    me,
+    isLoginLoading,
+    isLoginError,
+    isLogoutLoading,
+    isLogoutError,
+    isRegisterLoading,
+    isRegisterError,
+    isVerifyLoading,
+    isVerifyError,
+    isMeLoading,
+    isMeError,
   };
 };

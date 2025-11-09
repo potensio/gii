@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services/product.service";
-import { UserRole } from "@/lib/enums";
 import { ProductFilters } from "@/hooks/use-products";
 import { decodeUserRole } from "@/lib/utils/token.utils";
 import { formatErrorResponse, AuthorizationError } from "@/lib/errors";
@@ -30,12 +29,18 @@ export async function GET(request: NextRequest) {
       throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
     }
 
-    const products = await productService.getProducts(filters, viewerRole);
+    const products = await productService.getProductGroups(filters, viewerRole);
 
-    return NextResponse.json(products, { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Product groups retrieved successfully",
+        data: products,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     const { response, statusCode } = formatErrorResponse(error);
-    console.error("API Error [GET /api/admin/products]:", error);
     return NextResponse.json(response, { status: statusCode });
   }
 }

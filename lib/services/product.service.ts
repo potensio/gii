@@ -11,7 +11,6 @@ import {
 } from "../db/schema";
 import { CompleteProduct, ProductFilters } from "@/hooks/use-products";
 import { UserRole } from "../enums";
-import { DatabaseError } from "../errors";
 
 type WhereCondition = SQL<unknown> | undefined;
 type VariantSelection = Record<string, string>;
@@ -47,15 +46,13 @@ function createProductGroupFilters(
     conditions.push(ilike(productGroups.name, searchTerm));
   }
 
-  const shouldShowActive =
-    typeof filters.isActive === "boolean"
-      ? canViewInactive(role)
-        ? filters.isActive
-        : true
-      : !canViewInactive(role);
-
-  if (shouldShowActive !== undefined) {
-    conditions.push(eq(productGroups.isActive, shouldShowActive));
+  if (typeof filters.isActive === "boolean") {
+    const activeValue = canViewInactive(role) ? filters.isActive : true;
+    conditions.push(eq(productGroups.isActive, activeValue));
+  } else {
+    if (!canViewInactive(role)) {
+      conditions.push(eq(productGroups.isActive, true));
+    }
   }
 
   return conditions;
@@ -206,38 +203,43 @@ function assembleCompleteProducts(
 
 // === Main Service ===
 export const productService = {
-  async getProducts(
+  async getProductGroups(
     filters: ProductFilters,
     viewerRole: UserRole
   ): Promise<CompleteProduct[]> {
+    // Build filter conditions for product groups based on user role and input filters
     const groupFilters = createProductGroupFilters(filters, viewerRole);
-    const groups = await getProductGroups(groupFilters);
-
-    if (groups.length === 0) return [];
-
-    const groupIds = groups.map((g) => g.id);
+    // Fetch product groups that match the filter conditions
+    const productGroups = await getProductGroups(groupFilters);
+    // Early return if no productGroups found
+    if (productGroups.length === 0) return [];
+    // Extract group IDs for subsequent queries
+    const groupIds = productGroups.map((g) => g.id);
+    // Build filter conditions for variants based on group IDs and user role
     const variantFilters = createVariantFilters(groupIds, viewerRole);
+    // Build filter conditions for products based on group IDs and user role
     const productFilters = createProductFilters(groupIds, viewerRole);
-
+    // Fetch variants and products in parallel for performance
     const [variants, productsList] = await Promise.all([
       getVariants(variantFilters),
       getProductsList(productFilters),
     ]);
-
+    // Group variants by their product group ID for easier processing
     const variantsByGroup = groupBy(variants, (v) => v.productGroupId);
+    // Group products by their product group ID for easier processing
     const productsByGroup = groupBy(productsList, (p) => p.productGroupId);
-
+    // Extract product IDs for variant combination lookup
     const productIds = productsList.map((p) => p.id);
+    // Fetch variant combinations for all products
     const combinations = await getVariantCombinations(productIds);
+    // Create variant selections map for each product
     const variantSelections = createVariantSelections(combinations, variants);
-
+    // Assemble complete product data structure with all related entities
     return assembleCompleteProducts(
-      groups,
+      productGroups,
       variantsByGroup,
       productsByGroup,
       variantSelections
     );
   },
 };
-
-export const getProducts = productService.getProducts;

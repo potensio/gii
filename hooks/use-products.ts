@@ -1,13 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferSelectModel } from "drizzle-orm";
 import { productGroups, productVariants, products } from "@/lib/db/schema";
 import { toast } from "sonner";
 
 export interface CompleteProduct {
-  productGroup: typeof productGroups.$inferSelect;
-  variants: (typeof productVariants.$inferSelect)[];
-  products: (typeof products.$inferSelect)[];
+  productGroup: InferSelectModel<typeof productGroups>;
+  variants: InferSelectModel<typeof productVariants>[];
+  products: InferSelectModel<typeof products>[];
   // Map per productId of its selected variant key->value (e.g., color: "black")
   variantSelectionsByProductId?: Record<string, Record<string, string>>;
+}
+
+interface ProductGroupResponse {
+  success: boolean;
+  message: string;
+  data: CompleteProduct[] | null;
 }
 
 export interface ProductFilters {
@@ -22,7 +29,9 @@ export interface ProductFilters {
 // API functions (these would call your actual API routes)
 const productApi = {
   // Get all product groups with their related data
-  getProducts: async (filters: ProductFilters): Promise<CompleteProduct[]> => {
+  getProducts: async (
+    filters: ProductFilters
+  ): Promise<ProductGroupResponse> => {
     // Build query params from filters
     const params = new URLSearchParams();
     // Add filters to query params

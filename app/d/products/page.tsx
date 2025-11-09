@@ -101,8 +101,8 @@ export default function UsersPage() {
           filters.isActive === undefined
             ? "all"
             : filters.isActive
-            ? "active"
-            : "inactive"
+              ? "active"
+              : "inactive"
         }
         onStatusFilterChange={(value) =>
           setFilters({
@@ -114,8 +114,9 @@ export default function UsersPage() {
       />
 
       {/* Product Table */}
+
       <ProductTable
-        products={productsData || []}
+        products={productsData?.data || []}
         onRowClick={handleRowClick}
         // onEditProduct={handleEditUser}
         // onDeleteProduct={handleDeleteUser}

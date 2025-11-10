@@ -1,158 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { userService } from "@/lib/services/user.service";
-import jwt from "jsonwebtoken";
-import { db } from "@/lib/db/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { userSchema } from "@/lib/validations/user.validation";
+import { UserFilters } from "@/hooks/use-users";
+import { decodeUserRole } from "@/lib/utils/token.utils";
+import { formatErrorResponse } from "@/lib/errors";
 
-// Helper function to verify admin access
-async function verifyAdminAccess(request: NextRequest) {
-  try {
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return { success: false, message: "No authentication token found" };
-    }
+// ==================== Request Parsers ====================
+function parseUserFilters(searchParams: URLSearchParams): UserFilters {
+  const isActiveParam = searchParams.get("isActive");
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      userId: string;
-      role?: "user" | "admin" | "super_admin";
-      isActive?: boolean;
-      isDeleted?: boolean;
-    };
-
-    // Prefer claims from token; fallback to DB only if missing (backward compatibility)
-    let userRole = decoded.role;
-    let userIsActive = decoded.isActive;
-    let userIsDeleted = decoded.isDeleted;
-
-    if (userRole === undefined || userIsActive === undefined || userIsDeleted === undefined) {
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, decoded.userId))
-        .limit(1);
-      if (!user[0]) {
-        return { success: false, message: "User tidak valid" };
-      }
-      userRole = user[0].role as any;
-      userIsActive = user[0].isActive;
-      userIsDeleted = user[0].isDeleted;
-    }
-
-    if (!userIsActive || userIsDeleted) {
-      return { success: false, message: "User tidak valid" };
-    }
-
-    if (userRole !== "admin" && userRole !== "super_admin") {
-      return {
-        success: false,
-        message: "Akses ditolak. Hanya admin yang diizinkan",
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, message: "Token tidak valid" };
-  }
+  return {
+    status: searchParams.get("status") || undefined,
+    role:
+      (searchParams.get("role") as "user" | "admin" | "super_admin" | "") ||
+      undefined,
+    search: searchParams.get("search") || undefined,
+    page: parseInt(searchParams.get("page") || "1", 10),
+    pageSize: parseInt(searchParams.get("pageSize") || "10", 10),
+    isActive: isActiveParam ? isActiveParam === "true" : undefined,
+  };
 }
 
+// ==================== Route Handler ====================
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin access
-    const authResult = await verifyAdminAccess(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, message: authResult.message },
-        { status: 401 }
-      );
-    }
-
-    // Get query parameters
+    const viewerRole = decodeUserRole(request);
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const search = searchParams.get("search") || undefined;
-    const role = searchParams.get("role") as
-      | "user"
-      | "admin"
-      | "super_admin"
-      | undefined;
-    const isActiveParam = searchParams.get("isActive");
-    const isActive = isActiveParam ? isActiveParam === "true" : undefined;
+    const filters = parseUserFilters(searchParams);
 
-    // Get users from service
     const result = await userService.getUsers({
-      page,
-      search,
-      role,
-      isActive,
+      page: filters.page,
+      search: filters.search,
+      role: filters.role as "user" | "admin" | "super_admin" | undefined,
+      isActive: filters.isActive,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    console.error("Get users API error:", error);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server" },
-      { status: 500 }
+      {
+        success: true,
+        message: "Users retrieved successfully",
+        data: result,
+      },
+      { status: 200 }
     );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    // Verify admin access
-    const authResult = await verifyAdminAccess(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, message: authResult.message },
-        { status: 401 }
-      );
-    }
-
-    // Parse and validate request body
-    const body = await request.json();
-    const validationResult = userSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Data tidak valid",
-          errors: validationResult.error.errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { name, email, role } = validationResult.data;
-
-    // Create user using service
-    const result = await userService.createUser({
-      name,
-      email,
-      role,
-    });
-
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, message: result.message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: result.message,
-      data: result.user,
-    });
   } catch (error) {
-    console.error("Create user API error:", error);
-    return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server" },
-      { status: 500 }
-    );
+    const { response, statusCode } = formatErrorResponse(error);
+    return NextResponse.json(response, { status: statusCode });
   }
 }

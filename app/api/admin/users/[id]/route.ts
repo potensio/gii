@@ -1,60 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { userService } from "@/lib/services/user.service";
-import jwt from "jsonwebtoken";
-import { db } from "@/lib/db/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-
-// Helper function to verify admin access
-async function verifyAdminAccess(request: NextRequest) {
-  try {
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return { success: false, message: "No authentication token found" };
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      userId: string;
-      role?: "user" | "admin" | "super_admin";
-      isActive?: boolean;
-      isDeleted?: boolean;
-    };
-
-    let role = decoded.role;
-    let isActive = decoded.isActive;
-    let isDeleted = decoded.isDeleted;
-
-    // Fallback ke DB bila claim belum tersedia (kompatibel dengan token lama)
-    if (role === undefined || isActive === undefined || isDeleted === undefined) {
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, decoded.userId))
-        .limit(1);
-      if (!user[0]) {
-        return { success: false, message: "User tidak valid" };
-      }
-      role = user[0].role as any;
-      isActive = user[0].isActive;
-      isDeleted = user[0].isDeleted;
-    }
-
-    if (!isActive || isDeleted) {
-      return { success: false, message: "User tidak valid" };
-    }
-
-    if (role !== "admin" && role !== "super_admin") {
-      return {
-        success: false,
-        message: "Akses ditolak. Hanya admin yang diizinkan",
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, message: "Token tidak valid" };
-  }
-}
+import { decodeUserRole } from "@/lib/utils/token.utils";
+import { formatErrorResponse, AuthorizationError } from "@/lib/errors";
 
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
@@ -62,13 +9,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin access
-    const authResult = await verifyAdminAccess(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, message: authResult.message },
-        { status: 401 }
-      );
+    const viewerRole = decodeUserRole(request);
+
+    if (!viewerRole) {
+      throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
     }
 
     const { id } = await params;
@@ -76,21 +20,26 @@ export async function GET(
 
     if (!user) {
       return NextResponse.json(
-        { success: false, message: "User tidak ditemukan" },
+        {
+          success: false,
+          message: "User tidak ditemukan",
+          data: null,
+        },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    console.error("Get user by ID API error:", error);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server" },
-      { status: 500 }
+      {
+        success: true,
+        message: "User retrieved successfully",
+        data: user,
+      },
+      { status: 200 }
     );
+  } catch (error) {
+    const { response, statusCode } = formatErrorResponse(error);
+    return NextResponse.json(response, { status: statusCode });
   }
 }
 
@@ -100,13 +49,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin access
-    const authResult = await verifyAdminAccess(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, message: authResult.message },
-        { status: 401 }
-      );
+    const viewerRole = decodeUserRole(request);
+
+    if (
+      !viewerRole ||
+      (viewerRole !== "admin" && viewerRole !== "super_admin")
+    ) {
+      throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
     }
 
     const body = await request.json();
@@ -124,22 +73,26 @@ export async function PATCH(
 
     if (!updatedUser) {
       return NextResponse.json(
-        { success: false, message: "User tidak ditemukan atau gagal diupdate" },
+        {
+          success: false,
+          message: "User tidak ditemukan atau gagal diupdate",
+          data: null,
+        },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: updatedUser,
-      message: "User berhasil diupdate",
-    });
-  } catch (error) {
-    console.error("Update user API error:", error);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server" },
-      { status: 500 }
+      {
+        success: true,
+        message: "User berhasil diupdate",
+        data: updatedUser,
+      },
+      { status: 200 }
     );
+  } catch (error) {
+    const { response, statusCode } = formatErrorResponse(error);
+    return NextResponse.json(response, { status: statusCode });
   }
 }
 
@@ -149,13 +102,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin access
-    const authResult = await verifyAdminAccess(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, message: authResult.message },
-        { status: 401 }
-      );
+    const viewerRole = decodeUserRole(request);
+
+    if (
+      !viewerRole ||
+      (viewerRole !== "admin" && viewerRole !== "super_admin")
+    ) {
+      throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
     }
 
     const { id } = await params;
@@ -163,20 +116,25 @@ export async function DELETE(
 
     if (!success) {
       return NextResponse.json(
-        { success: false, message: "User tidak ditemukan atau gagal dihapus" },
+        {
+          success: false,
+          message: "User tidak ditemukan atau gagal dihapus",
+          data: null,
+        },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "User berhasil dihapus",
-    });
-  } catch (error) {
-    console.error("Delete user API error:", error);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server" },
-      { status: 500 }
+      {
+        success: true,
+        message: "User berhasil dihapus",
+        data: null,
+      },
+      { status: 200 }
     );
+  } catch (error) {
+    const { response, statusCode } = formatErrorResponse(error);
+    return NextResponse.json(response, { status: statusCode });
   }
 }

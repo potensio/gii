@@ -1,179 +1,224 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferSelectModel } from "drizzle-orm";
+import { users } from "@/lib/db/schema";
 import { toast } from "sonner";
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  role: "user" | "admin" | "super_admin";
-  isActive: boolean;
-  isConfirmed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+export type User = InferSelectModel<typeof users>;
+
+interface UsersResponse {
+  success: boolean;
+  message: string;
+  data: {
+    users: User[];
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  } | null;
 }
 
-interface GetUsersResponse {
-  users: User[];
-  total: number;
-  totalPages: number;
-  currentPage: number;
+interface UserResponse {
+  success: boolean;
+  message: string;
+  data: User | null;
 }
 
-interface GetUsersParams {
-  page?: number;
-  search?: string;
-  role?: "user" | "admin" | "super_admin";
+export interface UserFilters {
+  status?: string;
+  role?: string | "";
   isActive?: boolean;
+  search?: string;
+  page: number;
+  pageSize: number;
 }
-
-// Get auth token from localStorage or wherever you store it
-const getAuthToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
-};
 
 // API functions
-const fetchUsers = async (
-  params: GetUsersParams = {}
-): Promise<GetUsersResponse> => {
-  const searchParams = new URLSearchParams();
-  if (params.page) searchParams.append("page", params.page.toString());
-  if (params.search) searchParams.append("search", params.search);
-  if (params.role) searchParams.append("role", params.role);
-  if (params.isActive !== undefined)
-    searchParams.append("isActive", params.isActive.toString());
+const userApi = {
+  // Get all users with filters
+  getUsers: async (filters: UserFilters): Promise<UsersResponse> => {
+    // Build query params from filters
+    const params = new URLSearchParams();
+    // Add filters to query params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    // Send request to API
+    const response = await fetch(`/api/admin/users?${params}`);
 
-  const response = await fetch(`/api/admin/users?${searchParams.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    // Check if response is ok
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal memuat users");
+    }
+    // Parse response JSON
+    return response.json();
+  },
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to fetch users");
-  }
+  // Create user
+  createUser: async (data: {
+    name: string;
+    email: string;
+    role: "user" | "admin" | "super_admin";
+  }): Promise<UserResponse> => {
+    const response = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-  const result = await response.json();
-  return result.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal membuat user");
+    }
+
+    return response.json();
+  },
+
+  // Update user
+  updateUser: async ({
+    id,
+    data,
+  }: {
+    id: string;
+    data: Partial<User>;
+  }): Promise<UserResponse> => {
+    const response = await fetch(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal mengupdate user");
+    }
+
+    return response.json();
+  },
+
+  // Delete user
+  deleteUser: async (id: string): Promise<void> => {
+    const response = await fetch(`/api/admin/users/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal menghapus user");
+    }
+  },
 };
 
-const updateUser = async ({
-  id,
-  data,
-}: {
-  id: string;
-  data: Partial<User>;
-}): Promise<User> => {
-  const response = await fetch(`/api/admin/users/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to update user");
-  }
-
-  const result = await response.json();
-  return result.data;
-};
-
-const deleteUser = async (id: string): Promise<void> => {
-  const response = await fetch(`/api/admin/users/${id}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to delete user");
-  }
-};
-
-const createUser = async (data: {
-  name: string;
-  email: string;
-  role: "user" | "admin" | "super_admin";
-}): Promise<User> => {
-  const response = await fetch("/api/admin/users", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create user");
-  }
-
-  const result = await response.json();
-  return result.data;
-};
-
-// Hooks
-export const useUsers = (params: GetUsersParams = {}) => {
+// Query hooks
+export function useUsers(filters: UserFilters) {
   return useQuery({
-    queryKey: ["users", params],
-    queryFn: () => fetchUsers(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    queryKey: ["users", filters],
+    queryFn: () => userApi.getUsers(filters),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    meta: {
+      onError: (error: Error) => {
+        toast.error(error.message || "Gagal memuat users");
+      },
+    },
   });
-};
+}
 
-export const useUpdateUser = () => {
+export function useUser(id: string) {
+  return useQuery({
+    queryKey: ["users", id],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Gagal memuat user");
+      }
+      return response.json();
+    },
+    enabled: !!id,
+    meta: {
+      onError: (error: Error) => {
+        toast.error(error.message || "Gagal memuat user");
+      },
+    },
+  });
+}
+
+// Mutation hooks
+export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateUser,
+    mutationFn: userApi.createUser,
     onSuccess: (data) => {
-      // Invalidate and refetch users queries
+      // Invalidate and refetch users list
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("User berhasil diupdate");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Gagal mengupdate user");
-    },
-  });
-};
 
-export const useDeleteUser = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: deleteUser,
-    onSuccess: () => {
-      // Invalidate and refetch users queries
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("User berhasil dihapus");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Gagal menghapus user");
-    },
-  });
-};
-
-export const useCreateUser = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createUser,
-    onSuccess: (data) => {
-      // Invalidate and refetch users queries
-      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("User berhasil dibuat dan email notifikasi telah dikirim");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Gagal membuat user");
     },
   });
-};
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.updateUser,
+    onSuccess: (data) => {
+      // Update the specific user in cache
+      if (data.data) {
+        queryClient.setQueryData(["users", data.data.id], data);
+      }
+
+      // Invalidate users list to refresh
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+
+      toast.success("User berhasil diupdate");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Gagal mengupdate user");
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.deleteUser,
+    onSuccess: (_, deletedId) => {
+      // Remove from cache
+      queryClient.removeQueries({ queryKey: ["users", deletedId] });
+
+      // Invalidate users list
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+
+      toast.success("User berhasil dihapus");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Gagal menghapus user");
+    },
+  });
+}
+
+// Utility hook for optimistic updates
+export function useOptimisticUserUpdate() {
+  const queryClient = useQueryClient();
+
+  const updateUserOptimistically = (
+    userId: string,
+    updater: (old: User) => User
+  ) => {
+    queryClient.setQueryData(["users", userId], (old: User | undefined) => {
+      if (!old) return old;
+      return updater(old);
+    });
+  };
+
+  return { updateUserOptimistically };
+}

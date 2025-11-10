@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { MultiUploader } from "@/components/ui/multi-uploader";
 
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
@@ -149,7 +150,8 @@ function ProductForm({
         id: p.id,
         variants:
           (selectedProduct.variantSelectionsByProductId &&
-            selectedProduct.variantSelectionsByProductId[p.id]) || {},
+            selectedProduct.variantSelectionsByProductId[p.id]) ||
+          {},
         sku: p.sku ?? "",
         name: p.name ?? "",
         price: String(p.price ?? 0),
@@ -309,6 +311,13 @@ function ProductForm({
           </div>
 
           <Separator />
+
+          <div className="space-y-4">
+            <h3 className="tracking-tight font-medium text-muted-foreground">
+              Gambar Produk
+            </h3>
+            <MultiUploader />
+          </div>
 
           {/* Product Variants */}
           <div className="space-y-6 flex justify-between items-start">

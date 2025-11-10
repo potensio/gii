@@ -25,12 +25,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filters = parseProductFilters(searchParams);
 
-    if (!viewerRole) {
-      throw new AuthorizationError("Akses ditolak. Hanya admin yang diizinkan");
-    }
-
     const products = await productService.getProductGroups(filters, viewerRole);
 
+    console.log(
+      {
+        success: true,
+        message: "Product groups retrieved successfully",
+        data: products,
+      },
+      { status: 200 }
+    );
     return NextResponse.json(
       {
         success: true,

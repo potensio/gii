@@ -1,31 +1,16 @@
-"use client"; // Ensure page is a client component to manage state
-
-import { useState } from "react"; // Import useState
-import { AboutSection } from "@/components/about-section";
 import { HeroSection } from "@/components/hero-section";
-import { JoinClubSidebar } from "@/components/join-club-sidebar";
+import { BrandSection } from "@/components/landing-page/brand-section";
+import { GuaranteeSection } from "@/components/landing-page/guarantee-section";
 import { ProductCarouselSection } from "@/components/product-carousel-section";
-import { ProductCategorySection } from "@/components/product-category-section";
 import { SiteFooter } from "@/components/common/site-footer";
-import { SiteHeader } from "@/components/common/site-header";
 import { TillDeathBundleSection } from "@/components/till-death-bundle-section";
 import { MainNavigation } from "@/components/common/main-navigation";
 import { StoryBanner } from "@/components/story-banner";
 
 export default function Home() {
-  const [isCartOpen, setIsCartOpen] = useState(false); // State for cart drawer
-
-  const handleCartClick = () => {
-    setIsCartOpen(true);
-  };
-
-  const handleCloseCart = () => {
-    setIsCartOpen(false);
-  };
-
   const onlyFewPiecesLeftProducts = [
     {
-      imageSrc: "/placeholder.svg?height=256&width=256",
+      imageSrc: "/placeholder.svg?height=400&width=300",
       imageAlt: "Samsung Galaxy S24",
       brand: "Samsung",
       title: "Samsung Galaxy S24 5G 256GB",
@@ -89,31 +74,24 @@ export default function Home() {
       slug: "samsung-microwave-grill-me731k",
     },
   ];
-  // Removed revenantBundleProducts as it's no longer used
 
   return (
-    <div className="flex min-h-screen flex-col tracking-tight w-full ">
-      {/* Pass the handler */}
+    <div className="flex min-h-screen flex-col tracking-tight w-full">
       <main className="flex-col flex-1">
         <MainNavigation />
-        {/* Main Navigation */}
-
         <div className="flex flex-col gap-20">
-          {" "}
           <HeroSection />
-          <ProductCategorySection />
+          <BrandSection />
           <ProductCarouselSection
             title="Terbaru"
             products={onlyFewPiecesLeftProducts}
           />
-          <AboutSection />
+          <GuaranteeSection />
           <ProductCarouselSection
             title="Paling Laris"
             products={onlyFewPiecesLeftProducts}
           />
-          {/* Removed the BundleShowcaseSection for "Revenant Sacred Sand Set" */}
           <TillDeathBundleSection />
-          {/* The "Our Story - Protect" section is a large text overlay, not a full section */}
           <StoryBanner />
         </div>
         <SiteFooter />

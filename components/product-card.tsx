@@ -34,12 +34,9 @@ export function ProductCard({
           className
         )}
       >
-        <div className="relative aspect-square border border-red-500 w-full">
+        <div className="relative aspect-square w-full">
           <Image
-            src={
-              imageSrc ||
-              "/placeholder.svg?height=256&width=256&query=product image"
-            }
+            src="/placeholder.svg"
             alt={imageAlt}
             fill
             className="rounded-t-xl object-cover opacity-0"

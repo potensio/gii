@@ -12,6 +12,7 @@ import {
   useUpdateProduct,
 } from "@/hooks/use-products";
 import type { ProductSchema } from "@/lib/validations/product.validation";
+import { Plus } from "lucide-react";
 
 export default function UsersPage() {
   const [selectedProduct, setSelectedProduct] =
@@ -67,12 +68,16 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-medium tracking-tight">Produk</h1>
-        <Button size={"sm"} onClick={handleAddUser}>
-          Tambahkan Produk
+        <Button
+          size={"sm"}
+          onClick={handleAddUser}
+          className="rounded-full size-8"
+        >
+          <Plus className="size-6" />
         </Button>
       </div>
 

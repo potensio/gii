@@ -1,1 +1,0 @@
-ALTER TABLE "product_groups" ADD COLUMN "additional_descriptions" text;

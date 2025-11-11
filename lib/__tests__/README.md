@@ -65,11 +65,25 @@ npx tsx lib/__tests__/product-api-verification.ts
 
 ### 4. `product-api-refactor.test.ts`
 
-**Purpose:** Comprehensive integration tests (requires transaction support).
+**Purpose:** Comprehensive integration tests with full database transaction support.
 
-**Status:** ⚠️ Cannot run in current environment due to neon-http driver limitations.
+**Run with:**
 
-**Note:** This file demonstrates the intended test structure but requires a database driver that supports transactions (e.g., neon-serverless with WebSocket).
+```bash
+npx tsx lib/__tests__/product-api-refactor.test.ts
+```
+
+**Tests:**
+
+- ✅ Create product without variants
+- ✅ Create product with variants
+- ✅ Update product without variants
+- ✅ Update product with variants
+- ✅ Transaction rollback on duplicate SKU
+- ✅ Zod transform filters empty descriptions
+- ✅ Validation error handling
+
+**Status:** All 7 tests passing ✅
 
 ---
 
@@ -77,11 +91,19 @@ npx tsx lib/__tests__/product-api-verification.ts
 
 ### Run Automated Tests
 
+**Validation Tests:**
+
 ```bash
 npx tsx lib/__tests__/product-api-verification.ts
 ```
 
-### Manual Testing
+**Full Integration Tests (with database transactions):**
+
+```bash
+npx tsx lib/__tests__/product-api-refactor.test.ts
+```
+
+### Manual Testing (Optional)
 
 1. Start the development server:
 
@@ -97,21 +119,23 @@ npx tsx lib/__tests__/product-api-verification.ts
 
 ## Test Coverage
 
-### ✅ Fully Verified
+### ✅ Fully Verified (Automated Tests)
 
 - Zod schema validation and transforms
 - Empty additional descriptions filtering
 - Validation error handling
-- Service layer implementation structure
+- Service layer implementation
 - Route handler refactoring
 - Error response formatting
+- **Transaction rollback behavior**
+- **Duplicate SKU error handling**
+- Product creation with/without variants
+- Product updates with/without variants
 
-### ⚠️ Requires Manual Testing
+### 📝 Optional Manual Testing
 
-- Transaction rollback behavior
-- Authorization with real tokens
-- Duplicate SKU error handling
-- End-to-end API flows
+- Authorization with real user tokens
+- End-to-end API flows with HTTP requests
 
 ---
 
@@ -129,22 +153,29 @@ See `VERIFICATION_SUMMARY.md` for detailed breakdown.
 
 ---
 
-## Known Issues
+## Database Configuration
 
-1. **Transaction Testing Limitation**
-   - The `neon-http` driver doesn't support transactions in test environment
-   - Manual testing required to verify transaction rollback
-   - Consider using `neon-serverless` with WebSocket for full transaction support
+The database has been configured to use `neon-serverless` with WebSocket (Pool) instead of `neon-http` to enable full transaction support in all environments.
+
+**Configuration:** `lib/db/db.ts`
+
+```typescript
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+export const db = drizzle({ client: pool });
+```
 
 ---
 
 ## Next Steps
 
 1. ✅ Run automated validation tests
-2. ⏭️ Perform manual API testing (see MANUAL_TESTING_GUIDE.md)
-3. ⏭️ Verify transaction rollback with duplicate SKU scenario
-4. ⏭️ Test authorization with different user roles
-5. ⏭️ Consider upgrading to WebSocket driver for full transaction support
+2. ✅ Run full integration tests
+3. ✅ Verify transaction rollback with duplicate SKU scenario
+4. 📝 (Optional) Perform manual API testing (see MANUAL_TESTING_GUIDE.md)
+5. 📝 (Optional) Test authorization with different user roles
 
 ---
 

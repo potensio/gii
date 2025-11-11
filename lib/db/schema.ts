@@ -18,6 +18,24 @@ export const roleOptions = {
   SUPER_ADMIN: "super_admin",
 } as const;
 
+// Order status options
+export const orderStatusOptions = {
+  PENDING: "pending",
+  PROCESSING: "processing",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
+  REFUNDED: "refunded",
+} as const;
+
+// Payment status options
+export const paymentStatusOptions = {
+  PENDING: "pending",
+  PAID: "paid",
+  FAILED: "failed",
+  REFUNDED: "refunded",
+} as const;
+
 // Users table
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -149,3 +167,186 @@ export type InsertProductVariantCombination =
   typeof productVariantCombinations.$inferInsert;
 export type SelectProductVariantCombination =
   typeof productVariantCombinations.$inferSelect;
+
+// Addresses table
+export const addresses = pgTable(
+  "addresses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // Address fields
+    recipientName: text("recipient_name").notNull(),
+    phoneNumber: text("phone_number").notNull(),
+    streetAddress: text("street_address").notNull(),
+    addressLine2: text("address_line_2"),
+    city: text("city").notNull(),
+    state: text("state").notNull(),
+    postalCode: text("postal_code").notNull(),
+    country: text("country").notNull().default("ID"),
+
+    // Default address flag
+    isDefault: boolean("is_default").notNull().default(false),
+
+    // Metadata
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("addr_user_id_idx").on(table.userId),
+    defaultIdx: index("addr_default_idx").on(table.userId, table.isDefault),
+  })
+);
+
+export type InsertAddress = typeof addresses.$inferInsert;
+export type SelectAddress = typeof addresses.$inferSelect;
+
+// Carts table
+export const carts = pgTable(
+  "carts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // Metadata
+    lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("cart_user_id_idx").on(table.userId),
+  })
+);
+
+export type InsertCart = typeof carts.$inferInsert;
+export type SelectCart = typeof carts.$inferSelect;
+
+// Cart Items table
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cartId: uuid("cart_id")
+      .references(() => carts.id, { onDelete: "cascade" })
+      .notNull(),
+    productId: uuid("product_id")
+      .references(() => products.id, { onDelete: "cascade" })
+      .notNull(),
+
+    quantity: integer("quantity").notNull().default(1),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    cartIdIdx: index("ci_cart_id_idx").on(table.cartId),
+    productIdIdx: index("ci_product_id_idx").on(table.productId),
+    cartProductIdx: index("ci_cart_product_idx").on(
+      table.cartId,
+      table.productId
+    ),
+  })
+);
+
+export type InsertCartItem = typeof cartItems.$inferInsert;
+export type SelectCartItem = typeof cartItems.$inferSelect;
+
+// Orders table
+export const orders = pgTable(
+  "orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderNumber: text("order_number").notNull().unique(),
+
+    // User reference
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "set null" })
+      .notNull(),
+
+    // Customer snapshot
+    customerEmail: text("customer_email").notNull(),
+    customerName: text("customer_name").notNull(),
+    shippingAddress: text("shipping_address").notNull(), // JSON string
+    billingAddress: text("billing_address").notNull(), // JSON string
+
+    // Order financials (stored in smallest currency unit, e.g., cents)
+    subtotal: integer("subtotal").notNull(),
+    tax: integer("tax").notNull().default(0),
+    shippingCost: integer("shipping_cost").notNull().default(0),
+    discount: integer("discount").notNull().default(0),
+    total: integer("total").notNull(),
+    currency: text("currency").notNull().default("IDR"),
+
+    // Status tracking (using text fields with TypeScript constants for type safety)
+    orderStatus: text("order_status").notNull().default("pending"),
+    paymentStatus: text("payment_status").notNull().default("pending"),
+
+    // Payment details
+    paymentMethod: text("payment_method"), // e.g., "stripe", "paypal"
+    paymentIntentId: text("payment_intent_id"), // For payment provider reconciliation
+
+    // Shipping details
+    trackingNumber: text("tracking_number"),
+    carrier: text("carrier"),
+
+    // Notes
+    customerNotes: text("customer_notes"),
+    adminNotes: text("admin_notes"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    paidAt: timestamp("paid_at"),
+    shippedAt: timestamp("shipped_at"),
+    deliveredAt: timestamp("delivered_at"),
+  },
+  (table) => ({
+    orderNumberIdx: index("order_number_idx").on(table.orderNumber),
+    userIdIdx: index("order_user_id_idx").on(table.userId),
+    orderStatusIdx: index("order_status_idx").on(table.orderStatus),
+    paymentStatusIdx: index("order_payment_status_idx").on(table.paymentStatus),
+    createdAtIdx: index("order_created_at_idx").on(table.createdAt),
+  })
+);
+
+export type InsertOrder = typeof orders.$inferInsert;
+export type SelectOrder = typeof orders.$inferSelect;
+
+// Order Items table
+export const orderItems = pgTable(
+  "order_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .references(() => orders.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // Product reference (nullable if product deleted)
+    productId: uuid("product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+
+    // Product snapshot at time of purchase
+    productName: text("product_name").notNull(),
+    productSku: text("product_sku").notNull(),
+    imageUrl: text("image_url"),
+
+    // Pricing snapshot
+    quantity: integer("quantity").notNull(),
+    unitPrice: integer("unit_price").notNull(), // Price per unit in smallest currency unit
+    subtotal: integer("subtotal").notNull(), // quantity × unitPrice
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdIdx: index("oi_order_id_idx").on(table.orderId),
+    productIdIdx: index("oi_product_id_idx").on(table.productId),
+  })
+);
+
+export type InsertOrderItem = typeof orderItems.$inferInsert;
+export type SelectOrderItem = typeof orderItems.$inferSelect;

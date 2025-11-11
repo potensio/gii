@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761070828369,
-      "tag": "0000_short_tenebrous",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761466601542,
-      "tag": "0001_tiny_killer_shrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1762857369132,
-      "tag": "0002_curious_prism",
+      "when": 1762879464570,
+      "tag": "0000_soft_mimic",
       "breakpoints": true
     }
   ]

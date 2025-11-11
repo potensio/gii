@@ -3,10 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -23,16 +20,12 @@ import { MultiUploader } from "@/components/ui/multi-uploader";
 
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
-import { Plus, X, Eye } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 // Form & Validation
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  productSchema,
-  variantSchema,
-  variantCombinationSchema,
-} from "@/lib/validations/product.validation";
+import { productSchema } from "@/lib/validations/product.validation";
 import type { ProductSchema } from "@/lib/validations/product.validation";
 import { CompleteProduct } from "@/hooks/use-products";
 
@@ -43,19 +36,25 @@ import type { ProductCategory, ProductBrand, VariantType } from "@/lib/enums";
 interface ProductSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: ProductSchema) => void;
   selectedProduct: CompleteProduct | null;
   mode: "create" | "edit";
+  isSubmitting: boolean;
 }
 
 // ProductForm Component - UI Only
 function ProductForm({
   onClose,
+  onSave,
   selectedProduct,
   mode,
+  isSubmitting,
 }: {
   onClose: () => void;
+  onSave: (data: ProductSchema) => void;
   selectedProduct: CompleteProduct | null;
   mode: "create" | "edit";
+  isSubmitting: boolean;
 }) {
   const [selectedVariants, setSelectedVariants] = useState<VariantType[]>([]);
   const [productCombinations, setProductCombinations] = useState<any[]>([
@@ -70,6 +69,9 @@ function ProductForm({
     },
   ]);
   const [productWeight, setProductWeight] = useState<string>("");
+  const [additionalDescriptions, setAdditionalDescriptions] = useState<
+    Array<{ id: number; title: string; body: string }>
+  >([]);
 
   const toCombinationPayload = (c: any) => ({
     id: typeof c.id === "string" ? c.id : String(c.id),
@@ -80,6 +82,28 @@ function ProductForm({
     stock: typeof c.stock === "number" ? c.stock : Number(c.stock) || 0,
     active: Boolean(c.active),
   });
+
+  const addAdditionalDescription = () => {
+    const newId = Math.max(...additionalDescriptions.map((d) => d.id), 0) + 1;
+    setAdditionalDescriptions((prev) => [
+      ...prev,
+      { id: newId, title: "", body: "" },
+    ]);
+  };
+
+  const removeAdditionalDescription = (id: number) => {
+    setAdditionalDescriptions((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const updateAdditionalDescription = (
+    id: number,
+    field: "title" | "body",
+    value: string
+  ) => {
+    setAdditionalDescriptions((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, [field]: value } : d))
+    );
+  };
 
   const addProductCombination = () => {
     const newId = Math.max(...productCombinations.map((p) => p.id), 0) + 1;
@@ -130,8 +154,17 @@ function ProductForm({
     );
   }, [productCombinations]);
 
-  const onSubmit = (data: ProductSchema) => {
-    console.log("Product payload", data);
+  useEffect(() => {
+    // Filter out empty items before setting form value
+    const validDescriptions = additionalDescriptions
+      .filter((d) => d.title.trim() !== "" || d.body.trim() !== "")
+      .map(({ id, ...rest }) => rest);
+
+    form.setValue("additionalDescriptions", validDescriptions);
+  }, [additionalDescriptions]);
+
+  const onSubmit = async (data: ProductSchema) => {
+    onSave(data);
   };
 
   // Prefill defaults when editing an existing product
@@ -167,6 +200,19 @@ function ProductForm({
           : ""
       );
 
+      // Prefill additional descriptions
+      const savedDescriptions =
+        selectedProduct.productGroup.additionalDescriptions;
+      if (savedDescriptions && Array.isArray(savedDescriptions)) {
+        setAdditionalDescriptions(
+          savedDescriptions.map((d: any, idx: number) => ({
+            id: idx + 1,
+            title: d.title,
+            body: d.body,
+          }))
+        );
+      }
+
       form.reset({
         id: selectedProduct.productGroup.id,
         name: selectedProduct.productGroup.name ?? "",
@@ -185,6 +231,13 @@ function ProductForm({
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <div className="flex-1 p-6 overflow-y-scroll max-h-[calc(100vh-160px)]">
+        {Object.keys(form.formState.errors).length > 0 && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600 font-medium">
+              Terdapat kesalahan pada form. Mohon periksa kembali.
+            </p>
+          </div>
+        )}
         <div className="space-y-8">
           {/* Basic Product Information */}
           <div className="space-y-4">
@@ -199,7 +252,13 @@ function ProductForm({
                   id="name"
                   placeholder="iPhone 17 Pro Max"
                   {...form.register("name")}
+                  className={form.formState.errors.name ? "border-red-500" : ""}
                 />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Kategori *</Label>
@@ -211,7 +270,11 @@ function ProductForm({
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={
+                      form.formState.errors.category ? "border-red-500" : ""
+                    }
+                  >
                     <SelectValue placeholder="Smartphones" />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,6 +285,11 @@ function ProductForm({
                     ))}
                   </SelectContent>
                 </Select>
+                {form.formState.errors.category && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.category.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -234,7 +302,11 @@ function ProductForm({
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={
+                      form.formState.errors.brand ? "border-red-500" : ""
+                    }
+                  >
                     <SelectValue placeholder="Apple" />
                   </SelectTrigger>
                   <SelectContent>
@@ -245,6 +317,11 @@ function ProductForm({
                     ))}
                   </SelectContent>
                 </Select>
+                {form.formState.errors.brand && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.brand.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="weight"> Berat Produk (grams)</Label>
@@ -264,7 +341,15 @@ function ProductForm({
                       }
                     );
                   }}
+                  className={
+                    form.formState.errors.weight ? "border-red-500" : ""
+                  }
                 />
+                {form.formState.errors.weight && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.weight.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -511,14 +596,135 @@ function ProductForm({
               ))}
             </div>
           </div>
+
+          <Separator />
+
+          {/* Additional Descriptions Section */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="tracking-tight font-medium text-muted-foreground">
+                  Deskripsi Tambahan
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tambahkan informasi tambahan seperti garansi, catatan
+                  pengiriman, dll (Optional)
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={addAdditionalDescription}
+                size="sm"
+                variant="outline"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Item
+              </Button>
+            </div>
+
+            {additionalDescriptions.length > 0 && (
+              <div className="space-y-3">
+                {additionalDescriptions.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="p-4 bg-card border rounded-lg space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Item #{index + 1}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeAdditionalDescription(item.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`desc-title-${item.id}`}>Title</Label>
+                      <Input
+                        id={`desc-title-${item.id}`}
+                        placeholder="Garansi Note"
+                        value={item.title}
+                        onChange={(e) =>
+                          updateAdditionalDescription(
+                            item.id,
+                            "title",
+                            e.target.value
+                          )
+                        }
+                        maxLength={100}
+                        className={
+                          form.formState.errors.additionalDescriptions?.[index]
+                            ?.title
+                            ? "border-red-500"
+                            : ""
+                        }
+                      />
+                      {form.formState.errors.additionalDescriptions?.[index]
+                        ?.title && (
+                        <p className="text-sm text-red-500">
+                          {
+                            form.formState.errors.additionalDescriptions[index]
+                              .title?.message
+                          }
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`desc-body-${item.id}`}>Deskripsi</Label>
+                      <Textarea
+                        id={`desc-body-${item.id}`}
+                        placeholder="Lorem ipsum dolor sit amet"
+                        value={item.body}
+                        onChange={(e) =>
+                          updateAdditionalDescription(
+                            item.id,
+                            "body",
+                            e.target.value
+                          )
+                        }
+                        rows={3}
+                        maxLength={1000}
+                        className={
+                          form.formState.errors.additionalDescriptions?.[index]
+                            ?.body
+                            ? "border-red-500"
+                            : ""
+                        }
+                      />
+                      {form.formState.errors.additionalDescriptions?.[index]
+                        ?.body && (
+                        <p className="text-sm text-red-500">
+                          {
+                            form.formState.errors.additionalDescriptions[index]
+                              .body?.message
+                          }
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground text-right">
+                        {item.body.length}/1000
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex-shrink-0 p-6 border-t bg-background">
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit">Save Product</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Menyimpan..." : "Save Product"}
+          </Button>
         </div>
       </div>
     </form>
@@ -528,8 +734,10 @@ function ProductForm({
 export function ProductSheet({
   isOpen,
   onClose,
+  onSave,
   selectedProduct,
   mode,
+  isSubmitting,
 }: ProductSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -540,8 +748,10 @@ export function ProductSheet({
 
         <ProductForm
           onClose={onClose}
+          onSave={onSave}
           selectedProduct={selectedProduct}
           mode={mode}
+          isSubmitting={isSubmitting}
         />
       </SheetContent>
     </Sheet>

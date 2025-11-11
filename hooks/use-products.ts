@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InferSelectModel } from "drizzle-orm";
 import { productGroups, productVariants, products } from "@/lib/db/schema";
 import { toast } from "sonner";
+import type { ProductSchema } from "@/lib/validations/product.validation";
 
 export interface CompleteProduct {
   productGroup: InferSelectModel<typeof productGroups>;
@@ -15,6 +16,13 @@ interface ProductGroupResponse {
   success: boolean;
   message: string;
   data: CompleteProduct[] | null;
+}
+
+// Response type for single product operations
+export interface ProductResponse {
+  success: boolean;
+  message: string;
+  data: CompleteProduct | null;
 }
 
 export interface ProductFilters {
@@ -53,50 +61,44 @@ const productApi = {
   },
 
   // Create complete product (product group + variants + products)
-  // createProduct: async (data: ProductFormInput): Promise<CompleteProduct> => {
-  //   const response = await fetch("/api/admin/products", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify(data),
-  //   });
+  createProduct: async (data: ProductSchema): Promise<ProductResponse> => {
+    const response = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
 
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     throw new Error(error.message || "Failed to create product");
-  //   }
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal membuat produk");
+    }
 
-  //   return response.json();
-  // },
+    return response.json();
+  },
 
-  // // Update complete product
-  // updateProduct: async (
-  //   data: EditProductFormInput
-  // ): Promise<CompleteProduct> => {
-  //   const response = await fetch(`/api/admin/products/${data.}`, {
-  //     method: "PUT",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify(data),
-  //   });
+  // Update complete product
+  updateProduct: async ({
+    id,
+    data,
+  }: {
+    id: string;
+    data: ProductSchema;
+  }): Promise<ProductResponse> => {
+    const response = await fetch(`/api/admin/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
 
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     throw new Error(error.message || "Failed to update product");
-  //   }
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Gagal memperbarui produk");
+    }
 
-  //   return response.json();
-  // },
-
-  // // Delete product group (cascades to variants and products)
-  // deleteProduct: async (id: string): Promise<void> => {
-  //   const response = await fetch(`/api/admin/products/${id}`, {
-  //     method: "DELETE",
-  //   });
-
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     throw new Error(error.message || "Failed to delete product");
-  //   }
-  // },
+    return response.json();
+  },
 };
 
 // Query hooks
@@ -136,62 +138,44 @@ export function useProduct(id: string) {
 }
 
 // Mutation hooks
-// export function useCreateProduct() {
-//   const queryClient = useQueryClient();
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: productApi.createProduct,
-//     onSuccess: (data) => {
-//       // Invalidate and refetch products list
-//       queryClient.invalidateQueries({ queryKey: ["products"] });
+  return useMutation({
+    mutationFn: productApi.createProduct,
+    onSuccess: (data) => {
+      // Invalidate and refetch products list
+      queryClient.invalidateQueries({ queryKey: ["products"] });
 
-//       toast.success("Produk berhasil dibuat!");
-//     },
-//     onError: (error: Error) => {
-//       toast.error(error.message || "Gagal membuat produk");
-//     },
-//   });
-// }
+      toast.success("Produk berhasil dibuat!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Gagal membuat produk");
+    },
+  });
+}
 
-// export function useUpdateProduct() {
-//   const queryClient = useQueryClient();
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: productApi.updateProduct,
-//     onSuccess: (data) => {
-//       // Update the specific product in cache
-//       queryClient.setQueryData(["products", data.productGroup.id], data);
+  return useMutation({
+    mutationFn: productApi.updateProduct,
+    onSuccess: (data) => {
+      // Update the specific product in cache
+      if (data.data) {
+        queryClient.setQueryData(["products", data.data.productGroup.id], data);
+      }
 
-//       // Invalidate products list to refresh
-//       queryClient.invalidateQueries({ queryKey: ["products"] });
+      // Invalidate products list to refresh
+      queryClient.invalidateQueries({ queryKey: ["products"] });
 
-//       toast.success("Produk berhasil diperbarui!");
-//     },
-//     onError: (error: Error) => {
-//       toast.error(error.message || "Gagal memperbarui produk");
-//     },
-//   });
-// }
-
-// export function useDeleteProduct() {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: productApi.deleteProduct,
-//     onSuccess: (_, deletedId) => {
-//       // Remove from cache
-//       queryClient.removeQueries({ queryKey: ["products", deletedId] });
-
-//       // Invalidate products list
-//       queryClient.invalidateQueries({ queryKey: ["products"] });
-
-//       toast.success("Produk berhasil dihapus!");
-//     },
-//     onError: (error: Error) => {
-//       toast.error(error.message || "Gagal menghapus produk");
-//     },
-//   });
-// }
+      toast.success("Produk berhasil diperbarui!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Gagal memperbarui produk");
+    },
+  });
+}
 
 // Utility hook for optimistic updates
 export function useOptimisticProductUpdate() {

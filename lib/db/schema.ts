@@ -61,6 +61,7 @@ export const productGroups = pgTable("product_groups", {
   description: text("description"), // Optional: deskripsi produk
   // Berat berpindah ke level product group
   weight: integer("weight"), // Optional: berat dalam gram untuk shipping
+  additionalDescriptions: text("additional_descriptions"), // Optional: JSON array of additional description items
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -1,9 +1,5 @@
 import z from "zod";
-import {
-  VARIANT_TYPES,
-  PRODUCT_CATEGORIES,
-  PRODUCT_BRANDS,
-} from "@/lib/enums";
+import { VARIANT_TYPES, PRODUCT_CATEGORIES, PRODUCT_BRANDS } from "@/lib/enums";
 
 // ====== Enum helpers (selaras dengan UI Select & Checkbox) ======
 const VARIANT_TYPE_VALUES = [
@@ -30,7 +26,9 @@ const BRAND_VALUES = [
 // ====== Variant option (per nilai varian yang tersedia di grup) ======
 export const variantSchema = z.object({
   id: z.string().optional(),
-  type: z.enum(VARIANT_TYPE_VALUES, { required_error: "Tipe varian harus diisi" }),
+  type: z.enum(VARIANT_TYPE_VALUES, {
+    required_error: "Tipe varian harus diisi",
+  }),
   value: z.string().min(1, { message: "Nilai varian harus diisi" }),
   active: z.boolean(),
 });
@@ -40,9 +38,15 @@ export type VariantSchema = z.infer<typeof variantSchema>;
 // ====== Kombinasi produk (produk aktual) ======
 // UI menyimpan varian sebagai object { [variantType]: value }
 const combinationVariantsSchema = z
-  .record(z.string(), z.string().min(1, { message: "Nilai varian harus diisi" }))
+  .record(
+    z.string(),
+    z.string().min(1, { message: "Nilai varian harus diisi" })
+  )
   .refine(
-    (obj) => Object.keys(obj).every((k) => (VARIANT_TYPE_VALUES as readonly string[]).includes(k)),
+    (obj) =>
+      Object.keys(obj).every((k) =>
+        (VARIANT_TYPE_VALUES as readonly string[]).includes(k)
+      ),
     { message: "Tipe varian tidak valid pada kombinasi" }
   );
 
@@ -64,16 +68,27 @@ export const variantCombinationSchema = z.object({
 
 export type VariantCombinationSchema = z.infer<typeof variantCombinationSchema>;
 
+// ====== Additional Description Item ======
+export const additionalDescriptionItemSchema = z.object({
+  title: z.string().max(100, { message: "Title maksimal 100 karakter" }),
+  body: z.string().max(1000, { message: "Body maksimal 1000 karakter" }),
+});
+
+export type AdditionalDescriptionItem = z.infer<
+  typeof additionalDescriptionItemSchema
+>;
+
 // ====== Skema Form Produk (grup + pilihan varian + kombinasi) ======
 export const productSchema = z
   .object({
     id: z.string().optional(),
     name: z.string().min(1, { message: "Nama harus diisi" }),
-    category: z.enum(CATEGORY_VALUES, { required_error: "Kategori harus dipilih" }),
+    category: z.enum(CATEGORY_VALUES, {
+      required_error: "Kategori harus dipilih",
+    }),
     brand: z.enum(BRAND_VALUES, { required_error: "Merk harus dipilih" }),
     // Berat di UI ada di level grup, opsional; dikonversi ke number
-    weight: z
-      .coerce
+    weight: z.coerce
       .number()
       .int({ message: "Berat harus berupa angka bulat" })
       .min(0, { message: "Berat harus lebih besar atau sama dengan 0" })
@@ -89,6 +104,18 @@ export const productSchema = z
     combinations: z
       .array(variantCombinationSchema)
       .min(1, { message: "Minimal satu kombinasi produk" }),
+
+    // Additional descriptions (optional)
+    additionalDescriptions: z
+      .array(additionalDescriptionItemSchema)
+      .optional()
+      .default([])
+      .transform((items) =>
+        // Filter out items where both title and body are empty strings
+        items.filter(
+          (item) => item.title.trim() !== "" && item.body.trim() !== ""
+        )
+      ),
   })
   .superRefine((data, ctx) => {
     // Jika memakai varian, wajib pilih setidaknya satu tipe
@@ -110,7 +137,8 @@ export const productSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["combinations", idx, "variants"],
-            message: "Semua tipe varian yang dipilih harus diisi pada kombinasi",
+            message:
+              "Semua tipe varian yang dipilih harus diisi pada kombinasi",
           });
         }
       });
@@ -121,7 +149,8 @@ export const productSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["combinations", idx, "variants"],
-            message: "Kombinasi tidak boleh memiliki varian saat varian dinonaktifkan",
+            message:
+              "Kombinasi tidak boleh memiliki varian saat varian dinonaktifkan",
           });
         }
       });

@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ProductTable } from "./_components/product-table";
 import { ProductFilters } from "./_components/product-filters";
 import { ProductSheet } from "./_components/product-sheet";
-import { CompleteProduct } from "@/hooks/use-products";
-import { useProducts } from "@/hooks/use-products";
+import {
+  CompleteProduct,
+  useProducts,
+  useCreateProduct,
+  useUpdateProduct,
+} from "@/hooks/use-products";
+import type { ProductSchema } from "@/lib/validations/product.validation";
 
 export default function UsersPage() {
   const [selectedProduct, setSelectedProduct] =
@@ -23,7 +28,9 @@ export default function UsersPage() {
   });
 
   // TanStack Query hooks
-  const { data: productsData, isLoading, error } = useProducts(filters);
+  const { data: productsData, isLoading } = useProducts(filters);
+  const createProductMutation = useCreateProduct();
+  const updateProductMutation = useUpdateProduct();
 
   const handleRowClick = (data: CompleteProduct) => {
     setSelectedProduct(data);
@@ -31,42 +38,28 @@ export default function UsersPage() {
     setIsSheetOpen(true);
   };
 
-  // const handleEditProduct = (product: Product) => {
-  //   setSelectedProduct(product);
-  //   setSheetMode("edit");
-  //   setIsSheetOpen(true);
-  // };
-
-  // const handleDeleteProduct = (product: Product) => {
-  //   deleteUserMutation.mutate(product.id);
-  // };
-
   const handleAddUser = () => {
     setSelectedProduct(null);
     setSheetMode("create");
     setIsSheetOpen(true);
   };
 
-  // const handleSaveUser = (userData: Partial<CompleteProduct>) => {
-  //   if (sheetMode === "edit" && selectedProduct) {
-  //     // Update existing user
-  //     updateUserMutation.mutate({
-  //       id: selectedProduct.productGroup.id,
-  //       data: userData,
-  //     });
-  //   } else {
-  //     // Create new user
-  //     // createUserMutation.mutate({
-  //     //   name: userData.name!,
-  //     //   email: userData.email!,
-  //     //   role: userData.role!,
-  //     // });
-  //   }
+  const handleSaveProduct = (productData: ProductSchema) => {
+    if (sheetMode === "edit" && selectedProduct) {
+      // Update existing product
+      updateProductMutation.mutate({
+        id: selectedProduct.productGroup.id,
+        data: productData,
+      });
+    } else {
+      // Create new product
+      createProductMutation.mutate(productData);
+    }
 
-  //   // Close sheet and reset state
-  //   setIsSheetOpen(false);
-  //   setSelectedProduct(null);
-  // };
+    // Close sheet and reset state
+    setIsSheetOpen(false);
+    setSelectedProduct(null);
+  };
 
   const handleCloseSheet = () => {
     setIsSheetOpen(false);
@@ -114,12 +107,9 @@ export default function UsersPage() {
       />
 
       {/* Product Table */}
-
       <ProductTable
         products={productsData?.data || []}
         onRowClick={handleRowClick}
-        // onEditProduct={handleEditUser}
-        // onDeleteProduct={handleDeleteUser}
         isLoading={isLoading}
       />
 
@@ -127,8 +117,12 @@ export default function UsersPage() {
       <ProductSheet
         isOpen={isSheetOpen}
         onClose={handleCloseSheet}
+        onSave={handleSaveProduct}
         selectedProduct={selectedProduct}
         mode={sheetMode}
+        isSubmitting={
+          createProductMutation.isPending || updateProductMutation.isPending
+        }
       />
     </div>
   );

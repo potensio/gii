@@ -15,6 +15,13 @@
       "when": 1761466601542,
       "tag": "0001_tiny_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762857369132,
+      "tag": "0002_curious_prism",
+      "breakpoints": true
     }
   ]
 }

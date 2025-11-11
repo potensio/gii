@@ -9,14 +9,17 @@ export async function POST() {
     { status: 200 }
   );
 
-  // Clear the auth cookie
-  response.cookies.set("token", "", {
+  // Clear both token cookies (in case there are multiple)
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     maxAge: 0, // Expire immediately
     path: "/",
-  });
+  };
+
+  response.cookies.set("token", "", cookieOptions);
+  response.cookies.set("auth-token", "", cookieOptions);
 
   return response;
 }

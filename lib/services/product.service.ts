@@ -16,6 +16,35 @@ import { hasPermission } from "../utils/permissions";
 type WhereCondition = SQL<unknown> | undefined;
 type VariantSelection = Record<string, string>;
 
+// === Service Layer Types ===
+
+export interface CreateProductData {
+  name: string;
+  category: string;
+  brand: string;
+  description?: string;
+  weight?: number;
+  isActive: boolean;
+  additionalDescriptions?: Array<{ title: string; body: string }>;
+  hasVariants: boolean;
+  variantTypes: string[];
+  combinations: Array<{
+    variants: Record<string, string>;
+    sku: string;
+    name?: string;
+    price: number;
+    stock: number;
+    active: boolean;
+  }>;
+}
+
+export type UpdateProductData = CreateProductData;
+
+export interface CompleteProductResult {
+  productGroup: SelectProductGroup;
+  products: SelectProduct[];
+}
+
 // === Permission Configuration ===
 const PERMISSIONS = {
   user: { canViewInactive: false },
@@ -225,11 +254,19 @@ export const productService = {
     const finalFilters = [...userInputFilters, ...roleBasedFilters];
 
     // Step 4: Fetch product groups with combined filters
-    const productGroups = await getProductGroups(finalFilters);
-    if (productGroups.length === 0) return [];
+    const fetchedProductGroups = await getProductGroups(finalFilters);
+    if (fetchedProductGroups.length === 0) return [];
+
+    // Step 4.5: Parse additional descriptions from JSON
+    const parsedProductGroups = fetchedProductGroups.map((group) => ({
+      ...group,
+      additionalDescriptions: group.additionalDescriptions
+        ? JSON.parse(group.additionalDescriptions)
+        : [],
+    }));
 
     // Step 5: Extract group IDs for subsequent queries
-    const groupIds = productGroups.map((g) => g.id);
+    const groupIds = parsedProductGroups.map((g) => g.id);
 
     // Step 6: Build filters for variants and products (with role-based restrictions)
     const variantFilters = createVariantFilters(groupIds, viewerRole);
@@ -254,10 +291,335 @@ export const productService = {
 
     // Step 11: Assemble final result
     return assembleCompleteProducts(
-      productGroups,
+      parsedProductGroups,
       variantsByGroup,
       productsByGroup,
       variantSelections
     );
+  },
+
+  async createProductGroup(data: {
+    name: string;
+    category: string;
+    brand: string;
+    description?: string;
+    weight?: number;
+    isActive: boolean;
+    additionalDescriptions?: Array<{ title: string; body: string }>;
+  }): Promise<SelectProductGroup> {
+    const additionalDescriptionsJson =
+      data.additionalDescriptions && data.additionalDescriptions.length > 0
+        ? JSON.stringify(data.additionalDescriptions)
+        : null;
+
+    const [productGroup] = await db
+      .insert(productGroups)
+      .values({
+        name: data.name,
+        category: data.category,
+        brand: data.brand,
+        description: data.description,
+        weight: data.weight,
+        isActive: data.isActive,
+        additionalDescriptions: additionalDescriptionsJson,
+      })
+      .returning();
+
+    return productGroup;
+  },
+
+  async updateProductGroup(
+    id: string,
+    data: Partial<{
+      name: string;
+      category: string;
+      brand: string;
+      description?: string;
+      weight?: number;
+      isActive: boolean;
+      additionalDescriptions?: Array<{ title: string; body: string }>;
+    }>
+  ): Promise<SelectProductGroup> {
+    const updateData: Partial<typeof productGroups.$inferInsert> = {};
+
+    // Copy all fields except additionalDescriptions
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.brand !== undefined) updateData.brand = data.brand;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.weight !== undefined) updateData.weight = data.weight;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+    // Handle additionalDescriptions conversion to JSON
+    if (data.additionalDescriptions !== undefined) {
+      updateData.additionalDescriptions =
+        data.additionalDescriptions.length > 0
+          ? JSON.stringify(data.additionalDescriptions)
+          : null;
+    }
+
+    const [updated] = await db
+      .update(productGroups)
+      .set(updateData)
+      .where(eq(productGroups.id, id))
+      .returning();
+
+    return updated;
+  },
+
+  async createCompleteProduct(
+    data: CreateProductData
+  ): Promise<CompleteProductResult> {
+    return await db.transaction(async (tx) => {
+      // Step 1: Create product group
+      const [productGroup] = await tx
+        .insert(productGroups)
+        .values({
+          name: data.name,
+          category: data.category,
+          brand: data.brand,
+          description: data.description,
+          weight: data.weight,
+          isActive: data.isActive,
+          additionalDescriptions:
+            data.additionalDescriptions &&
+            data.additionalDescriptions.length > 0
+              ? JSON.stringify(data.additionalDescriptions)
+              : null,
+        })
+        .returning();
+
+      // Step 2: Create variants if hasVariants
+      const createdVariants: Map<string, Map<string, string>> = new Map();
+
+      if (data.hasVariants && data.variantTypes.length > 0) {
+        // Collect unique variant values for each type
+        const variantValuesByType = new Map<string, Set<string>>();
+
+        for (const combination of data.combinations) {
+          for (const [variantType, variantValue] of Object.entries(
+            combination.variants
+          )) {
+            if (!variantValuesByType.has(variantType)) {
+              variantValuesByType.set(variantType, new Set());
+            }
+            variantValuesByType.get(variantType)!.add(variantValue);
+          }
+        }
+
+        // Create variant records
+        for (const [variantType, values] of variantValuesByType.entries()) {
+          const typeMap = new Map<string, string>();
+
+          for (const value of values) {
+            const [variant] = await tx
+              .insert(productVariants)
+              .values({
+                productGroupId: productGroup.id,
+                variant: variantType,
+                value: value,
+                isActive: true,
+              })
+              .returning();
+
+            typeMap.set(value, variant.id);
+          }
+
+          createdVariants.set(variantType, typeMap);
+        }
+      }
+
+      // Step 3: Create products (combinations)
+      const createdProducts = [];
+
+      for (const combination of data.combinations) {
+        const productName =
+          combination.name && combination.name.trim() !== ""
+            ? combination.name
+            : data.name;
+
+        const [product] = await tx
+          .insert(products)
+          .values({
+            productGroupId: productGroup.id,
+            sku: combination.sku,
+            name: productName,
+            price: combination.price,
+            stock: combination.stock,
+            isActive: combination.active,
+          })
+          .returning();
+
+        createdProducts.push(product);
+
+        // Step 4: Create variant combinations if variants exist
+        if (data.hasVariants && Object.keys(combination.variants).length > 0) {
+          for (const [variantType, variantValue] of Object.entries(
+            combination.variants
+          )) {
+            const variantId = createdVariants
+              .get(variantType)
+              ?.get(variantValue);
+
+            if (variantId) {
+              await tx.insert(productVariantCombinations).values({
+                productId: product.id,
+                variantId: variantId,
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        productGroup,
+        products: createdProducts,
+      };
+    });
+  },
+
+  async updateCompleteProduct(
+    id: string,
+    data: UpdateProductData
+  ): Promise<CompleteProductResult> {
+    return await db.transaction(async (tx) => {
+      // Step 1: Update product group
+      const [productGroup] = await tx
+        .update(productGroups)
+        .set({
+          name: data.name,
+          category: data.category,
+          brand: data.brand,
+          description: data.description,
+          weight: data.weight,
+          isActive: data.isActive,
+          additionalDescriptions:
+            data.additionalDescriptions &&
+            data.additionalDescriptions.length > 0
+              ? JSON.stringify(data.additionalDescriptions)
+              : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(productGroups.id, id))
+        .returning();
+
+      if (!productGroup) {
+        throw new Error("Product group not found");
+      }
+
+      // Step 2: Delete existing data
+      // Get existing products first
+      const existingProducts = await tx
+        .select()
+        .from(products)
+        .where(eq(products.productGroupId, id));
+
+      const existingProductIds = existingProducts.map((p) => p.id);
+
+      if (existingProductIds.length > 0) {
+        // Delete variant combinations
+        await tx
+          .delete(productVariantCombinations)
+          .where(
+            inArray(productVariantCombinations.productId, existingProductIds)
+          );
+      }
+
+      // Delete products
+      await tx.delete(products).where(eq(products.productGroupId, id));
+
+      // Delete variants
+      await tx
+        .delete(productVariants)
+        .where(eq(productVariants.productGroupId, id));
+
+      // Step 3: Recreate variants if hasVariants
+      const createdVariants: Map<string, Map<string, string>> = new Map();
+
+      if (data.hasVariants && data.variantTypes.length > 0) {
+        // Collect unique variant values for each type
+        const variantValuesByType = new Map<string, Set<string>>();
+
+        for (const combination of data.combinations) {
+          for (const [variantType, variantValue] of Object.entries(
+            combination.variants
+          )) {
+            if (!variantValuesByType.has(variantType)) {
+              variantValuesByType.set(variantType, new Set());
+            }
+            variantValuesByType.get(variantType)!.add(variantValue);
+          }
+        }
+
+        // Create variant records
+        for (const [variantType, values] of variantValuesByType.entries()) {
+          const typeMap = new Map<string, string>();
+
+          for (const value of values) {
+            const [variant] = await tx
+              .insert(productVariants)
+              .values({
+                productGroupId: id,
+                variant: variantType,
+                value: value,
+                isActive: true,
+              })
+              .returning();
+
+            typeMap.set(value, variant.id);
+          }
+
+          createdVariants.set(variantType, typeMap);
+        }
+      }
+
+      // Step 4: Recreate products (combinations)
+      const createdProducts = [];
+
+      for (const combination of data.combinations) {
+        const productName =
+          combination.name && combination.name.trim() !== ""
+            ? combination.name
+            : data.name;
+
+        const [product] = await tx
+          .insert(products)
+          .values({
+            productGroupId: id,
+            sku: combination.sku,
+            name: productName,
+            price: combination.price,
+            stock: combination.stock,
+            isActive: combination.active,
+          })
+          .returning();
+
+        createdProducts.push(product);
+
+        // Step 5: Recreate variant combinations if variants exist
+        if (data.hasVariants && Object.keys(combination.variants).length > 0) {
+          for (const [variantType, variantValue] of Object.entries(
+            combination.variants
+          )) {
+            const variantId = createdVariants
+              .get(variantType)
+              ?.get(variantValue);
+
+            if (variantId) {
+              await tx.insert(productVariantCombinations).values({
+                productId: product.id,
+                variantId: variantId,
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        productGroup,
+        products: createdProducts,
+      };
+    });
   },
 };

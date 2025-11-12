@@ -111,19 +111,28 @@ function ProductForm({
 
   // Handler to update productImages state when images change
   const handleImagesChange = (
-    images: Array<{ url: string; isThumbnail: boolean }>
+    imagesOrUpdater:
+      | Array<{ url: string; isThumbnail: boolean }>
+      | ((
+          prev: Array<{ url: string; isThumbnail: boolean }>
+        ) => Array<{ url: string; isThumbnail: boolean }>)
   ) => {
-    setProductImages(images);
-  };
+    setProductImages((prevImages) => {
+      const newImages =
+        typeof imagesOrUpdater === "function"
+          ? imagesOrUpdater(prevImages)
+          : imagesOrUpdater;
 
-  // Handler to update thumbnail designation
-  const handleThumbnailChange = (index: number) => {
-    setProductImages((prev) =>
-      prev.map((img, idx) => ({
-        ...img,
-        isThumbnail: idx === index,
-      }))
-    );
+      console.log("=== handleImagesChange ===");
+      console.log("Previous images count:", prevImages.length);
+      console.log("New images count:", newImages.length);
+      console.log("New images:", newImages);
+
+      // Update form value with new images
+      form.setValue("images", newImages, { shouldValidate: true });
+
+      return newImages;
+    });
   };
 
   const addProductCombination = () => {
@@ -166,6 +175,7 @@ function ProductForm({
       description: undefined,
       variantTypes: [],
       combinations: productCombinations.map(toCombinationPayload),
+      images: [],
     },
   });
 
@@ -185,13 +195,13 @@ function ProductForm({
     form.setValue("additionalDescriptions", validDescriptions);
   }, [additionalDescriptions]);
 
-  useEffect(() => {
-    // Update form value when productImages changes
-    form.setValue("images", productImages);
-  }, [productImages]);
-
   const onSubmit = async (data: ProductSchema) => {
     try {
+      console.log("=== FORM SUBMISSION DEBUG ===");
+      console.log("Form data.images:", data.images);
+      console.log("productImages state:", productImages);
+      console.log("Full form data:", data);
+
       // Additional validation: ensure at least one image is marked as thumbnail if images exist
       if (data.images && data.images.length > 0) {
         const hasThumbnail = data.images.some((img) => img.isThumbnail);
@@ -218,7 +228,7 @@ function ProductForm({
     }
   };
 
-  // Prefill defaults when editing an existing product
+  // Prefill defaults when editing an existing product or reset when creating
   useEffect(() => {
     if (mode === "edit" && selectedProduct) {
       const allowedVariantValues = Object.values(VARIANT_TYPES).map(
@@ -281,6 +291,47 @@ function ProductForm({
         variantTypes: initialVariantTypes,
         combinations: initialCombinations.map(toCombinationPayload),
         images: existingImages,
+      });
+    } else if (mode === "create") {
+      // Reset form and state for create mode
+      setSelectedVariants([]);
+      setProductCombinations([
+        {
+          id: 1,
+          variants: {},
+          sku: "",
+          name: "",
+          price: "0",
+          stock: "0",
+          active: true,
+        },
+      ]);
+      setProductWeight("");
+      setAdditionalDescriptions([]);
+      setProductImages([]);
+
+      form.reset({
+        name: "",
+        category: "smartphones" as ProductCategory,
+        brand: "apple" as ProductBrand,
+        isActive: true,
+        hasVariants: true,
+        isHighlighted: false,
+        weight: undefined,
+        description: undefined,
+        variantTypes: [],
+        combinations: [
+          {
+            id: "1",
+            variants: {},
+            sku: "",
+            name: undefined,
+            price: 0,
+            stock: 0,
+            active: true,
+          },
+        ],
+        images: [],
       });
     }
   }, [mode, selectedProduct]);
@@ -474,9 +525,8 @@ function ProductForm({
               Gambar Produk
             </h3>
             <MultiUploader
-              defaultImages={productImages}
+              images={productImages}
               onImagesChange={handleImagesChange}
-              onThumbnailChange={handleThumbnailChange}
             />
             {form.formState.errors.images && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">

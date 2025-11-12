@@ -46,6 +46,10 @@ export default function UsersPage() {
   };
 
   const handleSaveProduct = (productData: ProductSchema) => {
+    console.log("=== SAVING PRODUCT ===");
+    console.log("Product data being saved:", productData);
+    console.log("Images in product data:", productData.images);
+
     if (sheetMode === "edit" && selectedProduct) {
       // Update existing product
       updateProductMutation.mutate({

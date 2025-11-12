@@ -19,7 +19,7 @@ import {
   StarIcon,
   AlertCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -34,82 +34,51 @@ interface ImageLoadError {
 }
 
 interface MultiUploaderProps {
-  defaultImages?: ImageWithThumbnail[]; // For edit mode with existing images
-  onImagesChange?: (images: ImageWithThumbnail[]) => void; // Callback when images change
-  thumbnailIndex?: number;
-  onThumbnailChange?: (index: number) => void;
+  images: ImageWithThumbnail[]; // Controlled: parent manages the state
+  onImagesChange: (
+    imagesOrUpdater:
+      | ImageWithThumbnail[]
+      | ((prev: ImageWithThumbnail[]) => ImageWithThumbnail[])
+  ) => void; // Required callback - supports functional updates
 }
 
-export function MultiUploader({
-  defaultImages = [],
-  onImagesChange,
-  thumbnailIndex,
-  onThumbnailChange,
-}: MultiUploaderProps = {}) {
-  // State management for uploaded images combining default and new uploads
-  const [uploadedImages, setUploadedImages] = useState<ImageWithThumbnail[]>(
-    []
-  );
-  const [selectedThumbnailIndex, setSelectedThumbnailIndex] =
-    useState<number>(0);
+export function MultiUploader({ images, onImagesChange }: MultiUploaderProps) {
   const [imageLoadErrors, setImageLoadErrors] = useState<ImageLoadError[]>([]);
-
-  // Load and display defaultImages on component mount in edit mode
-  useEffect(() => {
-    if (defaultImages.length > 0) {
-      setUploadedImages(defaultImages);
-      // Find the thumbnail index from default images
-      const thumbnailIdx = defaultImages.findIndex((img) => img.isThumbnail);
-      setSelectedThumbnailIndex(thumbnailIdx >= 0 ? thumbnailIdx : 0);
-
-      // Clear previous errors when loading new images
-      setImageLoadErrors([]);
-    }
-  }, [defaultImages]);
-
-  // Sync with external thumbnailIndex prop if provided
-  useEffect(() => {
-    if (thumbnailIndex !== undefined) {
-      setSelectedThumbnailIndex(thumbnailIndex);
-    }
-  }, [thumbnailIndex]);
 
   // Thumbnail selection handler ensuring only one thumbnail is selected
   const handleThumbnailSelect = (index: number) => {
-    setSelectedThumbnailIndex(index);
-
     // Update images array with new thumbnail designation
-    const updatedImages = uploadedImages.map((img, idx) => ({
+    const updatedImages = images.map((img, idx) => ({
       ...img,
       isThumbnail: idx === index,
     }));
 
-    setUploadedImages(updatedImages);
-
-    // Notify parent components
-    if (onThumbnailChange) {
-      onThumbnailChange(index);
-    }
-    if (onImagesChange) {
-      onImagesChange(updatedImages);
-    }
+    onImagesChange(updatedImages);
   };
 
   // Handle image removal
   const handleRemoveImage = (index: number) => {
-    const updatedImages = uploadedImages.filter((_, idx) => idx !== index);
+    const updatedImages = images.filter((_, idx) => idx !== index);
 
     // Remove error for this image if it exists
     setImageLoadErrors((prev) => prev.filter((err) => err.index !== index));
 
+    // Find current thumbnail index
+    const currentThumbnailIndex = images.findIndex((img) => img.isThumbnail);
+
     // Adjust thumbnail index if needed
-    let newThumbnailIndex = selectedThumbnailIndex;
-    if (index === selectedThumbnailIndex) {
-      // If removing the thumbnail, set first image as thumbnail
-      newThumbnailIndex = 0;
-    } else if (index < selectedThumbnailIndex) {
-      // If removing an image before the thumbnail, adjust index
-      newThumbnailIndex = selectedThumbnailIndex - 1;
+    let newThumbnailIndex = 0;
+    if (updatedImages.length > 0) {
+      if (index === currentThumbnailIndex) {
+        // If removing the thumbnail, set first image as thumbnail
+        newThumbnailIndex = 0;
+      } else if (index < currentThumbnailIndex) {
+        // If removing an image before the thumbnail, adjust index
+        newThumbnailIndex = currentThumbnailIndex - 1;
+      } else {
+        // Thumbnail is before the removed image, keep its position
+        newThumbnailIndex = currentThumbnailIndex;
+      }
     }
 
     // Update thumbnail designation
@@ -118,16 +87,7 @@ export function MultiUploader({
       isThumbnail: idx === newThumbnailIndex,
     }));
 
-    setUploadedImages(imagesWithThumbnail);
-    setSelectedThumbnailIndex(newThumbnailIndex);
-
-    // Notify parent components
-    if (onThumbnailChange && updatedImages.length > 0) {
-      onThumbnailChange(newThumbnailIndex);
-    }
-    if (onImagesChange) {
-      onImagesChange(imagesWithThumbnail);
-    }
+    onImagesChange(imagesWithThumbnail);
   };
 
   // Handle image load error
@@ -164,27 +124,16 @@ export function MultiUploader({
         // Cleanup preview URL
         URL.revokeObjectURL(previewUrl);
 
-        // Merge newly uploaded images with existing defaultImages
-        const newImage: ImageWithThumbnail = {
-          url: result.url,
-          isThumbnail: uploadedImages.length === 0, // First image is thumbnail by default
-        };
+        // Add newly uploaded image to existing images
+        // Use functional update to avoid race conditions when uploading multiple files
+        onImagesChange((prevImages) => {
+          const newImage: ImageWithThumbnail = {
+            url: result.url,
+            isThumbnail: prevImages.length === 0, // First image is thumbnail
+          };
 
-        const updatedImages = [...uploadedImages, newImage];
-        setUploadedImages(updatedImages);
-
-        // If this is the first image, set it as thumbnail
-        if (uploadedImages.length === 0) {
-          setSelectedThumbnailIndex(0);
-          if (onThumbnailChange) {
-            onThumbnailChange(0);
-          }
-        }
-
-        // Notify parent component with thumbnail designation
-        if (onImagesChange) {
-          onImagesChange(updatedImages);
-        }
+          return [...prevImages, newImage];
+        });
 
         return {
           status: "success",
@@ -233,9 +182,9 @@ export function MultiUploader({
         </div>
 
         {/* Display existing/uploaded images */}
-        {uploadedImages.length > 0 && (
+        {images.length > 0 && (
           <div className="grid grid-cols-3 gap-3 p-0">
-            {uploadedImages.map((image, index) => {
+            {images.map((image, index) => {
               const hasError = imageLoadErrors.some(
                 (err) => err.index === index
               );

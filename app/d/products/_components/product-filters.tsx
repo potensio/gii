@@ -42,7 +42,7 @@ export function ProductFilters({
   onStatusFilterChange,
 }: ProductFiltersProps) {
   return (
-    <div className="flex items-center gap-4 py-4">
+    <div className="flex items-center space-x-4">
       <InputGroup>
         <InputGroupInput
           placeholder="Cari berdasarkan nama produk..."
@@ -55,7 +55,7 @@ export function ProductFilters({
         </InputGroupAddon>
       </InputGroup>
       <Select value={brandFilter} onValueChange={onBrandFilterChange}>
-        <SelectTrigger className="max-w-[200px]">
+        <SelectTrigger className="max-w-[160px]">
           <SelectValue placeholder="Filter by brand" />
         </SelectTrigger>
         <SelectContent>
@@ -69,7 +69,7 @@ export function ProductFilters({
       </Select>
 
       <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-        <SelectTrigger className="max-w-[200px]">
+        <SelectTrigger className="max-w-[160px]">
           <SelectValue placeholder="Filter by category" />
         </SelectTrigger>
         <SelectContent>
@@ -84,7 +84,7 @@ export function ProductFilters({
 
       {/* Status Aktif */}
       <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger className="max-w-[200px]">
+        <SelectTrigger className="max-w-[160px]">
           <SelectValue placeholder="Filter status" />
         </SelectTrigger>
         <SelectContent>

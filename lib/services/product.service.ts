@@ -1,5 +1,5 @@
 import { db } from "../db/db";
-import { and, eq, inArray, ilike, type SQL } from "drizzle-orm";
+import { and, eq, inArray, ilike, sql, type SQL } from "drizzle-orm";
 import {
   productGroups,
   productVariants,
@@ -12,6 +12,7 @@ import {
 import { CompleteProduct, ProductFilters } from "@/hooks/use-products";
 import { UserRole } from "../enums";
 import { hasPermission } from "../utils/permissions";
+import { generateSlug } from "../utils/product.utils";
 
 type WhereCondition = SQL<unknown> | undefined;
 type VariantSelection = Record<string, string>;
@@ -129,20 +130,27 @@ function createProductFilters(
 
 // === Database Queries ===
 async function getProductGroups(
-  conditions: WhereCondition[]
+  conditions: WhereCondition[],
+  sortBy?: "newest" | "random"
 ): Promise<SelectProductGroup[]> {
   const validConditions = conditions.filter(
     (c): c is SQL<unknown> => c !== undefined
   );
 
-  if (validConditions.length === 0) {
-    return await db.select().from(productGroups);
+  let query = db.select().from(productGroups);
+
+  if (validConditions.length > 0) {
+    query = query.where(and(...validConditions)) as typeof query;
   }
 
-  return await db
-    .select()
-    .from(productGroups)
-    .where(and(...validConditions));
+  // Apply sorting
+  if (sortBy === "random") {
+    query = query.orderBy(sql`RANDOM()`) as typeof query;
+  } else if (sortBy === "newest") {
+    query = query.orderBy(sql`${productGroups.createdAt} DESC`) as typeof query;
+  }
+
+  return await query;
 }
 
 async function getVariants(
@@ -259,8 +267,11 @@ export const productService = {
     // Step 3: Combine all filters
     const finalFilters = [...userInputFilters, ...roleBasedFilters];
 
-    // Step 4: Fetch product groups with combined filters
-    const fetchedProductGroups = await getProductGroups(finalFilters);
+    // Step 4: Fetch product groups with combined filters and sorting
+    const fetchedProductGroups = await getProductGroups(
+      finalFilters,
+      filters.sortBy
+    );
     if (fetchedProductGroups.length === 0) return [];
 
     // Step 4.5: Parse additional descriptions and images from JSON
@@ -275,6 +286,8 @@ export const productService = {
       // Parse images and override the type
       const images: Array<{ url: string; isThumbnail: boolean }> | undefined =
         group.images ? JSON.parse(group.images) : undefined;
+
+      console.log(images);
 
       return {
         ...parsed,
@@ -341,10 +354,13 @@ export const productService = {
           ? JSON.stringify(data.images)
           : null;
 
+      const slug = generateSlug(data.name);
+
       const [productGroup] = await db
         .insert(productGroups)
         .values({
           name: data.name,
+          slug: slug,
           category: data.category,
           brand: data.brand,
           description: data.description,
@@ -383,7 +399,10 @@ export const productService = {
       const updateData: Partial<typeof productGroups.$inferInsert> = {};
 
       // Copy all fields except additionalDescriptions and images
-      if (data.name !== undefined) updateData.name = data.name;
+      if (data.name !== undefined) {
+        updateData.name = data.name;
+        updateData.slug = generateSlug(data.name);
+      }
       if (data.category !== undefined) updateData.category = data.category;
       if (data.brand !== undefined) updateData.brand = data.brand;
       if (data.description !== undefined)
@@ -432,10 +451,13 @@ export const productService = {
     try {
       return await db.transaction(async (tx) => {
         // Step 1: Create product group
+        const slug = generateSlug(data.name);
+
         const [productGroup] = await tx
           .insert(productGroups)
           .values({
             name: data.name,
+            slug: slug,
             category: data.category,
             brand: data.brand,
             description: data.description,
@@ -559,10 +581,13 @@ export const productService = {
     try {
       return await db.transaction(async (tx) => {
         // Step 1: Update product group
+        const slug = generateSlug(data.name);
+
         const [productGroup] = await tx
           .update(productGroups)
           .set({
             name: data.name,
+            slug: slug,
             category: data.category,
             brand: data.brand,
             description: data.description,

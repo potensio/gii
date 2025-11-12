@@ -83,6 +83,7 @@ export const productSchema = z
   .object({
     id: z.string().optional(),
     name: z.string().min(1, { message: "Nama harus diisi" }),
+    slug: z.string().optional(), // Auto-generated from name, not user input
     category: z.enum(CATEGORY_VALUES, {
       required_error: "Kategori harus dipilih",
     }),

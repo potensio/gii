@@ -32,8 +32,9 @@ export interface ProductFilters {
   brand?: string | "";
   isActive?: boolean;
   search?: string;
-  page: number;
-  pageSize: number;
+  page?: number;
+  pageSize?: number;
+  sortBy?: "newest" | "random";
 }
 
 // API functions (these would call your actual API routes)

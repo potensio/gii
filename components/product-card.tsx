@@ -26,20 +26,19 @@ export function ProductCard({
 }: ProductCardProps) {
   return (
     <Link href={`/product/${slug}`} className="block">
-      {" "}
-      {/* Wrap with Link */}
       <Card
         className={cn(
-          "overflow-hidden rounded-2xl shadow-sm border-none bg-neutral-50",
+          "overflow-hidden rounded-2xl shadow-sm border-none bg-muted/40 max-w-[320px]",
           className
         )}
       >
         <div className="relative aspect-square w-full">
           <Image
-            src="/placeholder.svg"
+            src={imageSrc || "/placeholder.svg"}
             alt={imageAlt}
-            fill
-            className="rounded-t-xl object-cover opacity-0"
+            className="rounded-t-xl object-cover mix-blend-multiply"
+            width={320}
+            height={320}
           />
         </div>
         <CardContent className="p-4 min-h-24">

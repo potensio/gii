@@ -74,6 +74,7 @@ export type SelectVerifyCode = typeof verifyCodes.$inferSelect;
 export const productGroups = pgTable("product_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   category: text("category").notNull(),
   brand: text("brand").notNull(),
   description: text("description"), // Optional: deskripsi produk

@@ -6,18 +6,18 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "./product-card";
 
-interface Product {
-  imageSrc: string;
-  imageAlt: string;
+interface CarouselProduct {
+  id: string;
+  name: string;
   brand: string;
-  title: string;
+  slug: string;
   price: string;
-  slug: string; // Add slug
+  thumbnailUrl: string | null;
 }
 
 interface ProductCarouselSectionProps {
   title: string;
-  products: Product[];
+  products: CarouselProduct[];
 }
 
 export function ProductCarouselSection({
@@ -36,6 +36,11 @@ export function ProductCarouselSection({
       }
     }
   };
+
+  // Handle empty products array gracefully
+  if (!products || products.length === 0) {
+    return null;
+  }
 
   return (
     <section className="">
@@ -68,9 +73,16 @@ export function ProductCarouselSection({
         ref={scrollRef}
         className="flex space-x-6 overflow-x-scroll pb-4 scrollbar-hide pl-4 md:pl-10"
       >
-        {products.map((product, index) => (
-          <div key={index} className="min-w-[280px]">
-            <ProductCard {...product} />
+        {products.map((product) => (
+          <div key={product.id} className="min-w-[280px]">
+            <ProductCard
+              imageSrc={product.thumbnailUrl || "/placeholder.svg"}
+              imageAlt={product.name}
+              brand={product.brand}
+              title={product.name}
+              price={product.price}
+              slug={product.slug}
+            />
           </div>
         ))}
       </div>

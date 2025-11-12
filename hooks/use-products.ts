@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import type { ProductSchema } from "@/lib/validations/product.validation";
 
 export interface CompleteProduct {
-  productGroup: InferSelectModel<typeof productGroups>;
+  productGroup: InferSelectModel<typeof productGroups> & {
+    images?: Array<{ url: string; isThumbnail: boolean }>;
+  };
   variants: InferSelectModel<typeof productVariants>[];
   products: InferSelectModel<typeof products>[];
   // Map per productId of its selected variant key->value (e.g., color: "black")

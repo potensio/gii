@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MainNavigation } from "@/components/common/main-navigation";
 import { SiteFooter } from "@/components/common/site-footer";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductDetails } from "@/components/product-details";
@@ -210,6 +211,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <MainNavigation />
       <main className="relative">
         <div className="flex flex-col gap-10 md:gap-20 pb-10 md:pb-20">
           {" "}
@@ -219,11 +221,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               <ProductGallery images={product.images} />
 
               {/* Description and Specifications */}
-              <ProductDescription
-                description={product.description}
-                fabricFit={product.fabricFit}
-                careInstructions={product.careInstructions}
-              />
+              <ProductDescription description="test" />
             </div>
 
             <div className="hidden lg:flex lg:sticky top-24 h-fit lg:col-span-3">

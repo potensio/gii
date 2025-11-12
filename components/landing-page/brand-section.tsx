@@ -10,7 +10,7 @@ import {
 export function BrandSection() {
   return (
     <section className="w-full flex px-4 md:px-10 items-center justify-center object-center">
-      <div className="grid gap-12 lg:grid-cols-3 items-center">
+      <div className="grid lg:grid-cols-3 items-center">
         {/* Left Column: Text Content */}
         <div className="space-y-6 lg:col-span-1">
           <h2 className="text-3xl font-semibold tracking-tighter leading-tight md:text-4xl">
@@ -25,7 +25,7 @@ export function BrandSection() {
         </div>
 
         {/* Right Column: Image Cards */}
-        <div className="grid lg:col-span-2">
+        <div className="grid lg:col-span-2 md:px-20 mt-10 md:mt-0">
           <Marquee>
             <MarqueeFade side="left" />
             <MarqueeFade side="right" />

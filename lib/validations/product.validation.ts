@@ -97,6 +97,29 @@ export const productSchema = z
     isActive: z.boolean(),
     hasVariants: z.boolean(),
 
+    // Featured product flag
+    isHighlighted: z.boolean().default(false),
+
+    // Product images with thumbnail designation
+    images: z
+      .array(
+        z.object({
+          url: z.string().url({ message: "URL gambar tidak valid" }),
+          isThumbnail: z.boolean(),
+        })
+      )
+      .optional()
+      .refine(
+        (images) => {
+          // If images exist, at least one must be marked as thumbnail
+          if (images && images.length > 0) {
+            return images.some((img) => img.isThumbnail);
+          }
+          return true;
+        },
+        { message: "Setidaknya satu gambar harus ditandai sebagai thumbnail" }
+      ),
+
     // Selaras dengan checkbox di UI (selectedVariants)
     variantTypes: z.array(z.enum(VARIANT_TYPE_VALUES)).default([]),
 

@@ -1,10 +1,10 @@
+import { MainNavigation } from "@/components/common/main-navigation";
 import { HeroSection } from "@/components/hero-section";
 import { BrandSection } from "@/components/landing-page/brand-section";
 import { GuaranteeSection } from "@/components/landing-page/guarantee-section";
 import { ProductCarouselSection } from "@/components/product-carousel-section";
 import { SiteFooter } from "@/components/common/site-footer";
 import { TillDeathBundleSection } from "@/components/till-death-bundle-section";
-import { MainNavigation } from "@/components/common/main-navigation";
 import { StoryBanner } from "@/components/story-banner";
 
 export default function Home() {

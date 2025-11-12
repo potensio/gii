@@ -25,7 +25,9 @@ export interface CreateProductData {
   description?: string;
   weight?: number;
   isActive: boolean;
+  isHighlighted?: boolean;
   additionalDescriptions?: Array<{ title: string; body: string }>;
+  images?: Array<{ url: string; isThumbnail: boolean }>;
   hasVariants: boolean;
   variantTypes: string[];
   combinations: Array<{
@@ -219,7 +221,11 @@ function createVariantSelections(
 
 // === Main Assembly ===
 function assembleCompleteProducts(
-  groups: SelectProductGroup[],
+  groups: Array<
+    SelectProductGroup & {
+      images?: Array<{ url: string; isThumbnail: boolean }>;
+    }
+  >,
   variantsByGroup: Map<string, SelectProductVariant[]>,
   productsByGroup: Map<string, SelectProduct[]>,
   variantSelections: Map<string, VariantSelection>
@@ -257,13 +263,24 @@ export const productService = {
     const fetchedProductGroups = await getProductGroups(finalFilters);
     if (fetchedProductGroups.length === 0) return [];
 
-    // Step 4.5: Parse additional descriptions from JSON
-    const parsedProductGroups = fetchedProductGroups.map((group) => ({
-      ...group,
-      additionalDescriptions: group.additionalDescriptions
-        ? JSON.parse(group.additionalDescriptions)
-        : [],
-    }));
+    // Step 4.5: Parse additional descriptions and images from JSON
+    const parsedProductGroups = fetchedProductGroups.map((group) => {
+      const parsed = {
+        ...group,
+        additionalDescriptions: group.additionalDescriptions
+          ? JSON.parse(group.additionalDescriptions)
+          : [],
+      };
+
+      // Parse images and override the type
+      const images: Array<{ url: string; isThumbnail: boolean }> | undefined =
+        group.images ? JSON.parse(group.images) : undefined;
+
+      return {
+        ...parsed,
+        images,
+      };
+    });
 
     // Step 5: Extract group IDs for subsequent queries
     const groupIds = parsedProductGroups.map((g) => g.id);
@@ -291,7 +308,11 @@ export const productService = {
 
     // Step 11: Assemble final result
     return assembleCompleteProducts(
-      parsedProductGroups,
+      parsedProductGroups as Array<
+        SelectProductGroup & {
+          images?: Array<{ url: string; isThumbnail: boolean }>;
+        }
+      >,
       variantsByGroup,
       productsByGroup,
       variantSelections
@@ -305,27 +326,43 @@ export const productService = {
     description?: string;
     weight?: number;
     isActive: boolean;
+    isHighlighted?: boolean;
     additionalDescriptions?: Array<{ title: string; body: string }>;
+    images?: Array<{ url: string; isThumbnail: boolean }>;
   }): Promise<SelectProductGroup> {
-    const additionalDescriptionsJson =
-      data.additionalDescriptions && data.additionalDescriptions.length > 0
-        ? JSON.stringify(data.additionalDescriptions)
-        : null;
+    try {
+      const additionalDescriptionsJson =
+        data.additionalDescriptions && data.additionalDescriptions.length > 0
+          ? JSON.stringify(data.additionalDescriptions)
+          : null;
 
-    const [productGroup] = await db
-      .insert(productGroups)
-      .values({
-        name: data.name,
-        category: data.category,
-        brand: data.brand,
-        description: data.description,
-        weight: data.weight,
-        isActive: data.isActive,
-        additionalDescriptions: additionalDescriptionsJson,
-      })
-      .returning();
+      const imagesJson =
+        data.images && data.images.length > 0
+          ? JSON.stringify(data.images)
+          : null;
 
-    return productGroup;
+      const [productGroup] = await db
+        .insert(productGroups)
+        .values({
+          name: data.name,
+          category: data.category,
+          brand: data.brand,
+          description: data.description,
+          weight: data.weight,
+          isActive: data.isActive,
+          isHighlighted: data.isHighlighted ?? false,
+          additionalDescriptions: additionalDescriptionsJson,
+          images: imagesJson,
+        })
+        .returning();
+
+      return productGroup;
+    } catch (error) {
+      console.error("Error creating product group:", error);
+      throw new Error(
+        `Gagal membuat grup produk: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
   },
 
   async updateProductGroup(
@@ -337,289 +374,340 @@ export const productService = {
       description?: string;
       weight?: number;
       isActive: boolean;
+      isHighlighted?: boolean;
       additionalDescriptions?: Array<{ title: string; body: string }>;
+      images?: Array<{ url: string; isThumbnail: boolean }>;
     }>
   ): Promise<SelectProductGroup> {
-    const updateData: Partial<typeof productGroups.$inferInsert> = {};
+    try {
+      const updateData: Partial<typeof productGroups.$inferInsert> = {};
 
-    // Copy all fields except additionalDescriptions
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.category !== undefined) updateData.category = data.category;
-    if (data.brand !== undefined) updateData.brand = data.brand;
-    if (data.description !== undefined)
-      updateData.description = data.description;
-    if (data.weight !== undefined) updateData.weight = data.weight;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+      // Copy all fields except additionalDescriptions and images
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.category !== undefined) updateData.category = data.category;
+      if (data.brand !== undefined) updateData.brand = data.brand;
+      if (data.description !== undefined)
+        updateData.description = data.description;
+      if (data.weight !== undefined) updateData.weight = data.weight;
+      if (data.isActive !== undefined) updateData.isActive = data.isActive;
+      if (data.isHighlighted !== undefined)
+        updateData.isHighlighted = data.isHighlighted;
 
-    // Handle additionalDescriptions conversion to JSON
-    if (data.additionalDescriptions !== undefined) {
-      updateData.additionalDescriptions =
-        data.additionalDescriptions.length > 0
-          ? JSON.stringify(data.additionalDescriptions)
-          : null;
+      // Handle additionalDescriptions conversion to JSON
+      if (data.additionalDescriptions !== undefined) {
+        updateData.additionalDescriptions =
+          data.additionalDescriptions.length > 0
+            ? JSON.stringify(data.additionalDescriptions)
+            : null;
+      }
+
+      // Handle images conversion to JSON
+      if (data.images !== undefined) {
+        updateData.images =
+          data.images.length > 0 ? JSON.stringify(data.images) : null;
+      }
+
+      const [updated] = await db
+        .update(productGroups)
+        .set(updateData)
+        .where(eq(productGroups.id, id))
+        .returning();
+
+      if (!updated) {
+        throw new Error("Product group not found");
+      }
+
+      return updated;
+    } catch (error) {
+      console.error("Error updating product group:", error);
+      throw new Error(
+        `Gagal memperbarui grup produk: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
-
-    const [updated] = await db
-      .update(productGroups)
-      .set(updateData)
-      .where(eq(productGroups.id, id))
-      .returning();
-
-    return updated;
   },
 
   async createCompleteProduct(
     data: CreateProductData
   ): Promise<CompleteProductResult> {
-    return await db.transaction(async (tx) => {
-      // Step 1: Create product group
-      const [productGroup] = await tx
-        .insert(productGroups)
-        .values({
-          name: data.name,
-          category: data.category,
-          brand: data.brand,
-          description: data.description,
-          weight: data.weight,
-          isActive: data.isActive,
-          additionalDescriptions:
-            data.additionalDescriptions &&
-            data.additionalDescriptions.length > 0
-              ? JSON.stringify(data.additionalDescriptions)
-              : null,
-        })
-        .returning();
-
-      // Step 2: Create variants if hasVariants
-      const createdVariants: Map<string, Map<string, string>> = new Map();
-
-      if (data.hasVariants && data.variantTypes.length > 0) {
-        // Collect unique variant values for each type
-        const variantValuesByType = new Map<string, Set<string>>();
-
-        for (const combination of data.combinations) {
-          for (const [variantType, variantValue] of Object.entries(
-            combination.variants
-          )) {
-            if (!variantValuesByType.has(variantType)) {
-              variantValuesByType.set(variantType, new Set());
-            }
-            variantValuesByType.get(variantType)!.add(variantValue);
-          }
-        }
-
-        // Create variant records
-        for (const [variantType, values] of variantValuesByType.entries()) {
-          const typeMap = new Map<string, string>();
-
-          for (const value of values) {
-            const [variant] = await tx
-              .insert(productVariants)
-              .values({
-                productGroupId: productGroup.id,
-                variant: variantType,
-                value: value,
-                isActive: true,
-              })
-              .returning();
-
-            typeMap.set(value, variant.id);
-          }
-
-          createdVariants.set(variantType, typeMap);
-        }
-      }
-
-      // Step 3: Create products (combinations)
-      const createdProducts = [];
-
-      for (const combination of data.combinations) {
-        const productName =
-          combination.name && combination.name.trim() !== ""
-            ? combination.name
-            : data.name;
-
-        const [product] = await tx
-          .insert(products)
+    try {
+      return await db.transaction(async (tx) => {
+        // Step 1: Create product group
+        const [productGroup] = await tx
+          .insert(productGroups)
           .values({
-            productGroupId: productGroup.id,
-            sku: combination.sku,
-            name: productName,
-            price: combination.price,
-            stock: combination.stock,
-            isActive: combination.active,
+            name: data.name,
+            category: data.category,
+            brand: data.brand,
+            description: data.description,
+            weight: data.weight,
+            isActive: data.isActive,
+            isHighlighted: data.isHighlighted ?? false,
+            additionalDescriptions:
+              data.additionalDescriptions &&
+              data.additionalDescriptions.length > 0
+                ? JSON.stringify(data.additionalDescriptions)
+                : null,
+            images:
+              data.images && data.images.length > 0
+                ? JSON.stringify(data.images)
+                : null,
           })
           .returning();
 
-        createdProducts.push(product);
+        // Step 2: Create variants if hasVariants
+        const createdVariants: Map<string, Map<string, string>> = new Map();
 
-        // Step 4: Create variant combinations if variants exist
-        if (data.hasVariants && Object.keys(combination.variants).length > 0) {
-          for (const [variantType, variantValue] of Object.entries(
-            combination.variants
-          )) {
-            const variantId = createdVariants
-              .get(variantType)
-              ?.get(variantValue);
+        if (data.hasVariants && data.variantTypes.length > 0) {
+          // Collect unique variant values for each type
+          const variantValuesByType = new Map<string, Set<string>>();
 
-            if (variantId) {
-              await tx.insert(productVariantCombinations).values({
-                productId: product.id,
-                variantId: variantId,
-              });
+          for (const combination of data.combinations) {
+            for (const [variantType, variantValue] of Object.entries(
+              combination.variants
+            )) {
+              if (!variantValuesByType.has(variantType)) {
+                variantValuesByType.set(variantType, new Set());
+              }
+              variantValuesByType.get(variantType)!.add(variantValue);
+            }
+          }
+
+          // Create variant records
+          for (const [variantType, values] of variantValuesByType.entries()) {
+            const typeMap = new Map<string, string>();
+
+            for (const value of values) {
+              const [variant] = await tx
+                .insert(productVariants)
+                .values({
+                  productGroupId: productGroup.id,
+                  variant: variantType,
+                  value: value,
+                  isActive: true,
+                })
+                .returning();
+
+              typeMap.set(value, variant.id);
+            }
+
+            createdVariants.set(variantType, typeMap);
+          }
+        }
+
+        // Step 3: Create products (combinations)
+        const createdProducts = [];
+
+        for (const combination of data.combinations) {
+          const productName =
+            combination.name && combination.name.trim() !== ""
+              ? combination.name
+              : data.name;
+
+          const [product] = await tx
+            .insert(products)
+            .values({
+              productGroupId: productGroup.id,
+              sku: combination.sku,
+              name: productName,
+              price: combination.price,
+              stock: combination.stock,
+              isActive: combination.active,
+            })
+            .returning();
+
+          createdProducts.push(product);
+
+          // Step 4: Create variant combinations if variants exist
+          if (
+            data.hasVariants &&
+            Object.keys(combination.variants).length > 0
+          ) {
+            for (const [variantType, variantValue] of Object.entries(
+              combination.variants
+            )) {
+              const variantId = createdVariants
+                .get(variantType)
+                ?.get(variantValue);
+
+              if (variantId) {
+                await tx.insert(productVariantCombinations).values({
+                  productId: product.id,
+                  variantId: variantId,
+                });
+              }
             }
           }
         }
-      }
 
-      return {
-        productGroup,
-        products: createdProducts,
-      };
-    });
+        return {
+          productGroup,
+          products: createdProducts,
+        };
+      });
+    } catch (error) {
+      console.error("Error creating complete product:", error);
+      throw new Error(
+        `Gagal membuat produk lengkap: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
   },
 
   async updateCompleteProduct(
     id: string,
     data: UpdateProductData
   ): Promise<CompleteProductResult> {
-    return await db.transaction(async (tx) => {
-      // Step 1: Update product group
-      const [productGroup] = await tx
-        .update(productGroups)
-        .set({
-          name: data.name,
-          category: data.category,
-          brand: data.brand,
-          description: data.description,
-          weight: data.weight,
-          isActive: data.isActive,
-          additionalDescriptions:
-            data.additionalDescriptions &&
-            data.additionalDescriptions.length > 0
-              ? JSON.stringify(data.additionalDescriptions)
-              : null,
-          updatedAt: new Date(),
-        })
-        .where(eq(productGroups.id, id))
-        .returning();
-
-      if (!productGroup) {
-        throw new Error("Product group not found");
-      }
-
-      // Step 2: Delete existing data
-      // Get existing products first
-      const existingProducts = await tx
-        .select()
-        .from(products)
-        .where(eq(products.productGroupId, id));
-
-      const existingProductIds = existingProducts.map((p) => p.id);
-
-      if (existingProductIds.length > 0) {
-        // Delete variant combinations
-        await tx
-          .delete(productVariantCombinations)
-          .where(
-            inArray(productVariantCombinations.productId, existingProductIds)
-          );
-      }
-
-      // Delete products
-      await tx.delete(products).where(eq(products.productGroupId, id));
-
-      // Delete variants
-      await tx
-        .delete(productVariants)
-        .where(eq(productVariants.productGroupId, id));
-
-      // Step 3: Recreate variants if hasVariants
-      const createdVariants: Map<string, Map<string, string>> = new Map();
-
-      if (data.hasVariants && data.variantTypes.length > 0) {
-        // Collect unique variant values for each type
-        const variantValuesByType = new Map<string, Set<string>>();
-
-        for (const combination of data.combinations) {
-          for (const [variantType, variantValue] of Object.entries(
-            combination.variants
-          )) {
-            if (!variantValuesByType.has(variantType)) {
-              variantValuesByType.set(variantType, new Set());
-            }
-            variantValuesByType.get(variantType)!.add(variantValue);
-          }
-        }
-
-        // Create variant records
-        for (const [variantType, values] of variantValuesByType.entries()) {
-          const typeMap = new Map<string, string>();
-
-          for (const value of values) {
-            const [variant] = await tx
-              .insert(productVariants)
-              .values({
-                productGroupId: id,
-                variant: variantType,
-                value: value,
-                isActive: true,
-              })
-              .returning();
-
-            typeMap.set(value, variant.id);
-          }
-
-          createdVariants.set(variantType, typeMap);
-        }
-      }
-
-      // Step 4: Recreate products (combinations)
-      const createdProducts = [];
-
-      for (const combination of data.combinations) {
-        const productName =
-          combination.name && combination.name.trim() !== ""
-            ? combination.name
-            : data.name;
-
-        const [product] = await tx
-          .insert(products)
-          .values({
-            productGroupId: id,
-            sku: combination.sku,
-            name: productName,
-            price: combination.price,
-            stock: combination.stock,
-            isActive: combination.active,
+    try {
+      return await db.transaction(async (tx) => {
+        // Step 1: Update product group
+        const [productGroup] = await tx
+          .update(productGroups)
+          .set({
+            name: data.name,
+            category: data.category,
+            brand: data.brand,
+            description: data.description,
+            weight: data.weight,
+            isActive: data.isActive,
+            isHighlighted: data.isHighlighted ?? false,
+            additionalDescriptions:
+              data.additionalDescriptions &&
+              data.additionalDescriptions.length > 0
+                ? JSON.stringify(data.additionalDescriptions)
+                : null,
+            images:
+              data.images && data.images.length > 0
+                ? JSON.stringify(data.images)
+                : null,
+            updatedAt: new Date(),
           })
+          .where(eq(productGroups.id, id))
           .returning();
 
-        createdProducts.push(product);
+        if (!productGroup) {
+          throw new Error("Product group not found");
+        }
 
-        // Step 5: Recreate variant combinations if variants exist
-        if (data.hasVariants && Object.keys(combination.variants).length > 0) {
-          for (const [variantType, variantValue] of Object.entries(
-            combination.variants
-          )) {
-            const variantId = createdVariants
-              .get(variantType)
-              ?.get(variantValue);
+        // Step 2: Delete existing data
+        // Get existing products first
+        const existingProducts = await tx
+          .select()
+          .from(products)
+          .where(eq(products.productGroupId, id));
 
-            if (variantId) {
-              await tx.insert(productVariantCombinations).values({
-                productId: product.id,
-                variantId: variantId,
-              });
+        const existingProductIds = existingProducts.map((p) => p.id);
+
+        if (existingProductIds.length > 0) {
+          // Delete variant combinations
+          await tx
+            .delete(productVariantCombinations)
+            .where(
+              inArray(productVariantCombinations.productId, existingProductIds)
+            );
+        }
+
+        // Delete products
+        await tx.delete(products).where(eq(products.productGroupId, id));
+
+        // Delete variants
+        await tx
+          .delete(productVariants)
+          .where(eq(productVariants.productGroupId, id));
+
+        // Step 3: Recreate variants if hasVariants
+        const createdVariants: Map<string, Map<string, string>> = new Map();
+
+        if (data.hasVariants && data.variantTypes.length > 0) {
+          // Collect unique variant values for each type
+          const variantValuesByType = new Map<string, Set<string>>();
+
+          for (const combination of data.combinations) {
+            for (const [variantType, variantValue] of Object.entries(
+              combination.variants
+            )) {
+              if (!variantValuesByType.has(variantType)) {
+                variantValuesByType.set(variantType, new Set());
+              }
+              variantValuesByType.get(variantType)!.add(variantValue);
+            }
+          }
+
+          // Create variant records
+          for (const [variantType, values] of variantValuesByType.entries()) {
+            const typeMap = new Map<string, string>();
+
+            for (const value of values) {
+              const [variant] = await tx
+                .insert(productVariants)
+                .values({
+                  productGroupId: id,
+                  variant: variantType,
+                  value: value,
+                  isActive: true,
+                })
+                .returning();
+
+              typeMap.set(value, variant.id);
+            }
+
+            createdVariants.set(variantType, typeMap);
+          }
+        }
+
+        // Step 4: Recreate products (combinations)
+        const createdProducts = [];
+
+        for (const combination of data.combinations) {
+          const productName =
+            combination.name && combination.name.trim() !== ""
+              ? combination.name
+              : data.name;
+
+          const [product] = await tx
+            .insert(products)
+            .values({
+              productGroupId: id,
+              sku: combination.sku,
+              name: productName,
+              price: combination.price,
+              stock: combination.stock,
+              isActive: combination.active,
+            })
+            .returning();
+
+          createdProducts.push(product);
+
+          // Step 5: Recreate variant combinations if variants exist
+          if (
+            data.hasVariants &&
+            Object.keys(combination.variants).length > 0
+          ) {
+            for (const [variantType, variantValue] of Object.entries(
+              combination.variants
+            )) {
+              const variantId = createdVariants
+                .get(variantType)
+                ?.get(variantValue);
+
+              if (variantId) {
+                await tx.insert(productVariantCombinations).values({
+                  productId: product.id,
+                  variantId: variantId,
+                });
+              }
             }
           }
         }
-      }
 
-      return {
-        productGroup,
-        products: createdProducts,
-      };
-    });
+        return {
+          productGroup,
+          products: createdProducts,
+        };
+      });
+    } catch (error) {
+      console.error("Error updating complete product:", error);
+      throw new Error(
+        `Gagal memperbarui produk lengkap: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
   },
 };

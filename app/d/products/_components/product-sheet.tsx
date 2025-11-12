@@ -20,7 +20,8 @@ import { MultiUploader } from "@/components/ui/multi-uploader";
 
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FileText, AlertCircle } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 // Form & Validation
 import { useForm } from "react-hook-form";
@@ -72,6 +73,9 @@ function ProductForm({
   const [additionalDescriptions, setAdditionalDescriptions] = useState<
     Array<{ id: number; title: string; body: string }>
   >([]);
+  const [productImages, setProductImages] = useState<
+    Array<{ url: string; isThumbnail: boolean }>
+  >([]);
 
   const toCombinationPayload = (c: any) => ({
     id: typeof c.id === "string" ? c.id : String(c.id),
@@ -102,6 +106,23 @@ function ProductForm({
   ) => {
     setAdditionalDescriptions((prev) =>
       prev.map((d) => (d.id === id ? { ...d, [field]: value } : d))
+    );
+  };
+
+  // Handler to update productImages state when images change
+  const handleImagesChange = (
+    images: Array<{ url: string; isThumbnail: boolean }>
+  ) => {
+    setProductImages(images);
+  };
+
+  // Handler to update thumbnail designation
+  const handleThumbnailChange = (index: number) => {
+    setProductImages((prev) =>
+      prev.map((img, idx) => ({
+        ...img,
+        isThumbnail: idx === index,
+      }))
     );
   };
 
@@ -139,6 +160,7 @@ function ProductForm({
       // category & brand akan dipilih via Select; biarkan tidak di-set pada default
       isActive: true, // sesuai Switch defaultChecked
       hasVariants: true, // sesuai Switch defaultChecked
+      isHighlighted: false, // default false for featured product toggle
       // berat opsional; biarkan undefined sampai user isi
       weight: undefined,
       description: undefined,
@@ -163,8 +185,37 @@ function ProductForm({
     form.setValue("additionalDescriptions", validDescriptions);
   }, [additionalDescriptions]);
 
+  useEffect(() => {
+    // Update form value when productImages changes
+    form.setValue("images", productImages);
+  }, [productImages]);
+
   const onSubmit = async (data: ProductSchema) => {
-    onSave(data);
+    try {
+      // Additional validation: ensure at least one image is marked as thumbnail if images exist
+      if (data.images && data.images.length > 0) {
+        const hasThumbnail = data.images.some((img) => img.isThumbnail);
+        if (!hasThumbnail) {
+          toast({
+            title: "Validasi Gagal",
+            description:
+              "Setidaknya satu gambar harus ditandai sebagai thumbnail",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      onSave(data);
+    } catch (error) {
+      // Handle any unexpected errors during submission
+      toast({
+        title: "Terjadi Kesalahan",
+        description:
+          error instanceof Error ? error.message : "Gagal menyimpan produk",
+        variant: "destructive",
+      });
+    }
   };
 
   // Prefill defaults when editing an existing product
@@ -213,6 +264,10 @@ function ProductForm({
         );
       }
 
+      // Load existing images from selectedProduct into productImages state
+      const existingImages = selectedProduct.productGroup.images || [];
+      setProductImages(existingImages);
+
       form.reset({
         id: selectedProduct.productGroup.id,
         name: selectedProduct.productGroup.name ?? "",
@@ -220,10 +275,12 @@ function ProductForm({
         brand: selectedProduct.productGroup.brand as ProductBrand,
         isActive: !!selectedProduct.productGroup.isActive,
         hasVariants: initialVariantTypes.length > 0,
+        isHighlighted: !!selectedProduct.productGroup.isHighlighted,
         weight: selectedProduct.productGroup?.weight ?? undefined,
         description: selectedProduct.productGroup.description ?? undefined,
         variantTypes: initialVariantTypes,
         combinations: initialCombinations.map(toCombinationPayload),
+        images: existingImages,
       });
     }
   }, [mode, selectedProduct]);
@@ -393,6 +450,21 @@ function ProductForm({
                 }
               />
             </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="isHighlighted">Produk Unggulan</Label>
+                <p className="text-sm text-muted-foreground">
+                  Tandai produk ini sebagai produk unggulan
+                </p>
+              </div>
+              <Switch
+                id="isHighlighted"
+                checked={!!form.watch("isHighlighted")}
+                onCheckedChange={(checked) =>
+                  form.setValue("isHighlighted", checked)
+                }
+              />
+            </div>
           </div>
 
           <Separator />
@@ -401,7 +473,19 @@ function ProductForm({
             <h3 className="tracking-tight font-medium text-muted-foreground">
               Gambar Produk
             </h3>
-            <MultiUploader />
+            <MultiUploader
+              defaultImages={productImages}
+              onImagesChange={handleImagesChange}
+              onThumbnailChange={handleThumbnailChange}
+            />
+            {form.formState.errors.images && (
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertCircle className="size-4 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.images.message}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Product Variants */}
@@ -622,7 +706,19 @@ function ProductForm({
               </Button>
             </div>
 
-            {additionalDescriptions.length > 0 && (
+            {additionalDescriptions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
+                <FileText className="w-12 h-12 text-muted-foreground mb-3" />
+                <p className="text-sm font-medium text-center mb-1">
+                  Belum ada deskripsi tambahan
+                </p>
+                <p className="text-xs text-muted-foreground text-center max-w-sm">
+                  Tambahkan informasi seperti garansi, catatan pengiriman, atau
+                  spesifikasi khusus untuk memberikan detail lebih kepada
+                  pelanggan
+                </p>
+              </div>
+            ) : (
               <div className="space-y-3">
                 {additionalDescriptions.map((item, index) => (
                   <div

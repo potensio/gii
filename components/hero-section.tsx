@@ -57,7 +57,7 @@ export function HeroSection() {
           {heroImages.map((image, index) => (
             <div
               key={index}
-              className="relative h-full w-full flex-shrink-0 p-4" // Add padding to create visual gap between slides
+              className="relative h-full w-full flex-shrink-0 px-4 pt-8 md:pt-16" // Add padding to create visual gap between slides
             >
               {/* Inner div for the actual image and overlay, applying the rounded corners and overflow-hidden */}
               <div className="relative h-full w-full overflow-hidden rounded-3xl">

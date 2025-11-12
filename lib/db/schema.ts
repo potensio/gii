@@ -80,6 +80,8 @@ export const productGroups = pgTable("product_groups", {
   // Berat berpindah ke level product group
   weight: integer("weight"), // Optional: berat dalam gram untuk shipping
   additionalDescriptions: text("additional_descriptions"), // Optional: JSON array of additional description items
+  images: text("images"), // Optional: JSON array of image objects with url and isThumbnail
+  isHighlighted: boolean("is_highlighted").notNull().default(false), // Featured product flag
   isActive: boolean("is_active").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),

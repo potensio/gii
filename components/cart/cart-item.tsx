@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Plus, Minus, Trash2 } from "lucide-react";
 import { Input } from "../ui/input";
@@ -40,28 +40,38 @@ export function CartItem({
   const { id, imageSrc, imageAlt, title, capacity, price, quantity, selected } =
     item;
 
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity <= 0) {
-      onRemove(id);
+      setIsRemoving(true);
+      setTimeout(() => {
+        onRemove(id);
+      }, 300);
       return;
     }
+    setIsUpdating(true);
     onQuantityChange(id, newQuantity);
+    setTimeout(() => setIsUpdating(false), 300);
   };
 
   const handleSelectionChange = (checked: boolean) => {
     onSelectionChange?.(id, checked);
   };
 
-  const imageSize = variant === "drawer" ? "size-20" : "size-32";
+  const imageSize = variant === "drawer" ? "size-20" : "size-24 md:size-32";
   const containerClasses = cn(
-    "flex py-4 gap-4",
-    variant === "drawer" ? "gap-4" : "gap-6",
+    "flex py-3 md:py-4 gap-3 md:gap-4 transition-all duration-300 ease-in-out",
+    variant === "drawer" ? "gap-4" : "gap-4 md:gap-6",
     selected &&
       selectable &&
-      "bg-blue-50 border border-blue-200 rounded-lg px-4",
+      "bg-blue-50 border border-blue-200 rounded-lg px-3 md:px-4",
     !selected &&
       selectable &&
-      "hover:bg-gray-50 rounded-lg px-4 transition-colors"
+      "hover:bg-gray-50 rounded-lg px-3 md:px-4 transition-colors",
+    isRemoving && "opacity-0 scale-95 h-0 py-0 overflow-hidden",
+    isUpdating && "scale-[0.99]"
   );
 
   return (
@@ -93,20 +103,25 @@ export function CartItem({
       </div>
 
       {/* Product Details */}
-      <div className="flex flex-col justify-center gap-4 ml-4 flex-1">
-        <div className="flex flex-row justify-between gap-4">
-          <div className="flex flex-col gap-1 w-full justify-between">
+      <div className="flex flex-col justify-center gap-3 md:gap-4 ml-2 md:ml-4 flex-1 min-w-0">
+        <div className="flex flex-row justify-between gap-2 md:gap-4">
+          <div className="flex flex-col gap-1 w-full justify-between min-w-0">
             <h3
               className={cn(
-                "text-medium",
+                "text-sm md:text-base truncate",
                 selected && selectable && "font-semibold"
               )}
             >
               {title}
             </h3>
-            {capacity && <p className="text-sm text-gray-500">{capacity}</p>}
+            {/* Only show capacity in page variant */}
+            {variant === "page" && capacity && (
+              <p className="text-xs md:text-sm text-gray-500">{capacity}</p>
+            )}
           </div>
-          <p className="font-medium">Rp{price.toLocaleString("id-ID")}</p>
+          <p className="font-medium text-sm md:text-base whitespace-nowrap">
+            Rp{price.toLocaleString("id-ID")}
+          </p>
         </div>
 
         {/* Quantity Controls */}

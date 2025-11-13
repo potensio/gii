@@ -129,7 +129,10 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
             <Button
               variant="outline"
               className="flex-1 py-6 text-lg font-medium"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onOpenChange(false);
+                window.location.href = "/cart";
+              }}
             >
               Lihat Keranjang
             </Button>

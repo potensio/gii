@@ -2,16 +2,16 @@
 
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { CartItem } from "@/components/cart/cart-item";
 import { useCart } from "@/hooks/use-cart";
 
 interface CartDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const {
     items,
     selectedTotalPrice,
@@ -28,36 +28,26 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const discount = 16.2; // Hardcoded discount for now
 
   return (
-    <>
-      {/* Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Cart Drawer */}
-      <div
-        className={cn(
-          "fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out  md:w-[480px]",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex h-full w-full flex-col p-0 sm:max-w-[480px]"
+        showCloseButton={false}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 md:px-6 py-2">
-          <span className="text-2xl font-semibold">Cart</span>
-          <div className="flex items-center space-x-2"></div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Close cart"
-          >
-            <X className="size-5" />
-          </Button>
-        </div>
+        <SheetHeader className="border-b px-4 md:px-6 py-2">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-semibold">Cart</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              aria-label="Close cart"
+            >
+              <X className="size-5" />
+            </Button>
+          </div>
+        </SheetHeader>
 
         {/* Bulk Selection Controls */}
         {items.length > 0 && (
@@ -139,13 +129,13 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <Button
               variant="outline"
               className="flex-1 py-6 text-lg font-medium"
-              onClick={onClose}
+              onClick={() => onOpenChange(false)}
             >
               Lihat Keranjang
             </Button>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

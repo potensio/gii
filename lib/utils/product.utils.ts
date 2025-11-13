@@ -1,4 +1,5 @@
 import { SelectProduct } from "../db/schema";
+import type { CompleteProduct } from "@/hooks/use-products";
 
 /**
  * Generates a URL-friendly slug from a product name
@@ -60,4 +61,126 @@ export function formatPrice(priceInCents: number): string {
 export function getLowestPrice(products: SelectProduct[]): number {
   if (products.length === 0) return 0;
   return Math.min(...products.map((p) => p.price));
+}
+
+/**
+ * Simplified product type for carousel display
+ */
+export interface SimplifiedProduct {
+  id: string;
+  name: string;
+  brand: string;
+  slug: string;
+  price: string;
+  thumbnailUrl: string | null;
+}
+
+/**
+ * Finds a product that matches the given variant combination
+ * Note: This is a placeholder for future implementation.
+ * Currently, product selection uses a random approach.
+ *
+ * @param completeProduct - The complete product data with variants
+ * @param selectedVariants - The selected variant combination (e.g., { "Warna": "Black", "Kapasitas": "256GB" })
+ * @returns The matching product or null if not found
+ */
+export function findMatchingProduct(
+  completeProduct: CompleteProduct,
+  selectedVariants: Record<string, string>
+): SelectProduct | null {
+  // Future implementation: Match product by variant combination
+  // For now, this is a placeholder that returns null
+  // The actual implementation will compare selectedVariants with variantSelectionsByProductId
+
+  const { products, variantSelectionsByProductId } = completeProduct;
+
+  if (!variantSelectionsByProductId || products.length === 0) {
+    return null;
+  }
+
+  // Find product where all selected variants match
+  for (const product of products) {
+    const productVariants = variantSelectionsByProductId[product.id];
+
+    if (!productVariants) continue;
+
+    // Check if all selected variants match this product's variants
+    const allMatch = Object.entries(selectedVariants).every(
+      ([variantType, variantValue]) =>
+        productVariants[variantType] === variantValue
+    );
+
+    if (allMatch) {
+      return product;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Transforms CompleteProduct to SimplifiedProduct for carousel display
+ *
+ * @param completeProduct - The complete product data from database
+ * @returns Simplified product with formatted price and thumbnail
+ */
+export function transformToSimplifiedProduct(
+  completeProduct: CompleteProduct
+): SimplifiedProduct {
+  const { productGroup, products } = completeProduct;
+
+  // Get the lowest price from all product variants
+  const lowestPrice = getLowestPrice(products);
+
+  // Extract thumbnail URL from images
+  const thumbnailUrl = extractThumbnail(productGroup.images);
+
+  return {
+    id: productGroup.id,
+    name: productGroup.name,
+    brand: productGroup.brand,
+    slug: productGroup.slug,
+    price: formatPrice(lowestPrice),
+    thumbnailUrl,
+  };
+}
+
+/**
+ * Generates JSON-LD structured data for product schema
+ * Follows schema.org Product specification for SEO
+ *
+ * @param completeProduct - The complete product data
+ * @returns JSON-LD object for product structured data
+ */
+export function generateProductSchema(completeProduct: CompleteProduct) {
+  const { productGroup, products } = completeProduct;
+
+  // Get the lowest price from all product variants
+  const lowestPrice = getLowestPrice(products);
+
+  // Extract thumbnail URL from images
+  const thumbnailUrl = extractThumbnail(productGroup.images);
+
+  // Check if any product variant is in stock
+  const inStock = products.some((p) => p.stock > 0);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: productGroup.name,
+    description: productGroup.description || undefined,
+    image: thumbnailUrl || undefined,
+    brand: {
+      "@type": "Brand",
+      name: productGroup.brand,
+    },
+    offers: {
+      "@type": "AggregateOffer",
+      lowPrice: lowestPrice,
+      priceCurrency: "IDR",
+      availability: inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
+  };
 }

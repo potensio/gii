@@ -9,14 +9,6 @@ import { CartDrawer } from "@/components/cart-drawer";
 
 export function MainNavigation() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-
-  const handleCartClick = () => {
-    setIsCartOpen(true);
-  };
-
-  const handleCloseCart = () => {
-    setIsCartOpen(false);
-  };
   return (
     <nav className="w-full z-50 top-0 flex items-center justify-between bg-background px-4 h-[64px] md:h-[80px] md:px-8 space-x-16 border-b border-border">
       <div className="flex flex-1 justify-between items-center space-x-4">
@@ -71,11 +63,11 @@ export function MainNavigation() {
             variant="ghost"
             size="icon"
             aria-label="Shopping Cart"
-            onClick={handleCartClick}
+            onClick={() => setIsCartOpen(true)}
           >
             <ShoppingCart className="size-5" strokeWidth={1.5} />
           </Button>
-          <CartDrawer isOpen={isCartOpen} onClose={handleCloseCart} />
+          <CartDrawer open={isCartOpen} onOpenChange={setIsCartOpen} />
         </div>
       </div>
     </nav>

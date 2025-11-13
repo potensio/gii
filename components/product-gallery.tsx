@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -11,41 +10,47 @@ interface ProductImage {
 
 interface ProductGalleryProps {
   images: ProductImage[];
+  selectedIndex: number;
+  onImageSelect: (index: number) => void;
 }
 
-export function ProductGallery({ images }: ProductGalleryProps) {
-  const [mainImage, setMainImage] = useState("");
+export function ProductGallery({
+  images,
+  selectedIndex,
+  onImageSelect,
+}: ProductGalleryProps) {
+  const currentImage = images[selectedIndex] || images[0];
 
   return (
-    <div className="grid gap-4 px-4 md:px-10 pt-4 md:pt-6 ">
+    <div className="flex flex-col gap-4">
       {/* Main Image */}
-      <div className="relative aspect-square md:aspect-[3/2] overflow-hidden rounded-2xl bg-gray-100">
+      <div className="aspect-square rounded-2xl bg-muted/80">
         <Image
-          src="/placeholder.svg"
-          alt="Main product image"
-          fill
-          className="object-cover object-center"
-          priority
+          src={currentImage?.src || "/placeholder.svg"}
+          alt={currentImage?.alt || "Main product image"}
+          className="object-cover mix-blend-multiply"
+          width={1000}
+          height={1000}
         />
       </div>
 
       {/* Thumbnails */}
-      <div className="hidden md:flex gap-2 md:gap-4 overflow-x-auto lg:overflow-y-auto">
+      <div className="hidden md:flex gap-2 md:gap-4 overflow-x-auto lg:overflow-y-auto ">
         {images.map((image, index) => (
           <button
             key={index}
             className={cn(
-              "relative size-32 lg:size-40 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all hover:border-black",
-              mainImage === image.src ? "border-black" : "border-transparent"
+              "relative size-32 lg:size-40 overflow-hidden rounded-xl border-2 transition-all hover:border-black bg-muted/80",
+              selectedIndex === index ? "border-black" : "border-transparent"
             )}
-            onClick={() => setMainImage(image.src)}
+            onClick={() => onImageSelect(index)}
             aria-label={`View image ${index + 1}`}
           >
             <Image
               src={image.src || "/placeholder.svg"}
               alt={image.alt}
               fill
-              className="object-cover object-center"
+              className="object-cover object-center mix-blend-multiply"
             />
           </button>
         ))}

@@ -5,37 +5,31 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-interface SubDescription {
-  id: string;
+interface AdditionalDescription {
   title: string;
-  content: string;
+  body: string;
 }
 
 interface ProductDescriptionProps {
   description: string;
-  subDescriptions?: SubDescription[] | null;
+  additionalDescriptions?: AdditionalDescription[];
 }
 
 export function ProductDescription({
   description,
-  subDescriptions,
+  additionalDescriptions,
 }: ProductDescriptionProps) {
   return (
-    <div className="space-y-8 px-4 md:px-10">
-      <h2 className="text-2xl font-semibold tracking-tighter">Deskripsi</h2>
-      <div className="prose max-w-none space-y-4 text-gray-700">
-        <p>{description}</p>
-      </div>
-
-      {subDescriptions && subDescriptions.length > 0 && (
+    <div className="space-y-8">
+      {additionalDescriptions && additionalDescriptions.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
-          {subDescriptions.map((subDesc) => (
-            <AccordionItem key={subDesc.id} value={subDesc.id}>
-              <AccordionTrigger className="text-lg font-semibold">
-                {subDesc.title}
+          {additionalDescriptions.map((addDesc, index) => (
+            <AccordionItem key={`desc-${index}`} value={`desc-${index}`}>
+              <AccordionTrigger className="text-xl font-semibold">
+                {addDesc.title}
               </AccordionTrigger>
-              <AccordionContent className="prose max-w-none text-gray-700">
-                {subDesc.content}
+              <AccordionContent className="prose max-w-none text-foreground/80">
+                {addDesc.body}
               </AccordionContent>
             </AccordionItem>
           ))}

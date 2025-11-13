@@ -28,7 +28,7 @@ export function ProductCard({
     <Link href={`/product/${slug}`} className="block">
       <Card
         className={cn(
-          "overflow-hidden rounded-2xl shadow-sm border-none bg-muted/40 max-w-[320px]",
+          "overflow-hidden rounded-2xl shadow-sm border-none bg-muted/80 max-w-[320px]",
           className
         )}
       >

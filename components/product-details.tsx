@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 
-import { useState } from "react";
-import Image from "next/image";
 import {
   Minus,
   Plus,
@@ -17,99 +15,115 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Rating, RatingButton } from "./ui/shadcn-io/rating";
 import { cn } from "@/lib/utils";
+import type { SelectProduct } from "@/lib/db/schema";
+
+interface VariantOption {
+  type: string; // e.g., "Warna", "Kapasitas"
+  value: string; // e.g., "Black", "256GB"
+  available: boolean;
+}
 
 interface ProductDetailsProps {
   brand: string;
   title: string;
-  price: string;
-  afterpayPrice: string;
-  colors: { name: string; hex: string; imageSrc: string }[];
-  sizes: string[];
-  stock: number;
+  description?: string;
+  selectedProduct: SelectProduct | null;
+  variantGroups: Array<{
+    type: string;
+    options: VariantOption[];
+  }>;
+  selectedVariants: Record<string, string>;
+  onVariantChange: (variantType: string, value: string) => void;
+  quantity: number;
+  onQuantityChange: (quantity: number) => void;
+  onAddToCart: () => void;
 }
 
 export function ProductDetails({
   brand,
   title,
-  price,
-  afterpayPrice,
-  colors,
-  sizes,
-  stock,
+  description,
+  selectedProduct,
+  variantGroups,
+  selectedVariants,
+  onVariantChange,
+  quantity,
+  onQuantityChange,
+  onAddToCart,
 }: ProductDetailsProps) {
-  const [selectedColor, setSelectedColor] = useState(colors[0]?.name);
-  const [selectedSize, setSelectedSize] = useState(sizes[0]);
-  const [quantity, setQuantity] = useState(1);
-
   const handleQuantityChange = (delta: number) => {
-    setQuantity((prev) => Math.max(1, prev + delta));
+    const newQuantity = Math.max(1, quantity + delta);
+    onQuantityChange(newQuantity);
   };
 
+  const stock = selectedProduct?.stock ?? 0;
+  const price = selectedProduct?.price ?? 0;
+  const formattedPrice = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(price);
+
   const stockPercentage = (stock / 10) * 100; // Assuming max stock for progress bar is 10
+  const isOutOfStock = stock === 0;
+  const isAddToCartDisabled = !selectedProduct || isOutOfStock;
 
   return (
-    <div className="w-full space-y-6 py-4 pr-10">
+    <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm uppercase text-gray-500">{brand}</p>
         <h1 className="text-3xl font-semibold tracking-tighter md:text-4xl">
           {title}
         </h1>
-      </div>
-      <p className="text-2xl font-semibold">{price}</p>
-
-      {/* Color Selection */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium">
-          Color: <span className="font-normal">{selectedColor}</span>
-        </p>
-        <div className="flex gap-2">
-          {colors.map((color) => (
-            <button
-              key={color.name}
-              className={cn(
-                "relative size-16 overflow-hidden rounded-lg border-2 transition-all hover:border-black",
-                selectedColor === color.name
-                  ? "border-black"
-                  : "border-transparent"
-              )}
-              onClick={() => setSelectedColor(color.name)}
-              aria-label={`Select color ${color.name}`}
-            >
-              <Image
-                src={color.imageSrc || "/placeholder.svg"}
-                alt={`Color swatch for ${color.name}`}
-                fill
-                className="object-cover object-center"
-              />
-            </button>
-          ))}
+        {/* Yellow theme */}
+        <div className="flex items-center gap-2">
+          <Rating defaultValue={5}>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <RatingButton className="text-yellow-500" key={index} />
+            ))}
+          </Rating>
+          <span className="text-sm text-muted-foreground">{`(200 Review)`}</span>
         </div>
       </div>
+      <p className="text-2xl font-medium">{formattedPrice}</p>
+      {description && (
+        <p className="text-foreground/70 line-clamp-7">{description}</p>
+      )}
 
-      {/* Size Selection */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium">
-          Size: <span className="font-normal">{selectedSize}</span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {sizes.map((size) => (
-            <Button
-              key={size}
-              variant={selectedSize === size ? "default" : "outline"}
-              className={cn(
-                "min-w-[48px] rounded-md border border-gray-300 px-4 py-2 text-sm",
-                selectedSize === size
-                  ? "bg-black text-white hover:bg-black"
-                  : "bg-white text-black hover:bg-gray-100"
-              )}
-              onClick={() => setSelectedSize(size)}
-            >
-              {size}
-            </Button>
-          ))}
+      {/* Variant Selection */}
+      {variantGroups.map((group) => (
+        <div key={group.type} className="space-y-2">
+          <p className="text-sm font-medium">
+            {group.type}:{" "}
+            <span className="font-normal">{selectedVariants[group.type]}</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {group.options.map((option) => (
+              <Button
+                key={option.value}
+                variant={
+                  selectedVariants[group.type] === option.value
+                    ? "default"
+                    : "outline"
+                }
+                className={cn(
+                  "min-w-[48px] rounded-md border border-gray-300 px-4 py-2 text-sm",
+                  selectedVariants[group.type] === option.value
+                    ? "bg-black text-white hover:bg-black"
+                    : "bg-white text-black hover:bg-gray-100",
+                  !option.available && "cursor-not-allowed opacity-50"
+                )}
+                onClick={() => onVariantChange(group.type, option.value)}
+                disabled={!option.available}
+              >
+                {option.value}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
+      ))}
 
       {/* Stock Indicator */}
       {stock <= 5 && stock > 0 && (
@@ -123,7 +137,7 @@ export function ProductDetails({
           />
         </div>
       )}
-      {stock === 0 && (
+      {isOutOfStock && (
         <p className="text-sm font-medium text-red-600">Out of stock!</p>
       )}
 
@@ -155,26 +169,36 @@ export function ProductDetails({
             size="icon"
             onClick={() => handleQuantityChange(-1)}
             aria-label="Decrease quantity"
+            disabled={isAddToCartDisabled}
           >
             <Minus className="size-4" />
           </Button>
           <Input
             type="text"
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            onChange={(e) =>
+              onQuantityChange(Math.max(1, Number(e.target.value) || 1))
+            }
             className="w-12 border-x border-gray-300 text-center [-moz-appearance:_textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:m-0"
             aria-label="Product quantity"
+            disabled={isAddToCartDisabled}
           />
           <Button
             variant="secondary"
             size="icon"
             onClick={() => handleQuantityChange(1)}
             aria-label="Increase quantity"
+            disabled={isAddToCartDisabled}
           >
             <Plus className="size-4" />
           </Button>
         </div>
-        <Button className="flex-1 bg-black py-6 text-lg font-semibold text-white hover:bg-gray-800">
+        <Button
+          className="flex-1"
+          onClick={onAddToCart}
+          disabled={isAddToCartDisabled}
+          size={"lg"}
+        >
           Add to cart
         </Button>
       </div>

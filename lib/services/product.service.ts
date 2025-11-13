@@ -287,8 +287,6 @@ export const productService = {
       const images: Array<{ url: string; isThumbnail: boolean }> | undefined =
         group.images ? JSON.parse(group.images) : undefined;
 
-      console.log(images);
-
       return {
         ...parsed,
         images,
@@ -330,6 +328,76 @@ export const productService = {
       productsByGroup,
       variantSelections
     );
+  },
+
+  async getProductGroupBySlug(
+    slug: string,
+    viewerRole: UserRole
+  ): Promise<CompleteProduct | null> {
+    // Step 1: Direct database query by slug with isActive and isDeleted filters
+    const fetchedProductGroups = await db
+      .select()
+      .from(productGroups)
+      .where(
+        and(
+          eq(productGroups.slug, slug),
+          eq(productGroups.isActive, true),
+          eq(productGroups.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (fetchedProductGroups.length === 0) return null;
+
+    // Step 2: Parse JSON fields (additionalDescriptions, images)
+    const group = fetchedProductGroups[0];
+    const parsedGroup = {
+      ...group,
+      additionalDescriptions: group.additionalDescriptions
+        ? JSON.parse(group.additionalDescriptions)
+        : [],
+    };
+
+    // Parse images and override the type
+    const images: Array<{ url: string; isThumbnail: boolean }> | undefined =
+      group.images ? JSON.parse(group.images) : undefined;
+
+    const parsedGroupWithImages = {
+      ...parsedGroup,
+      images,
+    };
+
+    // Step 3: Fetch related variants, products, and combinations
+    const groupIds = [group.id];
+
+    // Build filters for variants and products (with role-based restrictions)
+    const variantFilters = createVariantFilters(groupIds, viewerRole);
+    const productFilters = createProductFilters(groupIds, viewerRole);
+
+    // Fetch variants and products in parallel
+    const [variants, productsList] = await Promise.all([
+      getVariants(variantFilters),
+      getProductsList(productFilters),
+    ]);
+
+    // Step 4: Fetch variant combinations
+    const productIds = productsList.map((p) => p.id);
+    const combinations = await getVariantCombinations(productIds);
+
+    // Step 5: Create variant selections map
+    const variantSelections = createVariantSelections(combinations, variants);
+
+    // Step 6: Return CompleteProduct
+    return {
+      productGroup: parsedGroupWithImages as SelectProductGroup & {
+        images?: Array<{ url: string; isThumbnail: boolean }>;
+      },
+      variants: variants,
+      products: productsList,
+      variantSelectionsByProductId: Object.fromEntries(
+        productsList.map((p) => [p.id, variantSelections.get(p.id) ?? {}])
+      ),
+    };
   },
 
   async createProductGroup(data: {

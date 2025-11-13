@@ -94,7 +94,7 @@ export const productSchema = z
       .int({ message: "Berat harus berupa angka bulat" })
       .min(0, { message: "Berat harus lebih besar atau sama dengan 0" })
       .optional(),
-    description: z.string().optional(),
+    description: z.string().max(500).optional(),
     isActive: z.boolean(),
     hasVariants: z.boolean(),
 

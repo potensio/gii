@@ -13,7 +13,7 @@ import {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = decodeUserId(request);
@@ -23,7 +23,8 @@ export async function POST(
       );
     }
 
-    const success = await addressService.setDefaultAddress(params.id, userId);
+    const { id } = await params;
+    const success = await addressService.setDefaultAddress(id, userId);
     if (!success) {
       throw new NotFoundError("Alamat tidak ditemukan");
     }

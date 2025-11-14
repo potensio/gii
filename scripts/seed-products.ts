@@ -6,6 +6,7 @@ import {
   productVariantCombinations,
 } from "../lib/db/schema";
 import { and, eq } from "drizzle-orm";
+import { generateSlug } from "../lib/utils/product.utils";
 
 async function ensureProductGroup(input: {
   name: string;
@@ -22,7 +23,11 @@ async function ensureProductGroup(input: {
 
   if (existing.length) return existing[0];
 
-  const [created] = await db.insert(productGroups).values(input).returning();
+  const slug = generateSlug(input.name);
+  const [created] = await db
+    .insert(productGroups)
+    .values({ ...input, slug })
+    .returning();
   return created;
 }
 

@@ -20,7 +20,7 @@ import type {
 } from "@/lib/db/schema";
 
 interface ProductPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 interface CarouselProduct {
@@ -120,7 +120,8 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
-  const product = await getProductBySlug(params.slug);
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
 
   // Return basic metadata if product not found
   if (!product) {
@@ -149,7 +150,7 @@ export async function generateMetadata({
 
   // Build absolute URL for canonical and images
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const canonicalUrl = `${baseUrl}/product/${params.slug}`;
+  const canonicalUrl = `${baseUrl}/product/${slug}`;
   const absoluteThumbnailUrl = thumbnailUrl
     ? thumbnailUrl.startsWith("http")
       ? thumbnailUrl
@@ -187,7 +188,8 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   // Fetch product data by slug
-  const product = await getProductBySlug(params.slug);
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
 
   // Show 404 if product not found
   if (!product) {

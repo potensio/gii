@@ -14,7 +14,7 @@ import { cartService } from "@/lib/services/cart.service";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     // Get user ID or session ID
@@ -26,8 +26,9 @@ export async function DELETE(
       throw new AuthorizationError("No valid session");
     }
 
+    const { itemId } = await params;
     // Delegate to service
-    await cartService.removeItem(identifier, params.itemId);
+    await cartService.removeItem(identifier, itemId);
 
     return NextResponse.json(
       {
@@ -49,7 +50,7 @@ export async function DELETE(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     // Get user ID or session ID
@@ -70,8 +71,9 @@ export async function PATCH(
       throw new ValidationError("Quantity must be a number");
     }
 
+    const { itemId } = await params;
     // Delegate to service
-    await cartService.updateQuantity(identifier, params.itemId, quantity);
+    await cartService.updateQuantity(identifier, itemId, quantity);
 
     return NextResponse.json(
       {

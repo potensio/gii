@@ -6,7 +6,7 @@ import { productSchema } from "@/lib/validations/product.validation";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const viewerRole = decodeUserRole(request);
@@ -17,8 +17,9 @@ export async function GET(
       viewerRole
     );
 
+    const { id } = await params;
     // Find the specific product by ID
-    const product = products.find((p) => p.productGroup.id === params.id);
+    const product = products.find((p) => p.productGroup.id === id);
 
     if (!product) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const viewerRole = decodeUserRole(request);
@@ -60,9 +61,10 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = productSchema.parse(body);
 
+    const { id } = await params;
     // Call service method - all business logic is in service
     const result = await productService.updateCompleteProduct(
-      params.id,
+      id,
       validatedData
     );
 

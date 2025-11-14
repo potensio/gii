@@ -7,7 +7,10 @@ import { SiteFooter } from "@/components/common/site-footer";
 import { TillDeathBundleSection } from "@/components/till-death-bundle-section";
 import { StoryBanner } from "@/components/story-banner";
 import { formatPrice } from "@/lib/utils/product.utils";
-import { stringify } from "querystring";
+import { productService } from "@/lib/services/product.service";
+
+// Revalidate every hour for fresh content while maintaining static generation
+export const revalidate = 3600;
 
 interface SimplifiedProduct {
   id: string;
@@ -40,32 +43,35 @@ async function fetchProducts(
   sortBy: "newest" | "random"
 ): Promise<CarouselProduct[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const response = await fetch(
-      `${baseUrl}/api/products?sortBy=${sortBy}&limit=10`,
-      { cache: "no-store" }
+    // Fetch directly from service for better performance and SEO
+    const products = await productService.getProductGroups(
+      {
+        isActive: true,
+        sortBy: sortBy,
+      },
+      "user"
     );
 
-    if (!response.ok) {
-      console.error(`Failed to fetch ${sortBy} products:`, response.statusText);
-      return [];
-    }
+    // Transform to carousel format and limit to 10
+    return products.slice(0, 10).map((product) => {
+      const images = product.productGroup.images || [];
+      const thumbnailUrl =
+        images.find((img: any) => img.isThumbnail)?.url ||
+        images[0]?.url ||
+        null;
 
-    const result: ProductAPIResponse = await response.json();
-    console.log(result);
-    if (!result.success || !result.data) {
-      return [];
-    }
+      // Get lowest price from products
+      const lowestPrice = Math.min(...product.products.map((p) => p.price));
 
-    // Transform API response to CarouselProduct format
-    return result.data.map((product) => ({
-      id: product.id,
-      name: product.name,
-      brand: product.brand,
-      slug: product.slug,
-      price: formatPrice(product.price),
-      thumbnailUrl: product.thumbnailUrl,
-    }));
+      return {
+        id: product.productGroup.id,
+        name: product.productGroup.name,
+        brand: product.productGroup.brand,
+        slug: product.productGroup.slug,
+        price: formatPrice(lowestPrice),
+        thumbnailUrl,
+      };
+    });
   } catch (error) {
     console.error(`Error fetching ${sortBy} products:`, error);
     return [];

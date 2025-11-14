@@ -10,13 +10,13 @@ export async function GET(request: NextRequest) {
     const userId = decodeUserId(request);
     // If token is not present, return unauthorized response
     if (!userId) {
-      return formatErrorResponse(new AuthorizationError("Unauthorized"));
+      throw new AuthorizationError("Unauthorized");
     }
     // Get user from database
     const user = await userService.getUserById(userId);
     // If user is not found, return not found response
     if (!user) {
-      return formatErrorResponse(new AuthorizationError("User not found"));
+      throw new AuthorizationError("User not found");
     }
     // Return user data with status 200
     return NextResponse.json(

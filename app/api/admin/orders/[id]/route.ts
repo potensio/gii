@@ -10,7 +10,7 @@ import {
 // ==================== Route Handler ====================
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const viewerRole = decodeUserRole(request);
@@ -20,7 +20,7 @@ export async function GET(
       throw new AuthorizationError("Unauthorized");
     }
 
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     const order = await orderService.getOrderById(orderId, viewerRole);
 

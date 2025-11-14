@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -51,7 +51,7 @@ interface MyOrdersResponse {
   data: Order[];
 }
 
-export default function MyOrderPage() {
+function MyOrderContent() {
   const { me, isMeLoading } = useAuth();
   const searchParams = useSearchParams();
   const highlightOrderId = searchParams.get("orderId");
@@ -281,5 +281,32 @@ export default function MyOrderPage() {
         })}
       </div>
     </div>
+  );
+}
+
+export default function MyOrderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-8 px-4 max-w-5xl">
+          <h1 className="text-3xl font-bold mb-8">Pesanan Saya</h1>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32 mt-2" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <MyOrderContent />
+    </Suspense>
   );
 }

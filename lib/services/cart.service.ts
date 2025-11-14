@@ -233,7 +233,7 @@ export const cartService = {
 
       await db.transaction(async (tx) => {
         // Get or create cart with appropriate identifier field
-        let userCart = await tx
+        const userCart = await tx
           .select()
           .from(carts)
           .where(
@@ -527,7 +527,7 @@ export const cartService = {
         }
 
         // Get or create user cart
-        let userCart = await tx
+        const userCart = await tx
           .select()
           .from(carts)
           .where(eq(carts.userId, userId))

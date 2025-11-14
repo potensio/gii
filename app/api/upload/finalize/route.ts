@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       orderedChunks.push(chunk);
     }
 
-    const completeFile = Buffer.concat(orderedChunks);
+    const completeFile = Buffer.concat(orderedChunks as Uint8Array[]);
 
     // Upload to Vercel Blob
     const blob = await put(fileName, completeFile, {

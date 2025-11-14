@@ -14,7 +14,7 @@ import {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = decodeUserId(request);
@@ -24,7 +24,8 @@ export async function GET(
       );
     }
 
-    const address = await addressService.getAddressById(params.id, userId);
+    const { id } = await params;
+    const address = await addressService.getAddressById(id, userId);
     if (!address) {
       throw new NotFoundError("Alamat tidak ditemukan");
     }
@@ -49,7 +50,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = decodeUserId(request);
@@ -71,7 +72,8 @@ export async function PATCH(
       throw new ValidationError("Kode pos harus 5 digit");
     }
 
-    const updated = await addressService.updateAddress(params.id, userId, body);
+    const { id } = await params;
+    const updated = await addressService.updateAddress(id, userId, body);
     if (!updated) {
       throw new NotFoundError("Alamat tidak ditemukan");
     }
@@ -96,7 +98,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = decodeUserId(request);
@@ -106,7 +108,8 @@ export async function DELETE(
       );
     }
 
-    const success = await addressService.deleteAddress(params.id, userId);
+    const { id } = await params;
+    const success = await addressService.deleteAddress(id, userId);
     if (!success) {
       throw new NotFoundError("Alamat tidak ditemukan");
     }

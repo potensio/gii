@@ -35,7 +35,7 @@ const TEST_PRODUCT_GROUP_ID = randomUUID();
 const TEST_PRODUCT_ID = randomUUID();
 
 // Mock product data - will be updated after product creation
-let mockProductData: ProductData = {
+const mockProductData: ProductData = {
   productId: TEST_PRODUCT_ID,
   productGroupId: TEST_PRODUCT_GROUP_ID,
   name: "Test Product",

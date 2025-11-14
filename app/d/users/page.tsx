@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { UserTable, User } from "./_components/user-table";
 import { UserFilters } from "./_components/user-filters";
 import { UserSheet } from "./_components/user-sheet";
-import { useUsers, useUpdateUser, useDeleteUser, useCreateUser } from "@/hooks/use-users";
+import {
+  useUsers,
+  useUpdateUser,
+  useDeleteUser,
+  useCreateUser,
+} from "@/hooks/use-users";
 
 export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -13,6 +18,7 @@ export default function UsersPage() {
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [filters, setFilters] = useState({
     page: 1,
+    pageSize: 10,
     search: "",
     role: undefined as "user" | "admin" | "super_admin" | undefined,
     isActive: undefined as boolean | undefined,
@@ -30,6 +36,7 @@ export default function UsersPage() {
     setUiFilters(newUiFilters);
     setFilters({
       page: 1, // Reset to first page when filtering
+      pageSize: 10,
       search: newUiFilters.search,
       role:
         newUiFilters.role !== "all"
@@ -72,10 +79,14 @@ export default function UsersPage() {
 
   const handleSaveUser = (userData: Partial<User>) => {
     if (sheetMode === "edit" && selectedUser) {
-      // Update existing user
+      // Update existing user - convert null to undefined for name
+      const updateData = {
+        ...userData,
+        name: userData.name === null ? undefined : userData.name,
+      };
       updateUserMutation.mutate({
         id: selectedUser.id,
-        data: userData,
+        data: updateData,
       });
     } else {
       // Create new user
@@ -136,7 +147,7 @@ export default function UsersPage() {
 
       {/* User Table */}
       <UserTable
-        users={usersData?.users || []}
+        users={usersData?.data?.users || []}
         onRowClick={handleRowClick}
         onEditUser={handleEditUser}
         onDeleteUser={handleDeleteUser}

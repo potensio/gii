@@ -7,6 +7,7 @@ import {
   users,
   carts,
   cartItems,
+  addresses,
   type SelectOrder,
   type SelectOrderItem,
   type SelectProduct,
@@ -64,6 +65,17 @@ export interface CreateOrderResult {
   orderId: string;
   orderNumber: string;
   userId: string; // Newly created user ID
+}
+
+export interface CreateAuthenticatedOrderInput {
+  userId: string;
+  addressId: string;
+  cartItems: CartItem[];
+}
+
+export interface CreateAuthenticatedOrderResult {
+  orderId: string;
+  orderNumber: string;
 }
 
 // === Query Filter Builders ===
@@ -362,6 +374,120 @@ export const orderService = {
         orderId: order.id,
         orderNumber: order.orderNumber,
         userId: newUser.id,
+      };
+    });
+  },
+
+  /**
+   * Create order for authenticated checkout
+   * This method handles the complete authenticated checkout flow:
+   * 1. Fetches user data by userId
+   * 2. Fetches and validates address ownership
+   * 3. Creates order with address snapshot
+   * 4. Creates order items from cart
+   * 5. Clears user cart after successful order
+   */
+  async createAuthenticatedOrder(
+    input: CreateAuthenticatedOrderInput
+  ): Promise<CreateAuthenticatedOrderResult> {
+    return await db.transaction(async (tx) => {
+      // 1. Get user details
+      const [user] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      if (!user) {
+        throw new ValidationError("User not found");
+      }
+
+      // 2. Get address details with ownership validation
+      const [address] = await tx
+        .select()
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.id, input.addressId),
+            eq(addresses.userId, input.userId)
+          )
+        )
+        .limit(1);
+
+      if (!address) {
+        throw new ValidationError("Alamat tidak valid atau tidak ditemukan");
+      }
+
+      // 3. Generate order number
+      const orderNumber = generateOrderNumber();
+
+      // 4. Calculate totals
+      const subtotal = input.cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const shippingCost = 15000; // Fixed shipping cost in IDR
+      const total = subtotal + shippingCost;
+
+      // 5. Prepare address JSON snapshot
+      const shippingAddress = {
+        recipientName: address.recipientName,
+        phone: address.phoneNumber,
+        fullAddress: address.streetAddress,
+        addressLine2: address.addressLine2,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postalCode,
+        country: address.country,
+      };
+
+      // 6. Create order record
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          orderNumber,
+          userId: input.userId,
+          customerEmail: user.email,
+          customerName: user.name,
+          shippingAddress: JSON.stringify(shippingAddress),
+          billingAddress: JSON.stringify(shippingAddress), // Same as shipping
+          subtotal,
+          shippingCost,
+          total,
+          orderStatus: "pending",
+          paymentStatus: "paid", // Auto-paid for MVP
+          currency: "IDR",
+        })
+        .returning();
+
+      // 7. Create order items from cart items
+      const orderItemsData = input.cartItems.map((item) => ({
+        orderId: order.id,
+        productId: item.productId,
+        productName: item.name,
+        productSku: item.sku,
+        imageUrl: item.thumbnailUrl,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+
+      await tx.insert(orderItems).values(orderItemsData);
+
+      // 8. Clear user cart after successful order
+      const [cart] = await tx
+        .select()
+        .from(carts)
+        .where(eq(carts.userId, input.userId))
+        .limit(1);
+
+      if (cart) {
+        await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+      }
+
+      return {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
       };
     });
   },

@@ -7,12 +7,14 @@ interface OrderSummaryProps {
   totalItems: number;
   totalPrice: number;
   hasItems: boolean;
+  isAuthenticated?: boolean;
 }
 
 export function OrderSummary({
   totalItems,
   totalPrice,
   hasItems,
+  isAuthenticated = false,
 }: OrderSummaryProps) {
   return (
     <div className="bg-white border rounded-lg p-4 md:p-6 lg:sticky lg:top-4 fixed bottom-0 left-0 right-0 lg:relative z-10 lg:z-auto shadow-lg lg:shadow-none border-t-2 lg:border-t transition-all duration-300">
@@ -54,7 +56,10 @@ export function OrderSummary({
         asChild={hasItems}
       >
         {hasItems ? (
-          <Link href="/checkout">Checkout ({totalItems} item)</Link>
+          <Link href="/checkout">
+            {isAuthenticated ? "Lanjut ke Checkout" : "Checkout"} ({totalItems}{" "}
+            item)
+          </Link>
         ) : (
           <span>Checkout (0 item)</span>
         )}

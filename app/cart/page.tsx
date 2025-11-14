@@ -5,10 +5,8 @@ import {
   useCart,
   useUpdateCartQuantity,
   useRemoveFromCart,
-  useToggleCartSelection,
-  useSelectAllCart,
-  useDeselectAllCart,
 } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 import { CartItem } from "@/components/cart/cart-item";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { Button } from "@/components/ui/button";
@@ -23,6 +21,10 @@ import type { ValidationResult } from "@/lib/api/cart.api";
 export default function CartPage() {
   // Track if component is mounted on client (Requirement 9.3, 9.4)
   const [isMounted, setIsMounted] = useState(false);
+
+  // Auth hook
+  const { me, isMeLoading } = useAuth();
+  const isAuthenticated = !!me?.data?.id;
 
   // Query hooks
   const cartQuery = useCart();
@@ -202,6 +204,7 @@ export default function CartPage() {
                 totalItems={totalItems}
                 totalPrice={totalPrice}
                 hasItems={hasItems}
+                isAuthenticated={isAuthenticated}
               />
             </div>
           </div>

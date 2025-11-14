@@ -1,125 +1,302 @@
 "use client";
 
 import { useState } from "react";
+import { SelectAddress } from "@/lib/db/schema";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-
-interface Address {
-  id: string;
-  label: string;
-  recipientName: string;
-  phone: string;
-  fullAddress: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  isDefault: boolean;
-}
-
-const dummyAddresses: Address[] = [
-  {
-    id: "addr-1",
-    label: "Rumah",
-    recipientName: "John Doe",
-    phone: "+62 812-3456-7890",
-    fullAddress: "Jl. Sudirman No. 123, RT 01/RW 02",
-    city: "Jakarta Selatan",
-    province: "DKI Jakarta",
-    postalCode: "12190",
-    isDefault: true,
-  },
-  {
-    id: "addr-2",
-    label: "Kantor",
-    recipientName: "John Doe",
-    phone: "+62 812-3456-7890",
-    fullAddress: "Jl. Gatot Subroto Kav. 52-53",
-    city: "Jakarta Selatan",
-    province: "DKI Jakarta",
-    postalCode: "12950",
-    isDefault: false,
-  },
-  {
-    id: "addr-3",
-    label: "Rumah Orang Tua",
-    recipientName: "Jane Doe",
-    phone: "+62 813-9876-5432",
-    fullAddress: "Jl. Thamrin No. 45, RT 03/RW 05",
-    city: "Jakarta Pusat",
-    province: "DKI Jakarta",
-    postalCode: "10350",
-    isDefault: false,
-  },
-];
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AddressForm, AddressFormData } from "./address-form";
+import { useAddresses } from "@/hooks/use-addresses";
+import { Pencil, Trash2, Star } from "lucide-react";
 
 interface AddressSelectorProps {
-  onAddressSelect?: (addressId: string) => void;
+  addresses: SelectAddress[];
+  selectedAddressId?: string;
+  onSelectAddress: (addressId: string) => void;
 }
 
-export function AddressSelector({ onAddressSelect }: AddressSelectorProps) {
-  const defaultAddress = dummyAddresses.find((addr) => addr.isDefault);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(
-    defaultAddress?.id || dummyAddresses[0].id
+export function AddressSelector({
+  addresses,
+  selectedAddressId,
+  onSelectAddress,
+}: AddressSelectorProps) {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SelectAddress | null>(
+    null
+  );
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(
+    null
   );
 
-  const handleAddressChange = (addressId: string) => {
-    setSelectedAddressId(addressId);
-    onAddressSelect?.(addressId);
+  const {
+    createAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    isSettingDefault,
+  } = useAddresses();
+
+  const handleCreateAddress = (data: AddressFormData) => {
+    createAddress(data, {
+      onSuccess: () => {
+        setShowAddDialog(false);
+      },
+    });
   };
+
+  const handleUpdateAddress = (data: AddressFormData) => {
+    if (!editingAddress) return;
+
+    updateAddress(
+      { id: editingAddress.id, data },
+      {
+        onSuccess: () => {
+          setEditingAddress(null);
+        },
+      }
+    );
+  };
+
+  const handleDeleteAddress = () => {
+    if (!deletingAddressId) return;
+
+    deleteAddress(deletingAddressId, {
+      onSuccess: () => {
+        setDeletingAddressId(null);
+        // If deleted address was selected, clear selection
+        if (selectedAddressId === deletingAddressId) {
+          onSelectAddress("");
+        }
+      },
+    });
+  };
+
+  const handleSetDefault = (addressId: string) => {
+    setDefaultAddress(addressId);
+  };
+
+  // Handle empty state
+  if (addresses.length === 0) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground mb-4">
+            Anda belum memiliki alamat tersimpan
+          </p>
+          <Button onClick={() => setShowAddDialog(true)}>
+            Tambah Alamat Baru
+          </Button>
+        </Card>
+
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Tambah Alamat Baru</DialogTitle>
+            </DialogHeader>
+            <AddressForm
+              onSubmit={handleCreateAddress}
+              onCancel={() => setShowAddDialog(false)}
+              isSubmitting={isCreating}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Pilih Alamat Pengiriman</h2>
-      <RadioGroup value={selectedAddressId} onValueChange={handleAddressChange}>
-        <div className="space-y-3">
-          {dummyAddresses.map((address) => (
-            <Card
-              key={address.id}
-              className={`relative p-4 cursor-pointer transition-all ${
-                selectedAddressId === address.id
-                  ? "border-primary border-2 bg-primary/5"
-                  : "border-border hover:border-primary/50"
-              }`}
-              onClick={() => handleAddressChange(address.id)}
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroupItem
-                  value={address.id}
-                  id={address.id}
-                  className="mt-1"
-                />
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor={address.id}
-                      className="font-semibold cursor-pointer"
-                    >
-                      {address.recipientName}
-                    </Label>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Pilih Alamat Pengiriman</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAddDialog(true)}
+        >
+          Tambah Alamat Baru
+        </Button>
+      </div>
+
+      <RadioGroup
+        value={selectedAddressId}
+        onValueChange={onSelectAddress}
+        className="space-y-3"
+      >
+        {addresses.map((address) => (
+          <Card
+            key={address.id}
+            className={`p-4 cursor-pointer transition-colors ${
+              selectedAddressId === address.id
+                ? "border-primary bg-primary/5"
+                : "hover:border-primary/50"
+            }`}
+            onClick={() => onSelectAddress(address.id)}
+          >
+            <div className="flex items-start gap-3">
+              <RadioGroupItem
+                value={address.id}
+                id={address.id}
+                className="mt-1"
+              />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor={address.id}
+                    className="font-semibold cursor-pointer"
+                  >
+                    {address.recipientName}
+                  </Label>
+                  {address.isDefault && (
                     <Badge variant="secondary" className="text-xs">
-                      {address.label}
+                      Utama
                     </Badge>
-                    {address.isDefault && (
-                      <Badge variant="default" className="text-xs">
-                        Default
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>{address.phone}</p>
-                    <p>{address.fullAddress}</p>
-                    <p>
-                      {address.city}, {address.province} {address.postalCode}
-                    </p>
-                  </div>
+                  )}
+                </div>
+
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>{address.phoneNumber}</p>
+                  <p>{address.streetAddress}</p>
+                  {address.addressLine2 && <p>{address.addressLine2}</p>}
+                  <p>
+                    {address.city}, {address.state} {address.postalCode}
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingAddress(address);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingAddressId(address.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Hapus
+                  </Button>
+
+                  {!address.isDefault && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSetDefault(address.id);
+                      }}
+                      disabled={isSettingDefault}
+                    >
+                      <Star className="h-3 w-3 mr-1" />
+                      Jadikan Utama
+                    </Button>
+                  )}
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          </Card>
+        ))}
       </RadioGroup>
+
+      {/* Add Address Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tambah Alamat Baru</DialogTitle>
+          </DialogHeader>
+          <AddressForm
+            onSubmit={handleCreateAddress}
+            onCancel={() => setShowAddDialog(false)}
+            isSubmitting={isCreating}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Address Dialog */}
+      <Dialog
+        open={!!editingAddress}
+        onOpenChange={(open) => !open && setEditingAddress(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Alamat</DialogTitle>
+          </DialogHeader>
+          {editingAddress && (
+            <AddressForm
+              initialData={{
+                recipientName: editingAddress.recipientName,
+                phoneNumber: editingAddress.phoneNumber,
+                streetAddress: editingAddress.streetAddress,
+                addressLine2: editingAddress.addressLine2 || "",
+                city: editingAddress.city,
+                state: editingAddress.state,
+                postalCode: editingAddress.postalCode,
+                isDefault: editingAddress.isDefault,
+              }}
+              onSubmit={handleUpdateAddress}
+              onCancel={() => setEditingAddress(null)}
+              isSubmitting={isUpdating}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingAddressId}
+        onOpenChange={(open) => !open && setDeletingAddressId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Alamat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus alamat ini? Tindakan ini tidak
+              dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAddress}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

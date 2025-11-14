@@ -117,6 +117,83 @@ export const cartService = {
   },
 
   /**
+   * Get cart by user ID (authenticated users only)
+   * @param userId - User ID
+   * @returns Array of cart items with product details
+   */
+  async getCartByUserId(userId: string): Promise<CartItem[]> {
+    try {
+      // Get cart by userId
+      const userCart = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.userId, userId))
+        .limit(1);
+
+      if (userCart.length === 0) {
+        return [];
+      }
+
+      const cartId = userCart[0].id;
+
+      // Get cart items with product details using joins
+      const items = await db
+        .select({
+          cartItem: cartItems,
+          product: products,
+          productGroup: productGroups,
+        })
+        .from(cartItems)
+        .innerJoin(products, eq(cartItems.productId, products.id))
+        .innerJoin(productGroups, eq(products.productGroupId, productGroups.id))
+        .where(eq(cartItems.cartId, cartId));
+
+      // Transform to CartItem format (reusing existing transformation logic)
+      const transformedItems: CartItem[] = items.map((item) => {
+        // Parse images from product group
+        const images = item.productGroup.images
+          ? JSON.parse(item.productGroup.images)
+          : [];
+        const thumbnailUrl =
+          images.find((img: any) => img.isThumbnail)?.url ||
+          images[0]?.url ||
+          null;
+
+        // Parse variant selections from JSON string
+        let variantSelections: Record<string, string> = {};
+        try {
+          variantSelections = JSON.parse(
+            item.cartItem.variantSelections || "{}"
+          );
+        } catch (error) {
+          console.error("Error parsing variant selections:", error);
+          variantSelections = {};
+        }
+
+        return {
+          id: item.cartItem.id,
+          productId: item.product.id,
+          productGroupId: item.product.productGroupId,
+          name: item.product.name,
+          sku: item.product.sku,
+          price: item.product.price,
+          quantity: item.cartItem.quantity,
+          stock: item.product.stock,
+          thumbnailUrl,
+          variantSelections,
+          addedAt: item.cartItem.createdAt.getTime(),
+          updatedAt: item.cartItem.updatedAt.getTime(),
+        };
+      });
+
+      return transformedItems;
+    } catch (error) {
+      console.error("Error loading cart from database:", error);
+      throw new DatabaseError("Failed to load cart from database");
+    }
+  },
+
+  /**
    * Add item to cart
    * @param identifier - User ID for authenticated users or session ID for guests
    * @param product - Product data to add
@@ -609,6 +686,110 @@ export const cartService = {
     } catch (error) {
       console.error("Error validating session:", error);
       throw new DatabaseError("Failed to validate session");
+    }
+  },
+
+  /**
+   * Migrate guest cart to user cart on login
+   * Merges guest cart items with existing user cart items
+   * @param sessionId - Guest session ID
+   * @param userId - Authenticated user ID
+   */
+  async migrateGuestCart(sessionId: string, userId: string): Promise<void> {
+    try {
+      await db.transaction(async (tx) => {
+        // Get guest cart by sessionId
+        const [guestCart] = await tx
+          .select()
+          .from(carts)
+          .where(eq(carts.sessionId, sessionId))
+          .limit(1);
+
+        if (!guestCart) {
+          // No guest cart to migrate
+          return;
+        }
+
+        // Get guest cart items
+        const guestItems = await tx
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.cartId, guestCart.id));
+
+        if (guestItems.length === 0) {
+          // No items to migrate, just delete guest cart
+          await tx.delete(carts).where(eq(carts.id, guestCart.id));
+          return;
+        }
+
+        // Get or create user cart
+        let [userCart] = await tx
+          .select()
+          .from(carts)
+          .where(eq(carts.userId, userId))
+          .limit(1);
+
+        if (!userCart) {
+          // Create new cart for user
+          [userCart] = await tx
+            .insert(carts)
+            .values({
+              userId,
+              sessionId: null,
+              lastActivityAt: new Date(),
+            })
+            .returning();
+        }
+
+        // Get existing user cart items
+        const userItems = await tx
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.cartId, userCart.id));
+
+        // Merge items - check for duplicates by productId and variantSelections
+        for (const guestItem of guestItems) {
+          const existingItem = userItems.find(
+            (item) =>
+              item.productId === guestItem.productId &&
+              item.variantSelections === guestItem.variantSelections
+          );
+
+          if (existingItem) {
+            // Item exists in both carts, sum quantities
+            await tx
+              .update(cartItems)
+              .set({
+                quantity: existingItem.quantity + guestItem.quantity,
+                updatedAt: new Date(),
+              })
+              .where(eq(cartItems.id, existingItem.id));
+          } else {
+            // Item only in guest cart, add to user cart
+            await tx.insert(cartItems).values({
+              cartId: userCart.id,
+              productId: guestItem.productId,
+              quantity: guestItem.quantity,
+              variantSelections: guestItem.variantSelections,
+            });
+          }
+        }
+
+        // Delete guest cart items
+        await tx.delete(cartItems).where(eq(cartItems.cartId, guestCart.id));
+
+        // Delete guest cart
+        await tx.delete(carts).where(eq(carts.id, guestCart.id));
+
+        // Update user cart last activity
+        await tx
+          .update(carts)
+          .set({ lastActivityAt: new Date(), updatedAt: new Date() })
+          .where(eq(carts.id, userCart.id));
+      });
+    } catch (error) {
+      console.error("Error migrating guest cart:", error);
+      throw new DatabaseError("Failed to migrate guest cart");
     }
   },
 };

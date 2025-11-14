@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { authService } from "@/lib/services/auth.service";
+import { cartService } from "@/lib/services/cart.service";
+import { getSessionId } from "@/lib/utils/session.utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +31,19 @@ export async function POST(req: NextRequest) {
           { success: false, data: null, message: "Invalid type" },
           { status: 400 }
         );
+    }
+
+    // Migrate guest cart to user cart after successful login
+    if (result.success && result.data?.user?.id) {
+      try {
+        const sessionId = getSessionId(req);
+        if (sessionId) {
+          await cartService.migrateGuestCart(sessionId, result.data.user.id);
+        }
+      } catch (migrationError) {
+        // Log error but don't block login
+        console.error("Cart migration failed:", migrationError);
+      }
     }
 
     // Return result to client

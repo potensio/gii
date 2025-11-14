@@ -1,27 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { X, Plus, Minus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Minus, Trash2 } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { cn } from "@/lib/utils";
-
-export interface CartItemData {
-  id: string;
-  imageSrc: string;
-  imageAlt: string;
-  title: string;
-  brand: string;
-  capacity?: string;
-  price: number;
-  quantity: number;
-  selected: boolean;
-}
+import type { CartItem as CartItemType } from "@/lib/types/cart.types";
 
 interface CartItemProps {
-  item: CartItemData;
+  item: CartItemType;
   variant?: "drawer" | "page";
   selectable?: boolean;
   onQuantityChange: (id: string, newQuantity: number) => void;
@@ -37,23 +27,70 @@ export function CartItem({
   onRemove,
   onSelectionChange,
 }: CartItemProps) {
-  const { id, imageSrc, imageAlt, title, capacity, price, quantity, selected } =
-    item;
+  const {
+    id,
+    name,
+    price,
+    quantity,
+    selected,
+    thumbnailUrl,
+    variantSelections,
+    sku,
+  } = item;
 
   const [isRemoving, setIsRemoving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [localQuantity, setLocalQuantity] = useState(quantity);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync local quantity with prop changes
+  useEffect(() => {
+    setLocalQuantity(quantity);
+  }, [quantity]);
+
+  // Format variant selections for display
+  const variantText = Object.entries(variantSelections)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+
+  // Calculate subtotal
+  const subtotal = price * localQuantity;
 
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity <= 0) {
-      setIsRemoving(true);
-      setTimeout(() => {
-        onRemove(id);
-      }, 300);
+      handleRemove();
       return;
     }
+
+    // Update local state immediately for responsive UI
+    setLocalQuantity(newQuantity);
     setIsUpdating(true);
-    onQuantityChange(id, newQuantity);
-    setTimeout(() => setIsUpdating(false), 300);
+
+    // Debounce the actual update (500ms)
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      onQuantityChange(id, newQuantity);
+      setIsUpdating(false);
+    }, 500);
+  };
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleRemove = () => {
+    setIsRemoving(true);
+    setTimeout(() => {
+      onRemove(id);
+    }, 300);
   };
 
   const handleSelectionChange = (checked: boolean) => {
@@ -74,94 +111,129 @@ export function CartItem({
     isUpdating && "scale-[0.99]"
   );
 
+  // Generate product detail link from SKU
+  const productSlug = sku.toLowerCase();
+
   return (
     <div className={containerClasses}>
-      {/* Checkbox untuk selection */}
+      {/* Checkbox for selection */}
       {selectable && (
         <div className="flex items-start pt-2">
           <Checkbox
             checked={selected}
             onCheckedChange={handleSelectionChange}
-            aria-label={`Pilih ${title}`}
+            aria-label={`Pilih ${name}`}
           />
         </div>
       )}
 
-      {/* Product Image */}
-      <div
-        className={cn(
-          "relative flex-shrink-0 overflow-hidden rounded-lg bg-gray-100",
-          imageSize
-        )}
-      >
-        <Image
-          src={imageSrc || "/placeholder.svg"}
-          alt={imageAlt}
-          fill
-          className="object-cover"
-        />
-      </div>
+      {/* Product Image with Link */}
+      <Link href={`/product/${productSlug}`} className="flex-shrink-0">
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-lg bg-gray-100 hover:opacity-80 transition-opacity cursor-pointer",
+            imageSize
+          )}
+        >
+          <Image
+            src={thumbnailUrl || "/placeholder.svg"}
+            alt={name}
+            fill
+            className="object-cover"
+          />
+        </div>
+      </Link>
 
       {/* Product Details */}
-      <div className="flex flex-col justify-center gap-3 md:gap-4 ml-2 md:ml-4 flex-1 min-w-0">
-        <div className="flex flex-row justify-between gap-2 md:gap-4">
-          <div className="flex flex-col gap-1 w-full justify-between min-w-0">
+      <div className="flex flex-col justify-between gap-2 md:gap-3 flex-1 min-w-0">
+        {/* Product Info */}
+        <div className="flex flex-col gap-1">
+          <Link
+            href={`/product/${productSlug}`}
+            className="hover:text-blue-600 transition-colors"
+          >
             <h3
               className={cn(
-                "text-sm md:text-base truncate",
+                "text-sm md:text-base line-clamp-2",
                 selected && selectable && "font-semibold"
               )}
             >
-              {title}
+              {name}
             </h3>
-            {/* Only show capacity in page variant */}
-            {variant === "page" && capacity && (
-              <p className="text-xs md:text-sm text-gray-500">{capacity}</p>
-            )}
-          </div>
-          <p className="font-medium text-sm md:text-base whitespace-nowrap">
-            Rp{price.toLocaleString("id-ID")}
-          </p>
+          </Link>
+          {variantText && (
+            <p className="text-xs md:text-sm text-gray-500">{variantText}</p>
+          )}
         </div>
 
-        {/* Quantity Controls */}
-        <div className="flex flex-row gap-1">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleQuantityChange(quantity - 1)}
-            aria-label="Kurangi jumlah"
-          >
-            {quantity > 1 ? (
-              <Minus className="size-4" strokeWidth={1.5} />
-            ) : (
-              <Trash2 className="size-4" strokeWidth={1.5} />
+        {/* Price and Quantity Controls */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-sm md:text-base">
+              Rp{price.toLocaleString("id-ID")}
+            </p>
+            {variant === "page" && (
+              <p className="text-xs md:text-sm text-gray-600">
+                Subtotal: Rp{subtotal.toLocaleString("id-ID")}
+              </p>
             )}
-          </Button>
+          </div>
 
-          <Input
-            type="text"
-            value={quantity}
-            onChange={(e) => {
-              const newQuantity = parseInt(e.target.value) || 1;
-              if (newQuantity > 0) {
-                handleQuantityChange(newQuantity);
-              }
-            }}
-            className="w-8 h-8 border-0 bg-gray-100 text-sm text-center [-moz-appearance:_textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:m-0"
-            aria-label="Jumlah produk"
-          />
+          {/* Quantity Controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-row gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleQuantityChange(localQuantity - 1)}
+                aria-label="Kurangi jumlah"
+              >
+                {localQuantity > 1 ? (
+                  <Minus className="size-4" strokeWidth={1.5} />
+                ) : (
+                  <Trash2 className="size-4" strokeWidth={1.5} />
+                )}
+              </Button>
 
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleQuantityChange(quantity + 1)}
-            aria-label="Tambah jumlah"
-          >
-            <Plus className="size-4" strokeWidth={1.5} />
-          </Button>
+              <Input
+                type="number"
+                value={localQuantity}
+                onChange={(e) => {
+                  const newQuantity = parseInt(e.target.value) || 1;
+                  if (newQuantity > 0) {
+                    handleQuantityChange(newQuantity);
+                  }
+                }}
+                className="w-12 h-8 border-0 bg-gray-100 text-sm text-center [-moz-appearance:_textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:m-0"
+                aria-label="Jumlah produk"
+                min="1"
+              />
+
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleQuantityChange(localQuantity + 1)}
+                aria-label="Tambah jumlah"
+              >
+                <Plus className="size-4" strokeWidth={1.5} />
+              </Button>
+            </div>
+
+            {/* Remove button (visible in page variant or always for drawer) */}
+            {variant === "page" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={handleRemove}
+                aria-label="Hapus item"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

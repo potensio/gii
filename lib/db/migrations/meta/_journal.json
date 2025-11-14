@@ -15,6 +15,13 @@
       "when": 1762964323416,
       "tag": "0001_closed_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1731600000000,
+      "tag": "0003_add_session_id_to_carts",
+      "breakpoints": true
     }
   ]
 }

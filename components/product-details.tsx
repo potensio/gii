@@ -55,6 +55,13 @@ export function ProductDetails({
 }: ProductDetailsProps) {
   const handleQuantityChange = (delta: number) => {
     const newQuantity = Math.max(1, quantity + delta);
+    const stock = selectedProduct?.stock ?? 0;
+
+    // Don't allow quantity to exceed stock
+    if (newQuantity > stock && stock > 0) {
+      return;
+    }
+
     onQuantityChange(newQuantity);
   };
 

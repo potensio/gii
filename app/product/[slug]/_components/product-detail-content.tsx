@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductDetails } from "@/components/product-details";
 import { ProductDescription } from "@/components/product-description";
+import { CartDrawer } from "@/components/cart-drawer";
+import { useAddToCart } from "@/hooks/use-cart";
+import { toast } from "sonner";
 import type {
   SelectProductGroup,
   SelectProductVariant,
@@ -35,6 +38,9 @@ export function ProductDetailContent({
 }: ProductDetailContentProps) {
   const { productGroup, variants, products } = productData;
 
+  // Cart mutation hook
+  const addToCartMutation = useAddToCart();
+
   // State management
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, string>
@@ -44,6 +50,7 @@ export function ProductDetailContent({
   const [selectedProduct, setSelectedProduct] = useState<SelectProduct | null>(
     null
   );
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
   // Initialize selected variants with first available option for each variant type
   useEffect(() => {
@@ -80,16 +87,80 @@ export function ProductDetailContent({
   };
 
   const handleQuantityChange = (newQuantity: number) => {
-    setQuantity(newQuantity);
+    // Ensure quantity is at least 1
+    const validQuantity = Math.max(1, newQuantity);
+
+    // Validate quantity against stock
+    if (selectedProduct && validQuantity > selectedProduct.stock) {
+      toast.warning("Jumlah melebihi stok tersedia", {
+        description: `Stok tersedia: ${selectedProduct.stock}`,
+      });
+      setQuantity(selectedProduct.stock);
+      return;
+    }
+    setQuantity(validQuantity);
   };
 
   const handleAddToCart = () => {
-    if (!selectedProduct) return;
+    // Validation: Check if product is selected
+    if (!selectedProduct) {
+      toast.error("Silakan pilih varian produk");
+      return;
+    }
 
-    // TODO: Implement add to cart functionality
-    console.log("Add to cart:", {
-      product: selectedProduct,
+    // Validation: Check if all required variants are selected
+    const variantGroups = getVariantGroups();
+    const allVariantsSelected = variantGroups.every(
+      (group) => selectedVariants[group.type]
+    );
+
+    if (!allVariantsSelected) {
+      toast.error("Silakan pilih semua varian produk");
+      return;
+    }
+
+    // Validation: Check if product is in stock
+    if (selectedProduct.stock === 0) {
+      toast.error("Produk tidak tersedia");
+      return;
+    }
+
+    // Validation: Check quantity against stock
+    if (quantity > selectedProduct.stock) {
+      toast.error("Jumlah melebihi stok tersedia", {
+        description: `Stok tersedia: ${selectedProduct.stock}`,
+      });
+      return;
+    }
+
+    // Extract thumbnail from product group images
+    const thumbnailUrl =
+      productGroup.images?.find((img) => img.isThumbnail)?.url ||
+      productGroup.images?.[0]?.url ||
+      null;
+
+    // Add item to cart
+    addToCartMutation.mutate({
+      product: {
+        productId: selectedProduct.id,
+        productGroupId: productGroup.id,
+        name: selectedProduct.name,
+        sku: selectedProduct.sku,
+        price: selectedProduct.price,
+        stock: selectedProduct.stock,
+        thumbnailUrl,
+        variantSelections: selectedVariants,
+      },
       quantity,
+    });
+
+    // Show success toast with action to view cart
+    toast.success("Produk berhasil ditambahkan ke keranjang", {
+      description: `${selectedProduct.name} (${quantity}x)`,
+      action: {
+        label: "Lihat Keranjang",
+        onClick: () => setIsCartDrawerOpen(true),
+      },
     });
   };
 
@@ -190,6 +261,9 @@ export function ProductDetailContent({
           />
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer open={isCartDrawerOpen} onOpenChange={setIsCartDrawerOpen} />
     </>
   );
 }

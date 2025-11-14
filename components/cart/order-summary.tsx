@@ -56,7 +56,7 @@ export function OrderSummary({
         asChild={hasSelectedItems}
       >
         {hasSelectedItems ? (
-          <Link href="/cart/summary">Checkout ({selectedCount} item)</Link>
+          <Link href="/checkout">Checkout ({selectedCount} item)</Link>
         ) : (
           <span>Checkout (0 item)</span>
         )}

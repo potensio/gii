@@ -7,7 +7,9 @@ import {
   boolean,
   uuid,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Role options
 const roleEnum = pgEnum("role", ["user", "admin", "super_admin"]);
@@ -211,9 +213,8 @@ export const carts = pgTable(
   "carts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
-      .notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }), // Now nullable for guest carts
+    sessionId: text("session_id"), // For guest cart identification
 
     // Metadata
     lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
@@ -222,6 +223,12 @@ export const carts = pgTable(
   },
   (table) => ({
     userIdIdx: index("cart_user_id_idx").on(table.userId),
+    sessionIdIdx: index("cart_session_id_idx").on(table.sessionId),
+    // Ensure at least one identifier exists
+    identifierCheck: check(
+      "carts_identifier_check",
+      sql`${table.userId} IS NOT NULL OR ${table.sessionId} IS NOT NULL`
+    ),
   })
 );
 
@@ -241,6 +248,8 @@ export const cartItems = pgTable(
       .notNull(),
 
     quantity: integer("quantity").notNull().default(1),
+    // Store variant selections as JSON (e.g., {"Color": "Black", "Storage": "128GB"})
+    variantSelections: text("variant_selections").notNull().default("{}"),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

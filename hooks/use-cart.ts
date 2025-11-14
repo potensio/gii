@@ -136,23 +136,6 @@ export const cartApi = {
   },
 
   /**
-   * Toggle item selection
-   */
-  toggleSelection: async (itemId: string): Promise<CartMutationResponse> => {
-    const response = await fetch(`/api/cart/${itemId}/toggle`, {
-      method: "PATCH",
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to toggle selection");
-    }
-
-    return response.json();
-  },
-
-  /**
    * Clear cart
    */
   clearCart: async (): Promise<CartMutationResponse> => {
@@ -321,75 +304,6 @@ export function useUpdateCartQuantity() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to update quantity");
-    },
-  });
-}
-
-/**
- * Toggle selection mutation
- */
-export function useToggleCartSelection() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (itemId: string) => cartApi.toggleSelection(itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to toggle selection");
-    },
-  });
-}
-
-/**
- * Select all cart items mutation
- */
-export function useSelectAllCart() {
-  const queryClient = useQueryClient();
-  const { data: cartData } = useCart();
-
-  return useMutation({
-    mutationFn: async () => {
-      // Toggle all items to selected
-      const items = cartData?.data?.items || [];
-      await Promise.all(
-        items
-          .filter((item) => !item.selected)
-          .map((item) => cartApi.toggleSelection(item.id))
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to select all items");
-    },
-  });
-}
-
-/**
- * Deselect all cart items mutation
- */
-export function useDeselectAllCart() {
-  const queryClient = useQueryClient();
-  const { data: cartData } = useCart();
-
-  return useMutation({
-    mutationFn: async () => {
-      // Toggle all items to deselected
-      const items = cartData?.data?.items || [];
-      await Promise.all(
-        items
-          .filter((item) => item.selected)
-          .map((item) => cartApi.toggleSelection(item.id))
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to deselect all items");
     },
   });
 }

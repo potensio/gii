@@ -28,8 +28,6 @@ export interface CartItem {
   thumbnailUrl: string | null;
   /** Variant selections (e.g., { "Warna": "Black", "Kapasitas": "128GB" }) */
   variantSelections: Record<string, string>;
-  /** Selection status for checkout */
-  selected: boolean;
   /** Timestamp when added */
   addedAt: number;
   /** Timestamp when last updated */

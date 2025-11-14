@@ -4,11 +4,20 @@ import {
   orders,
   orderItems,
   products,
+  users,
+  carts,
+  cartItems,
   type SelectOrder,
   type SelectOrderItem,
   type SelectProduct,
 } from "../db/schema";
 import { UserRole } from "../enums";
+import {
+  generateOrderNumber,
+  generateSecurePassword,
+} from "../utils/order.utils";
+import type { CartItem } from "../types/cart.types";
+import { ValidationError } from "../errors";
 
 type WhereCondition = SQL<unknown> | undefined;
 
@@ -28,6 +37,33 @@ export interface CompleteOrder {
     orderItem: SelectOrderItem;
     product: SelectProduct | null;
   }>;
+}
+
+export interface CreateOrderInput {
+  // Contact info
+  customerEmail: string;
+  customerName: string;
+  customerPhone: string;
+
+  // Shipping address
+  recipientName: string;
+  fullAddress: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  notes?: string;
+
+  // Cart items (passed from cart service)
+  cartItems: CartItem[];
+
+  // Session ID for guest user
+  sessionId: string;
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  orderNumber: string;
+  userId: string; // Newly created user ID
 }
 
 // === Query Filter Builders ===
@@ -189,5 +225,144 @@ export const orderService = {
     const completeOrders = groupOrdersByOrderId(queryResults);
 
     return completeOrders[0] || null;
+  },
+
+  /**
+   * Get orders for a specific user
+   * Returns all orders for the authenticated user with order items and product details
+   * Sorted by creation date (newest first)
+   */
+  async getUserOrders(userId: string): Promise<CompleteOrder[]> {
+    // Fetch orders with items for the specific user
+    const queryResults = await db
+      .select({
+        order: orders,
+        orderItem: orderItems,
+        product: products,
+      })
+      .from(orders)
+      .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .leftJoin(products, eq(products.id, orderItems.productId))
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt));
+
+    // Group order items by order
+    const completeOrders = groupOrdersByOrderId(queryResults);
+
+    return completeOrders;
+  },
+
+  /**
+   * Create order for guest checkout with auto-registration
+   * This method handles the complete guest checkout flow:
+   * 1. Checks for duplicate email
+   * 2. Creates user account with generated password
+   * 3. Creates order with auto-paid status
+   * 4. Creates order items from cart
+   * 5. Clears cart after successful order
+   */
+  async createGuestOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+    return await db.transaction(async (tx) => {
+      // 1. Check if email already exists before creating order
+      const existingUser = await tx
+        .select()
+        .from(users)
+        .where(eq(users.email, input.customerEmail))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        throw new ValidationError("Email sudah terdaftar");
+      }
+
+      // 2. Create user account first (required for order.userId)
+      const randomPassword = generateSecurePassword();
+      const [newUser] = await tx
+        .insert(users)
+        .values({
+          email: input.customerEmail,
+          name: input.customerName,
+          isConfirmed: true, // Auto-confirmed for guest checkout
+          isActive: true,
+          role: "user",
+        })
+        .returning();
+
+      // 3. Generate order number
+      const orderNumber = generateOrderNumber();
+
+      // 4. Calculate totals
+      const subtotal = input.cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const shippingCost = 15000; // Fixed shipping cost in IDR
+      const total = subtotal + shippingCost;
+
+      // 5. Create order record with the newly created userId
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          orderNumber,
+          userId: newUser.id,
+          customerEmail: input.customerEmail,
+          customerName: input.customerName,
+          shippingAddress: JSON.stringify({
+            recipientName: input.recipientName,
+            phone: input.customerPhone,
+            fullAddress: input.fullAddress,
+            city: input.city,
+            province: input.province,
+            postalCode: input.postalCode,
+            notes: input.notes,
+          }),
+          billingAddress: JSON.stringify({
+            recipientName: input.recipientName,
+            phone: input.customerPhone,
+            fullAddress: input.fullAddress,
+            city: input.city,
+            province: input.province,
+            postalCode: input.postalCode,
+          }),
+          subtotal,
+          shippingCost,
+          total,
+          orderStatus: "pending",
+          paymentStatus: "paid", // Auto-paid for MVP
+          currency: "IDR",
+          customerNotes: input.notes,
+        })
+        .returning();
+
+      // 6. Create order items from cart items
+      const orderItemsData = input.cartItems.map((item) => ({
+        orderId: order.id,
+        productId: item.productId,
+        productName: item.name,
+        productSku: item.sku,
+        imageUrl: item.thumbnailUrl,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+
+      await tx.insert(orderItems).values(orderItemsData);
+
+      // 7. Clear cart after successful order
+      const [cart] = await tx
+        .select()
+        .from(carts)
+        .where(eq(carts.sessionId, input.sessionId))
+        .limit(1);
+
+      if (cart) {
+        await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+      }
+
+      return {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        userId: newUser.id,
+      };
+    });
   },
 };

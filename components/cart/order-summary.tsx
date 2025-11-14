@@ -5,16 +5,14 @@ import Link from "next/link";
 
 interface OrderSummaryProps {
   totalItems: number;
-  selectedTotalPrice: number;
-  selectedCount: number;
-  hasSelectedItems: boolean;
+  totalPrice: number;
+  hasItems: boolean;
 }
 
 export function OrderSummary({
   totalItems,
-  selectedTotalPrice,
-  selectedCount,
-  hasSelectedItems,
+  totalPrice,
+  hasItems,
 }: OrderSummaryProps) {
   return (
     <div className="bg-white border rounded-lg p-4 md:p-6 lg:sticky lg:top-4 fixed bottom-0 left-0 right-0 lg:relative z-10 lg:z-auto shadow-lg lg:shadow-none border-t-2 lg:border-t transition-all duration-300">
@@ -31,7 +29,7 @@ export function OrderSummary({
         <div className="flex justify-between text-sm transition-all duration-300">
           <span className="text-gray-600">Total Harga</span>
           <span className="font-medium">
-            Rp{selectedTotalPrice.toLocaleString("id-ID")}
+            Rp{totalPrice.toLocaleString("id-ID")}
           </span>
         </div>
 
@@ -44,7 +42,7 @@ export function OrderSummary({
         <div className="flex justify-between items-center mb-4 transition-all duration-300">
           <span className="text-lg font-semibold">Total</span>
           <span className="text-xl font-bold">
-            Rp{selectedTotalPrice.toLocaleString("id-ID")}
+            Rp{totalPrice.toLocaleString("id-ID")}
           </span>
         </div>
       </div>
@@ -52,11 +50,11 @@ export function OrderSummary({
       <Button
         className="w-full transition-all duration-300"
         size="lg"
-        disabled={!hasSelectedItems}
-        asChild={hasSelectedItems}
+        disabled={!hasItems}
+        asChild={hasItems}
       >
-        {hasSelectedItems ? (
-          <Link href="/checkout">Checkout ({selectedCount} item)</Link>
+        {hasItems ? (
+          <Link href="/checkout">Checkout ({totalItems} item)</Link>
         ) : (
           <span>Checkout (0 item)</span>
         )}

@@ -35,7 +35,6 @@ export function isValidCartItem(item: unknown): item is CartItem {
       typeof cartItem.thumbnailUrl === "string") &&
     typeof cartItem.variantSelections === "object" &&
     cartItem.variantSelections !== null &&
-    typeof cartItem.selected === "boolean" &&
     typeof cartItem.addedAt === "number" &&
     cartItem.addedAt > 0 &&
     typeof cartItem.updatedAt === "number" &&
@@ -113,35 +112,10 @@ export function calculateCartTotal(items: CartItem[]): number {
 }
 
 /**
- * Calculate total price for selected items only
- */
-export function calculateSelectedTotal(items: CartItem[]): number {
-  return items
-    .filter((item) => item.selected)
-    .reduce((total, item) => total + item.price * item.quantity, 0);
-}
-
-/**
  * Get total number of items (sum of quantities)
  */
 export function getTotalItemCount(items: CartItem[]): number {
   return items.reduce((total, item) => total + item.quantity, 0);
-}
-
-/**
- * Get number of selected items (sum of quantities for selected items)
- */
-export function getSelectedItemCount(items: CartItem[]): number {
-  return items
-    .filter((item) => item.selected)
-    .reduce((total, item) => total + item.quantity, 0);
-}
-
-/**
- * Check if cart has any selected items
- */
-export function hasSelectedItems(items: CartItem[]): boolean {
-  return items.some((item) => item.selected);
 }
 
 /**

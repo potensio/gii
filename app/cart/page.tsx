@@ -11,7 +11,6 @@ import {
 } from "@/hooks/use-cart";
 import { CartItem } from "@/components/cart/cart-item";
 import { OrderSummary } from "@/components/cart/order-summary";
-import { CartSyncIndicator } from "@/components/cart/cart-sync-indicator";
 import { Button } from "@/components/ui/button";
 import { CartPageSkeleton } from "@/components/cart/cart-page-skeleton";
 import { ShoppingBag, AlertCircle } from "lucide-react";
@@ -33,45 +32,25 @@ export default function CartPage() {
   // Mutation hooks
   const updateQuantityMutation = useUpdateCartQuantity();
   const removeItemMutation = useRemoveFromCart();
-  const toggleSelectionMutation = useToggleCartSelection();
-  const selectAllMutation = useSelectAllCart();
-  const deselectAllMutation = useDeselectAllCart();
 
-  // Computed values
-  const selectedTotalPrice = useMemo(() => {
-    return items
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Computed values - all items are now included
+  const totalPrice = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
 
   const totalItems = useMemo(() => {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
-  const selectedCount = useMemo(() => {
-    return items
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + item.quantity, 0);
-  }, [items]);
-
-  const hasSelectedItems = useMemo(() => {
-    return items.some((item) => item.selected);
-  }, [items]);
+  const hasItems = items.length > 0;
 
   const cartLoading = cartQuery.isLoading;
   const isSyncing =
-    updateQuantityMutation.isPending ||
-    removeItemMutation.isPending ||
-    toggleSelectionMutation.isPending ||
-    selectAllMutation.isPending ||
-    deselectAllMutation.isPending;
+    updateQuantityMutation.isPending || removeItemMutation.isPending;
 
   const syncError =
     updateQuantityMutation.error?.message ||
     removeItemMutation.error?.message ||
-    toggleSelectionMutation.error?.message ||
-    selectAllMutation.error?.message ||
-    deselectAllMutation.error?.message ||
     null;
 
   // Action handlers
@@ -81,18 +60,6 @@ export default function CartPage() {
 
   const removeItem = (itemId: string) => {
     removeItemMutation.mutate(itemId);
-  };
-
-  const toggleSelection = (itemId: string) => {
-    toggleSelectionMutation.mutate(itemId);
-  };
-
-  const selectAll = () => {
-    selectAllMutation.mutate();
-  };
-
-  const deselectAll = () => {
-    deselectAllMutation.mutate();
   };
 
   const retrySync = () => {
@@ -173,12 +140,6 @@ export default function CartPage() {
       <div className="container mx-auto px-4 py-4 md:py-8 pb-32 lg:pb-8">
         <div className="flex items-center justify-between mb-4 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">Keranjang Belanja</h1>
-          <CartSyncIndicator
-            isSyncing={isSyncing}
-            syncError={syncError}
-            lastSyncedAt={lastSyncedAt}
-            onRetry={retrySync}
-          />
         </div>
 
         {items.length === 0 ? (
@@ -220,34 +181,6 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Bulk Selection Controls */}
-              <div className="mb-3 md:mb-4 p-3 md:p-4 bg-gray-50 rounded-lg border">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 text-xs md:text-sm">
-                    {items.filter((item) => item.selected).length} dari{" "}
-                    {items.length} item dipilih
-                  </span>
-                  <div className="flex gap-1 md:gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={selectAll}
-                      className="text-xs h-8 px-2 md:px-3"
-                    >
-                      Pilih Semua
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={deselectAll}
-                      className="text-xs h-8 px-2 md:px-3"
-                    >
-                      Batal Pilih
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
               {/* Cart Items */}
               <div className="bg-white border rounded-lg divide-y">
                 {items.map((item) => (
@@ -255,10 +188,9 @@ export default function CartPage() {
                     key={item.id}
                     item={item}
                     variant="page"
-                    selectable={true}
+                    selectable={false}
                     onQuantityChange={updateQuantity}
                     onRemove={removeItem}
-                    onSelectionChange={toggleSelection}
                   />
                 ))}
               </div>
@@ -268,9 +200,8 @@ export default function CartPage() {
             <div className="lg:col-span-1">
               <OrderSummary
                 totalItems={totalItems}
-                selectedTotalPrice={selectedTotalPrice}
-                selectedCount={selectedCount}
-                hasSelectedItems={hasSelectedItems}
+                totalPrice={totalPrice}
+                hasItems={hasItems}
               />
             </div>
           </div>

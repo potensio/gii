@@ -36,7 +36,6 @@ describe("cartService - Business Logic Tests", () => {
         stock: 10,
         thumbnailUrl: "https://example.com/image.jpg",
         variantSelections: {},
-        selected: true,
         addedAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -47,7 +46,6 @@ describe("cartService - Business Logic Tests", () => {
       assert.strictEqual(typeof mockCartItem.price, "number");
       assert.strictEqual(typeof mockCartItem.quantity, "number");
       assert.strictEqual(typeof mockCartItem.stock, "number");
-      assert.strictEqual(typeof mockCartItem.selected, "boolean");
     });
 
     it("should handle thumbnail URL extraction from images array", () => {
@@ -331,7 +329,6 @@ describe("cartService - Business Logic Tests", () => {
         stock: 10,
         thumbnailUrl: null,
         variantSelections: {},
-        selected: true,
         addedAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -339,7 +336,6 @@ describe("cartService - Business Logic Tests", () => {
       assert.ok(cartItem.id);
       assert.ok(cartItem.productId);
       assert.strictEqual(typeof cartItem.quantity, "number");
-      assert.strictEqual(typeof cartItem.selected, "boolean");
       assert.strictEqual(typeof cartItem.addedAt, "number");
       assert.strictEqual(typeof cartItem.updatedAt, "number");
     });

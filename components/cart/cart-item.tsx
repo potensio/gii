@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Plus, Minus, Trash2 } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { CartItem as CartItemType } from "@/lib/types/cart.types";
 
@@ -27,16 +26,8 @@ export function CartItem({
   onRemove,
   onSelectionChange,
 }: CartItemProps) {
-  const {
-    id,
-    name,
-    price,
-    quantity,
-    selected,
-    thumbnailUrl,
-    variantSelections,
-    sku,
-  } = item;
+  const { id, name, price, quantity, thumbnailUrl, variantSelections, sku } =
+    item;
 
   const [isRemoving, setIsRemoving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -93,20 +84,11 @@ export function CartItem({
     }, 300);
   };
 
-  const handleSelectionChange = (checked: boolean) => {
-    onSelectionChange?.(id, checked);
-  };
-
   const imageSize = variant === "drawer" ? "size-20" : "size-24 md:size-32";
   const containerClasses = cn(
     "flex py-3 md:py-4 gap-3 md:gap-4 transition-all duration-300 ease-in-out",
     variant === "drawer" ? "gap-4" : "gap-4 md:gap-6",
-    selected &&
-      selectable &&
-      "bg-blue-50 border border-blue-200 rounded-lg px-3 md:px-4",
-    !selected &&
-      selectable &&
-      "hover:bg-gray-50 rounded-lg px-3 md:px-4 transition-colors",
+    "hover:bg-gray-50 rounded-lg px-3 md:px-4 transition-colors",
     isRemoving && "opacity-0 scale-95 h-0 py-0 overflow-hidden",
     isUpdating && "scale-[0.99]"
   );
@@ -116,17 +98,6 @@ export function CartItem({
 
   return (
     <div className={containerClasses}>
-      {/* Checkbox for selection */}
-      {selectable && (
-        <div className="flex items-start pt-2">
-          <Checkbox
-            checked={selected}
-            onCheckedChange={handleSelectionChange}
-            aria-label={`Pilih ${name}`}
-          />
-        </div>
-      )}
-
       {/* Product Image with Link */}
       <Link href={`/product/${productSlug}`} className="flex-shrink-0">
         <div
@@ -152,14 +123,7 @@ export function CartItem({
             href={`/product/${productSlug}`}
             className="hover:text-blue-600 transition-colors"
           >
-            <h3
-              className={cn(
-                "text-sm md:text-base line-clamp-2",
-                selected && selectable && "font-semibold"
-              )}
-            >
-              {name}
-            </h3>
+            <h3 className="text-sm md:text-base line-clamp-2">{name}</h3>
           </Link>
           {variantText && (
             <p className="text-xs md:text-sm text-gray-500">{variantText}</p>

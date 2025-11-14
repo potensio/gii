@@ -13,25 +13,15 @@ export default function CheckoutPage() {
   const cartQuery = useCart();
   const items = cartQuery.data?.data?.items || [];
 
-  const selectedTotalPrice = useMemo(() => {
-    return items
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }, [items]);
-
-  const selectedCount = useMemo(() => {
-    return items
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
 
   const totalItems = useMemo(() => {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
-  const hasSelectedItems = useMemo(() => {
-    return items.some((item) => item.selected);
-  }, [items]);
+  const hasItems = items.length > 0;
 
   // Check if user is logged in
   const isLoggedIn = !!me?.data?.id;
@@ -45,16 +35,22 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Checkout Form Section - 2/3 width on desktop */}
           <div className="lg:col-span-2">
-            {isLoggedIn ? <AddressSelector /> : <GuestCheckoutForm />}
+            {isLoggedIn ? (
+              <AddressSelector />
+            ) : (
+              <GuestCheckoutForm
+                cartItems={items}
+                isCartLoading={cartQuery.isLoading}
+              />
+            )}
           </div>
 
           {/* Order Summary Section - 1/3 width on desktop */}
           <div className="lg:col-span-1">
             <OrderSummary
               totalItems={totalItems}
-              selectedTotalPrice={selectedTotalPrice}
-              selectedCount={selectedCount}
-              hasSelectedItems={hasSelectedItems}
+              totalPrice={totalPrice}
+              hasItems={hasItems}
             />
           </div>
         </div>

@@ -7,14 +7,11 @@ import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartItem } from "@/components/cart/cart-item";
 import { CartDrawerSkeleton } from "@/components/cart/cart-drawer-skeleton";
-import { CartSyncIndicator } from "@/components/cart/cart-sync-indicator";
+
 import {
   useCart,
   useUpdateCartQuantity,
   useRemoveFromCart,
-  useToggleCartSelection,
-  useSelectAllCart,
-  useDeselectAllCart,
 } from "@/hooks/use-cart";
 import { useRouter } from "next/navigation";
 
@@ -36,33 +33,21 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   // Mutation hooks
   const updateQuantityMutation = useUpdateCartQuantity();
   const removeItemMutation = useRemoveFromCart();
-  const toggleSelectionMutation = useToggleCartSelection();
-  const selectAllMutation = useSelectAllCart();
-  const deselectAllMutation = useDeselectAllCart();
 
   // Computed values
   const totalPrice = useMemo(() => {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
 
-  const hasSelectedItems = useMemo(() => {
-    return items.some((item) => item.selected);
-  }, [items]);
+  const hasItems = items.length > 0;
 
   const isLoading = cartQuery.isLoading;
   const isSyncing =
-    updateQuantityMutation.isPending ||
-    removeItemMutation.isPending ||
-    toggleSelectionMutation.isPending ||
-    selectAllMutation.isPending ||
-    deselectAllMutation.isPending;
+    updateQuantityMutation.isPending || removeItemMutation.isPending;
 
   const syncError =
     updateQuantityMutation.error?.message ||
     removeItemMutation.error?.message ||
-    toggleSelectionMutation.error?.message ||
-    selectAllMutation.error?.message ||
-    deselectAllMutation.error?.message ||
     null;
 
   // Action handlers
@@ -72,18 +57,6 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
 
   const removeItem = (itemId: string) => {
     removeItemMutation.mutate(itemId);
-  };
-
-  const toggleSelection = (itemId: string) => {
-    toggleSelectionMutation.mutate(itemId);
-  };
-
-  const selectAll = () => {
-    selectAllMutation.mutate();
-  };
-
-  const deselectAll = () => {
-    deselectAllMutation.mutate();
   };
 
   const retrySync = () => {
@@ -96,7 +69,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   }, []);
 
   const formattedSubtotal = totalPrice.toLocaleString("id-ID");
-  const selectedItemsCount = items.filter((item) => item.selected).length;
+  const totalItemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Note: Database sync is disabled, so no error toasts needed
   // Cart works with localStorage only
@@ -107,9 +80,9 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   };
 
   const handleCheckout = () => {
-    if (hasSelectedItems) {
+    if (hasItems) {
       onOpenChange(false);
-      router.push("/cart/summary");
+      router.push("/checkout");
     }
   };
 
@@ -118,7 +91,6 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       <SheetContent
         side="right"
         className="flex h-full w-full flex-col p-0 sm:max-w-[480px]"
-        showCloseButton={false}
       >
         {/* Header */}
         <SheetHeader className="border-b px-4 md:px-6 py-4">
@@ -128,12 +100,6 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
               <span className="text-xl font-semibold">Keranjang Belanja</span>
             </div>
             <div className="flex items-center gap-3">
-              <CartSyncIndicator
-                isSyncing={isSyncing}
-                syncError={syncError}
-                lastSyncedAt={lastSyncedAt}
-                onRetry={retrySync}
-              />
               <Button
                 variant="ghost"
                 size="icon"
@@ -151,35 +117,6 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
           <CartDrawerSkeleton />
         ) : (
           <>
-            {/* Bulk Selection Controls */}
-            {items.length > 0 && (
-              <div className="px-4 md:px-6 py-3 border-b bg-gray-50">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
-                    {selectedItemsCount} dari {items.length} item dipilih
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={selectAll}
-                      className="text-xs h-8"
-                    >
-                      Pilih Semua
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={deselectAll}
-                      className="text-xs h-8"
-                    >
-                      Batal Pilih
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Cart Items List */}
             <ScrollArea className="flex-1 px-4 md:px-6">
               {items.length > 0 ? (
@@ -189,10 +126,9 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                       key={item.id}
                       item={item}
                       variant="drawer"
-                      selectable={true}
+                      selectable={false}
                       onQuantityChange={updateQuantity}
                       onRemove={removeItem}
-                      onSelectionChange={toggleSelection}
                     />
                   ))}
                 </div>
@@ -234,10 +170,10 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                 <div className="flex flex-col gap-3">
                   <Button
                     className="w-full h-11 text-base font-medium"
-                    disabled={!hasSelectedItems}
+                    disabled={!hasItems}
                     onClick={handleCheckout}
                   >
-                    Checkout ({selectedItemsCount} item)
+                    Checkout ({totalItemsCount} item)
                   </Button>
                   <Button
                     variant="outline"

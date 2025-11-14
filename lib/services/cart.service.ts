@@ -104,7 +104,6 @@ export const cartService = {
           stock: item.product.stock,
           thumbnailUrl,
           variantSelections,
-          selected: true, // Default to selected
           addedAt: item.cartItem.createdAt.getTime(),
           updatedAt: item.cartItem.updatedAt.getTime(),
         };
@@ -374,70 +373,6 @@ export const cartService = {
   },
 
   /**
-   * Toggle item selection status
-   * Note: Current schema doesn't have a 'selected' field in cartItems table
-   * This method is a placeholder for future implementation
-   * @param identifier - User ID for authenticated users or session ID for guests
-   * @param itemId - Cart item ID
-   */
-  async toggleSelection(identifier: string, itemId: string): Promise<void> {
-    try {
-      // Determine if identifier is a user ID (UUID) or session ID
-      const isUser = isUserId(identifier);
-
-      // Get cart by appropriate identifier field
-      const userCart = await db
-        .select()
-        .from(carts)
-        .where(
-          isUser
-            ? eq(carts.userId, identifier)
-            : eq(carts.sessionId, identifier)
-        )
-        .limit(1);
-
-      if (userCart.length === 0) {
-        throw new NotFoundError("Cart not found");
-      }
-
-      const cartId = userCart[0].id;
-
-      // Verify cart item exists
-      const cartItemData = await db
-        .select()
-        .from(cartItems)
-        .where(and(eq(cartItems.cartId, cartId), eq(cartItems.id, itemId)))
-        .limit(1);
-
-      if (cartItemData.length === 0) {
-        throw new NotFoundError("Cart item not found");
-      }
-
-      // Note: Current schema doesn't have 'selected' field
-      // This would need a schema migration to add the field
-      // For now, we just update the timestamp
-      await db
-        .update(cartItems)
-        .set({
-          updatedAt: new Date(),
-        })
-        .where(eq(cartItems.id, itemId));
-
-      // Update cart last activity
-      await db
-        .update(carts)
-        .set({ lastActivityAt: new Date(), updatedAt: new Date() })
-        .where(eq(carts.id, cartId));
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      console.error("Error toggling cart item selection:", error);
-      throw new DatabaseError("Failed to toggle cart item selection");
-    }
-  },
-
-  /**
    * Clear all items from cart
    * @param identifier - User ID for authenticated users or session ID for guests
    */
@@ -652,6 +587,28 @@ export const cartService = {
     } catch (error) {
       console.error("Error validating cart items:", error);
       throw new DatabaseError("Failed to validate cart items");
+    }
+  },
+
+  /**
+   * Validate session and cart association
+   * Ensures the session ID exists and has an associated cart in the database
+   * @param sessionId - Session ID to validate
+   * @returns True if session has a valid cart, false otherwise
+   */
+  async validateSession(sessionId: string): Promise<boolean> {
+    try {
+      // Check if cart exists for this session ID
+      const userCart = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.sessionId, sessionId))
+        .limit(1);
+
+      return userCart.length > 0;
+    } catch (error) {
+      console.error("Error validating session:", error);
+      throw new DatabaseError("Failed to validate session");
     }
   },
 };

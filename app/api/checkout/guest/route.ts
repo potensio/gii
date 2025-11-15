@@ -20,7 +20,7 @@ interface CheckoutRequest {
 }
 
 /**
- * POST /api/checkout
+ * POST /api/checkout/guest
  * Process guest checkout: validate cart, create order, auto-register user, set auth cookie
  */
 export async function POST(request: NextRequest) {

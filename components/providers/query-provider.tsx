@@ -3,16 +3,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
-import { useAutoClaimCart } from "@/hooks/use-cart";
-
-/**
- * Cart Auto-Claim Component
- * Automatically claims guest cart when user logs in
- */
-function CartAutoClaim() {
-  useAutoClaimCart();
-  return null;
-}
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -29,7 +19,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CartAutoClaim />
       {children}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

@@ -13,14 +13,8 @@ export function extractToken(request: NextRequest): string | undefined {
 export function decodeUserRole(request: NextRequest): UserRole | undefined {
   try {
     const token = extractToken(request);
-    console.log("🔍 [decodeUserRole] Token found:", !!token);
-    console.log(
-      "🔍 [decodeUserRole] Token value:",
-      token?.substring(0, 20) + "..."
-    );
 
     if (!token) {
-      console.log("❌ [decodeUserRole] No token found in cookies");
       return undefined;
     }
 
@@ -28,14 +22,8 @@ export function decodeUserRole(request: NextRequest): UserRole | undefined {
       role?: UserRole;
       userId?: string;
     };
-
-    console.log("✅ [decodeUserRole] Token decoded successfully");
-    console.log("🔍 [decodeUserRole] User ID:", decoded.userId);
-    console.log("🔍 [decodeUserRole] Role:", decoded.role);
-
     return decoded.role;
   } catch (error) {
-    console.log("❌ [decodeUserRole] Token verification failed:", error);
     return undefined;
   }
 }

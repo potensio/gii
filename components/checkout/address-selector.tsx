@@ -175,7 +175,6 @@ export function AddressSelector({
                 </div>
 
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>{address.phoneNumber}</p>
                   <p>{address.streetAddress}</p>
                   {address.addressLine2 && <p>{address.addressLine2}</p>}
                   <p>
@@ -256,7 +255,6 @@ export function AddressSelector({
             <AddressForm
               initialData={{
                 recipientName: editingAddress.recipientName,
-                phoneNumber: editingAddress.phoneNumber,
                 streetAddress: editingAddress.streetAddress,
                 addressLine2: editingAddress.addressLine2 || "",
                 city: editingAddress.city,

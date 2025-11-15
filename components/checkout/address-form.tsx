@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 // Zod validation schema for address
 const addressSchema = z.object({
   recipientName: z.string().min(3, "Nama penerima minimal 3 karakter"),
-  phoneNumber: z.string().min(10, "Nomor telepon minimal 10 digit"),
   streetAddress: z.string().min(10, "Alamat lengkap minimal 10 karakter"),
   addressLine2: z.string().optional(),
   city: z.string().min(2, "Kota harus diisi"),
@@ -47,7 +46,6 @@ export function AddressForm({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       recipientName: initialData?.recipientName || "",
-      phoneNumber: initialData?.phoneNumber || "",
       streetAddress: initialData?.streetAddress || "",
       addressLine2: initialData?.addressLine2 || "",
       city: initialData?.city || "",
@@ -73,21 +71,6 @@ export function AddressForm({
           {form.formState.errors.recipientName && (
             <p className="text-destructive text-sm">
               {form.formState.errors.recipientName.message}
-            </p>
-          )}
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="phoneNumber">Nomor Telepon</FieldLabel>
-          <Input
-            id="phoneNumber"
-            type="tel"
-            placeholder="08xxxxxxxxxx"
-            {...form.register("phoneNumber")}
-          />
-          {form.formState.errors.phoneNumber && (
-            <p className="text-destructive text-sm">
-              {form.formState.errors.phoneNumber.message}
             </p>
           )}
         </Field>
@@ -183,21 +166,23 @@ export function AddressForm({
         )}
       </FieldGroup>
 
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? "Menyimpan..." : submitButtonText}
-        </Button>
-        {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
-            {cancelButtonText}
+      {submitButtonText && (
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" disabled={isSubmitting} className="flex-1">
+            {isSubmitting ? "Menyimpan..." : submitButtonText}
           </Button>
-        )}
-      </div>
+          {onCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
+              {cancelButtonText}
+            </Button>
+          )}
+        </div>
+      )}
     </form>
   );
 }

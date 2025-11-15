@@ -1,8 +1,15 @@
+"use client";
+
+// Tanstack query
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// Types & Interfaces
 import type { InferSelectModel } from "drizzle-orm";
-import { productGroups, productVariants, products } from "@/lib/db/schema";
-import { toast } from "sonner";
 import type { ProductSchema } from "@/lib/validations/product.validation";
+import { productGroups, productVariants, products } from "@/lib/db/schema";
+
+// Hooks
+import { toast } from "sonner";
 
 export interface CompleteProduct {
   productGroup: InferSelectModel<typeof productGroups> & {

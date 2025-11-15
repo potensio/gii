@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -204,7 +205,7 @@ function MyOrderContent() {
                       className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg"
                     >
                       {item.imageUrl && (
-                        <img
+                        <Image
                           src={item.imageUrl}
                           alt={item.productName}
                           className="w-16 h-16 object-cover rounded"

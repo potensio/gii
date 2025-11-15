@@ -261,6 +261,7 @@ export const useAuth = () => {
     isError: isVerifyError,
   } = useVerify("email", "");
   const { data: me, isPending: isMeLoading, isError: isMeError } = useMe();
+  const isLoggedIn = !!me?.data?.id;
 
   return {
     login,
@@ -268,6 +269,7 @@ export const useAuth = () => {
     register,
     verify,
     me,
+    isLoggedIn,
     isLoginLoading,
     isLoginError,
     isLogoutLoading,

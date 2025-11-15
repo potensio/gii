@@ -15,8 +15,7 @@ import { ShoppingBag, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MainNavigation } from "@/components/common/main-navigation";
-import { cartApi } from "@/lib/api/cart.api";
-import type { ValidationResult } from "@/lib/api/cart.api";
+import { cartApi, type ValidationResult } from "@/hooks/use-cart";
 
 export default function CartPage() {
   // Track if component is mounted on client (Requirement 9.3, 9.4)

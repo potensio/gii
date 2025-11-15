@@ -1,8 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useAddresses } from "@/hooks/use-addresses";
@@ -13,23 +11,24 @@ import {
 import { MainNavigation } from "@/components/common/main-navigation";
 import { AddressSelector } from "@/components/checkout/address-selector";
 import {
-  GuestCheckoutForm,
-  type GuestCheckoutFormRef,
-} from "@/components/checkout/guest-checkout-form";
-import { OrderSummaryCard } from "@/components/checkout/order-summary-card";
+  ContactInfoForm,
+  type ContactInfoFormRef,
+} from "@/components/checkout/contact-info-form";
 import {
-  authenticatedCheckoutSchema,
-  type AuthenticatedCheckoutSchema,
-} from "@/lib/validations/checkout.validation";
+  AddressForm,
+  type AddressFormRef,
+} from "@/components/checkout/address-form";
+import { OrderSummaryCard } from "@/components/checkout/order-summary-card";
 
 export default function CheckoutPage() {
-  const { isLoggedIn, isMeLoading } = useAuth();
   const cartQuery = useCart();
+  const { isLoggedIn, isMeLoading } = useAuth();
   const { addresses, isLoading: isAddressesLoading } = useAddresses();
   const guestCheckout = useGuestCheckout();
   const authenticatedCheckout = useAuthenticatedCheckout();
 
-  const guestFormRef = useRef<GuestCheckoutFormRef>(null);
+  const contactFormRef = useRef<ContactInfoFormRef>(null);
+  const addressFormRef = useRef<AddressFormRef>(null);
 
   const cartItems = cartQuery.data?.data?.items || [];
 
@@ -37,33 +36,41 @@ export default function CheckoutPage() {
   const defaultAddress =
     addresses?.find((addr) => addr.isDefault) || addresses?.[0];
 
-  // Form for authenticated users
-  const authenticatedForm = useForm<AuthenticatedCheckoutSchema>({
-    resolver: zodResolver(authenticatedCheckoutSchema),
-    values: {
-      addressId: defaultAddress?.id || "",
-    },
-  });
+  // Simple state for selected address (authenticated users only)
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // Sync selectedAddressId with defaultAddress
+  useEffect(() => {
+    if (defaultAddress?.id) {
+      setSelectedAddressId(defaultAddress.id);
+    }
+  }, [defaultAddress?.id]);
 
   // Handle checkout
   const handleCheckout = () => {
     if (isLoggedIn) {
-      const addressId = authenticatedForm.watch("addressId");
-      if (addressId) {
-        authenticatedCheckout.mutate(addressId);
+      if (selectedAddressId) {
+        authenticatedCheckout.mutate(selectedAddressId);
       }
     } else {
-      const guestData = guestFormRef.current?.getData();
-      if (guestData) {
-        guestCheckout.mutate(guestData);
+      // Combine contact info + address for guest checkout
+      const contactData = contactFormRef.current?.getData();
+      const addressData = addressFormRef.current?.getData();
+
+      if (contactData && addressData) {
+        guestCheckout.mutate({
+          email: contactData.email,
+          phone: contactData.phone,
+          address: addressData,
+        });
       }
     }
   };
 
   // Determine if checkout button should be disabled
   const isCheckoutDisabled = isLoggedIn
-    ? !authenticatedForm.watch("addressId")
-    : !guestFormRef.current?.isValid();
+    ? !selectedAddressId
+    : !(contactFormRef.current?.isValid() && addressFormRef.current?.isValid());
 
   const isSubmitting = isLoggedIn
     ? authenticatedCheckout.isPending
@@ -85,39 +92,54 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col min-h-screen">
       <MainNavigation />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6">Checkout</h1>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+      <div className="grid grid-cols-2 flex-1 h-full">
+        <div className="col-span-1 space-y-6 p-10">
+          <div className="">
             {isLoggedIn ? (
               <AddressSelector
                 addresses={addresses || []}
-                selectedAddressId={authenticatedForm.watch("addressId")}
-                onSelectAddress={(addressId) =>
-                  authenticatedForm.setValue("addressId", addressId, {
-                    shouldValidate: true,
-                  })
-                }
+                selectedAddressId={selectedAddressId}
+                onSelectAddress={setSelectedAddressId}
               />
             ) : (
-              <GuestCheckoutForm
-                ref={guestFormRef}
-                isSubmitting={isSubmitting}
-              />
+              <div className="space-y-8">
+                {/* Contact Information Section */}
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold leading-tight">
+                    Informasi Kontak
+                  </h2>
+                  <ContactInfoForm
+                    ref={contactFormRef}
+                    isSubmitting={isSubmitting}
+                  />
+                </div>
+
+                {/* Delivery Address Section */}
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold leading-tight">
+                    Alamat Pengiriman
+                  </h2>
+                  <AddressForm
+                    ref={addressFormRef}
+                    isSubmitting={isSubmitting}
+                    showDefaultCheckbox={false}
+                    showSubmitButton={false}
+                  />
+                </div>
+              </div>
             )}
           </div>
+        </div>
 
-          <div className="lg:col-span-1">
-            <OrderSummaryCard
-              cartItems={cartItems}
-              onCheckout={handleCheckout}
-              isSubmitting={isSubmitting}
-              disabled={isCheckoutDisabled}
-            />
-          </div>
+        <div className="col-span-1 bg-muted">
+          <OrderSummaryCard
+            cartItems={cartItems}
+            onCheckout={handleCheckout}
+            isSubmitting={isSubmitting}
+            disabled={isCheckoutDisabled}
+          />
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ export const contactInfoSchema = z.object({
   phone: z.string().min(10, "Nomor telepon minimal 10 digit"),
 });
 
-// Address validation schema
+// Address validation schema (base)
 export const addressSchema = z.object({
   recipientName: z.string().min(3, "Nama penerima minimal 3 karakter"),
   streetAddress: z.string().min(10, "Alamat lengkap minimal 10 karakter"),
@@ -14,6 +14,11 @@ export const addressSchema = z.object({
   city: z.string().min(2, "Kota harus diisi"),
   state: z.string().min(2, "Provinsi harus diisi"),
   postalCode: z.string().regex(/^\d{5}$/, "Kode pos harus 5 digit"),
+});
+
+// Address form schema (with isDefault for create/edit)
+export const addressFormSchema = addressSchema.extend({
+  isDefault: z.boolean().optional(),
 });
 
 // Guest checkout validation schema (combines contact + address)
@@ -30,6 +35,7 @@ export const authenticatedCheckoutSchema = z.object({
 
 export type ContactInfoSchema = z.infer<typeof contactInfoSchema>;
 export type AddressSchema = z.infer<typeof addressSchema>;
+export type AddressFormSchema = z.infer<typeof addressFormSchema>;
 export type GuestCheckoutSchema = z.infer<typeof guestCheckoutSchema>;
 export type AuthenticatedCheckoutSchema = z.infer<
   typeof authenticatedCheckoutSchema

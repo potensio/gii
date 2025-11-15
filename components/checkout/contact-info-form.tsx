@@ -1,76 +1,81 @@
 "use client";
 
+import { useImperativeHandle, forwardRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-// Zod validation schema for contact info
-const contactInfoSchema = z.object({
-  email: z.string().email("Email tidak valid"),
-  phone: z.string().min(10, "Nomor telepon minimal 10 digit"),
-});
-
-export type ContactInfoFormData = z.infer<typeof contactInfoSchema>;
+import {
+  contactInfoSchema,
+  type ContactInfoSchema,
+} from "@/lib/validations/checkout.validation";
 
 interface ContactInfoFormProps {
-  initialData?: Partial<ContactInfoFormData>;
-  onSubmit?: (data: ContactInfoFormData) => void;
   isSubmitting?: boolean;
 }
 
-export function ContactInfoForm({
-  initialData,
-  onSubmit,
-  isSubmitting = false,
-}: ContactInfoFormProps) {
-  const form = useForm<ContactInfoFormData>({
+export interface ContactInfoFormRef {
+  getData: () => ContactInfoSchema | null;
+  isValid: () => boolean;
+}
+
+export const ContactInfoForm = forwardRef<
+  ContactInfoFormRef,
+  ContactInfoFormProps
+>(({ isSubmitting = false }, ref) => {
+  const form = useForm<ContactInfoSchema>({
     resolver: zodResolver(contactInfoSchema),
+    mode: "onChange",
     defaultValues: {
-      email: initialData?.email || "",
-      phone: initialData?.phone || "",
+      email: "",
+      phone: "",
     },
   });
 
-  return (
-    <form
-      onSubmit={onSubmit ? form.handleSubmit(onSubmit) : undefined}
-      className="space-y-4"
-    >
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            placeholder="contoh@email.com"
-            disabled={isSubmitting}
-            {...form.register("email")}
-          />
-          {form.formState.errors.email && (
-            <p className="text-destructive text-sm">
-              {form.formState.errors.email.message}
-            </p>
-          )}
-        </Field>
+  // Expose methods to parent
+  useImperativeHandle(ref, () => ({
+    getData: () => {
+      const values = form.getValues();
+      return form.formState.isValid ? values : null;
+    },
+    isValid: () => form.formState.isValid,
+  }));
 
-        <Field>
-          <FieldLabel htmlFor="phone">No. Telepon</FieldLabel>
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="+62 812-3456-7890"
-            disabled={isSubmitting}
-            {...form.register("phone")}
-          />
-          {form.formState.errors.phone && (
-            <p className="text-destructive text-sm">
-              {form.formState.errors.phone.message}
-            </p>
-          )}
-        </Field>
-      </FieldGroup>
-    </form>
+  return (
+    <FieldGroup>
+      <Field>
+        <FieldLabel htmlFor="email">Email</FieldLabel>
+        <Input
+          id="email"
+          type="email"
+          placeholder="contoh@email.com"
+          disabled={isSubmitting}
+          {...form.register("email")}
+        />
+        {form.formState.errors.email && (
+          <p className="text-destructive text-sm">
+            {form.formState.errors.email.message}
+          </p>
+        )}
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor="phone">No. Telepon</FieldLabel>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+62 812-3456-7890"
+          disabled={isSubmitting}
+          {...form.register("phone")}
+        />
+        {form.formState.errors.phone && (
+          <p className="text-destructive text-sm">
+            {form.formState.errors.phone.message}
+          </p>
+        )}
+      </Field>
+    </FieldGroup>
   );
-}
+});
+
+ContactInfoForm.displayName = "ContactInfoForm";

@@ -18,7 +18,7 @@ export function OrderSummaryCard({
   onCheckout,
   isSubmitting,
   disabled,
-  buttonText = "Buat Pesanan",
+  buttonText = "Bayar Sekarang",
 }: OrderSummaryCardProps) {
   const totalCartItems = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -35,39 +35,29 @@ export function OrderSummaryCard({
   const isDisabled = !hasCartItems || disabled || isSubmitting;
 
   return (
-    <Card className="p-6 sticky top-4">
-      <h2 className="text-xl font-semibold mb-4">Ringkasan Pesanan</h2>
-
-      <div className="space-y-3 mb-6">
+    <div className="space-y-4 leading-tight">
+      <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Total Produk</span>
-          <span className="font-medium">{totalCartItems} item</span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Subtotal</span>
+          <span className="text-foreground/75 font-medium">Subtotal</span>
           <span className="font-medium">
             Rp{subtotal.toLocaleString("id-ID")}
           </span>
         </div>
 
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Ongkos Kirim</span>
+          <span className="text-foreground/75 font-medium">Ongkos Kirim</span>
           <span className="font-medium">
             Rp{shippingCost.toLocaleString("id-ID")}
           </span>
         </div>
-      </div>
 
-      <div className="border-t pt-4 mb-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center">
           <span className="text-lg font-semibold">Total</span>
-          <span className="text-xl font-bold">
+          <span className="text-xl font-semibold">
             Rp{total.toLocaleString("id-ID")}
           </span>
         </div>
       </div>
-
       <Button
         className="w-full"
         size="lg"
@@ -76,6 +66,6 @@ export function OrderSummaryCard({
       >
         {isSubmitting ? "Memproses..." : buttonText}
       </Button>
-    </Card>
+    </div>
   );
 }

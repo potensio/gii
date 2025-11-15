@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-import { Input } from "@/components/ui/input-1";
+import { Input } from "@/components/ui/input";
 
 const InputFloatingLabelDemo = () => {
   const id = useId();

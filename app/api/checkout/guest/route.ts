@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
  * Request body interface for checkout
  */
 interface CheckoutRequest {
+  fullName: string;
   email: string;
   phone: string;
   recipientName: string;
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Call order service to create order
     const result = await orderService.createGuestOrder({
       customerEmail: body.email,
-      customerName: body.recipientName,
+      customerName: body.fullName,
       customerPhone: body.phone,
       recipientName: body.recipientName,
       fullAddress: body.fullAddress,

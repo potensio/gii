@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export interface GuestCheckoutData {
+  fullName: string;
   email: string;
   phone: string;
   address: {
@@ -56,6 +57,7 @@ export const checkoutApi = {
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
+        fullName: data.fullName,
         email: data.email,
         phone: data.phone,
         recipientName: data.address.recipientName,

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input-1";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Rating, RatingButton } from "./ui/shadcn-io/rating";
 import { cn } from "@/lib/utils";

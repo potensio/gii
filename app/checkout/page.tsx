@@ -19,6 +19,8 @@ import {
   type AddressFormRef,
 } from "@/components/checkout/address-form";
 import { OrderSummaryCard } from "@/components/checkout/order-summary-card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function CheckoutPage() {
   const cartQuery = useCart();
@@ -59,6 +61,7 @@ export default function CheckoutPage() {
 
       if (contactData && addressData) {
         guestCheckout.mutate({
+          fullName: contactData.fullName,
           email: contactData.email,
           phone: contactData.phone,
           address: addressData,
@@ -95,8 +98,8 @@ export default function CheckoutPage() {
     <div className="flex flex-col min-h-screen">
       <MainNavigation />
       <div className="grid grid-cols-2 flex-1 h-full">
-        <div className="col-span-1 space-y-6 p-10">
-          <div className="">
+        <div className="col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-end">
+          <div className="flex-1 max-w-lg">
             {isLoggedIn ? (
               <AddressSelector
                 addresses={addresses || []}
@@ -133,13 +136,19 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="col-span-1 bg-muted">
-          <OrderSummaryCard
-            cartItems={cartItems}
-            onCheckout={handleCheckout}
-            isSubmitting={isSubmitting}
-            disabled={isCheckoutDisabled}
-          />
+        <div className="bg-muted col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-start">
+          <div className="flex-1 max-w-lg space-y-4">
+            <h2 className="text-lg font-semibold leading-tight">
+              Ringkasan Pesanan
+            </h2>
+
+            <OrderSummaryCard
+              cartItems={cartItems}
+              onCheckout={handleCheckout}
+              isSubmitting={isSubmitting}
+              disabled={isCheckoutDisabled}
+            />
+          </div>
         </div>
       </div>
     </div>

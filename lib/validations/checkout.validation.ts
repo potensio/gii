@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Contact info validation schema
 export const contactInfoSchema = z.object({
+  fullName: z.string().min(3, "Nama lengkap minimal 3 karakter"),
   email: z.string().email("Email tidak valid"),
   phone: z.string().min(10, "Nomor telepon minimal 10 digit"),
 });
@@ -23,6 +24,7 @@ export const addressFormSchema = addressSchema.extend({
 
 // Guest checkout validation schema (combines contact + address)
 export const guestCheckoutSchema = z.object({
+  fullName: z.string().min(3, "Nama lengkap minimal 3 karakter"),
   email: z.string().email("Email tidak valid"),
   phone: z.string().min(10, "Nomor telepon minimal 10 digit"),
   address: addressSchema,

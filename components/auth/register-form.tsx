@@ -20,7 +20,7 @@ import {
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input-1";
 
 interface RegisterFormProps extends React.ComponentProps<"div"> {
   className?: string;

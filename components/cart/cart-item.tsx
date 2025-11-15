@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Plus, Minus, Trash2 } from "lucide-react";
-import { Input } from "../ui/input";
+import { Input } from "../ui/input-1";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import type { CartItem as CartItemType } from "@/lib/types/cart.types";

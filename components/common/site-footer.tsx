@@ -16,7 +16,7 @@ import CircularText from "../CircularText/CircularText";
 import { useEffect, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input-1";
 
 export function SiteFooter() {
   const [scrollY, setScrollY] = useState(0);

@@ -11,6 +11,7 @@ export interface GuestCheckoutData {
   address: {
     addressLabel: string;
     streetAddress: string;
+    village: string;
     district: string;
     city: string;
     state: string;
@@ -62,6 +63,7 @@ export const checkoutApi = {
         phone: data.phone,
         addressLabel: data.address.addressLabel,
         fullAddress: data.address.streetAddress,
+        village: data.address.village,
         district: data.address.district,
         city: data.address.city,
         province: data.address.state,

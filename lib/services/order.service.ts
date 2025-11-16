@@ -49,6 +49,7 @@ export interface CreateOrderInput {
   // Shipping address
   addressLabel: string;
   fullAddress: string;
+  village: string;
   district: string;
   city: string;
   province: string;
@@ -59,6 +60,9 @@ export interface CreateOrderInput {
 
   // Session ID for guest user
   sessionId: string;
+
+  // Optional notes
+  notes?: string;
 }
 
 export interface CreateOrderResult {
@@ -322,6 +326,7 @@ export const orderService = {
             addressLabel: input.addressLabel,
             phone: input.customerPhone,
             fullAddress: input.fullAddress,
+            village: input.village,
             district: input.district,
             city: input.city,
             province: input.province,
@@ -331,6 +336,7 @@ export const orderService = {
             addressLabel: input.addressLabel,
             phone: input.customerPhone,
             fullAddress: input.fullAddress,
+            village: input.village,
             district: input.district,
             city: input.city,
             province: input.province,
@@ -435,6 +441,7 @@ export const orderService = {
         addressLabel: address.addressLabel,
         phone: user.email, // Use email as fallback since phone removed from address
         fullAddress: address.streetAddress,
+        village: address.village,
         district: address.district,
         city: address.city,
         state: address.state,

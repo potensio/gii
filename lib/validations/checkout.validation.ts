@@ -23,6 +23,7 @@ export const addressSchema = z.object({
     errorMap: () => ({ message: "Pilih jenis alamat" }),
   }),
   streetAddress: z.string().min(10, "Alamat lengkap minimal 10 karakter"),
+  village: z.string().min(2, "Kelurahan harus diisi"),
   district: z.string().min(2, "Kecamatan harus diisi"),
   city: z.string().min(2, "Kota harus diisi"),
   state: z.string().min(2, "Provinsi harus diisi"),

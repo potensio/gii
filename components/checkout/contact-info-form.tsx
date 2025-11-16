@@ -1,7 +1,6 @@
 "use client";
 
-import { useImperativeHandle, forwardRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -12,17 +11,13 @@ import {
 
 interface ContactInfoFormProps {
   isSubmitting?: boolean;
+  formRef?: (form: UseFormReturn<ContactInfoSchema>) => void;
 }
 
-export interface ContactInfoFormRef {
-  getData: () => ContactInfoSchema | null;
-  isValid: () => boolean;
-}
-
-export const ContactInfoForm = forwardRef<
-  ContactInfoFormRef,
-  ContactInfoFormProps
->(({ isSubmitting = false }, ref) => {
+export const ContactInfoForm = ({
+  isSubmitting = false,
+  formRef,
+}: ContactInfoFormProps) => {
   const form = useForm<ContactInfoSchema>({
     resolver: zodResolver(contactInfoSchema),
     mode: "onChange",
@@ -33,14 +28,10 @@ export const ContactInfoForm = forwardRef<
     },
   });
 
-  // Expose methods to parent
-  useImperativeHandle(ref, () => ({
-    getData: () => {
-      const values = form.getValues();
-      return form.formState.isValid ? values : null;
-    },
-    isValid: () => form.formState.isValid,
-  }));
+  // Expose form to parent
+  if (formRef) {
+    formRef(form);
+  }
 
   return (
     <FieldGroup className="gap-4">
@@ -122,4 +113,4 @@ export const ContactInfoForm = forwardRef<
       </Field>
     </FieldGroup>
   );
-});
+};

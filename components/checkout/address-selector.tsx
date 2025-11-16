@@ -177,8 +177,8 @@ export function AddressSelector({
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{address.streetAddress}</p>
                   <p>
-                    {address.district}, {address.city}, {address.state}{" "}
-                    {address.postalCode}
+                    {address.village}, {address.district}, {address.city},{" "}
+                    {address.state} {address.postalCode}
                   </p>
                 </div>
 
@@ -254,8 +254,10 @@ export function AddressSelector({
           {editingAddress && (
             <AddressForm
               initialData={{
-                addressLabel: editingAddress.addressLabel,
+                addressLabel:
+                  editingAddress.addressLabel as AddressFormData["addressLabel"],
                 streetAddress: editingAddress.streetAddress,
+                village: editingAddress.village,
                 district: editingAddress.district,
                 city: editingAddress.city,
                 state: editingAddress.state,

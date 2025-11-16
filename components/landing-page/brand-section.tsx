@@ -36,6 +36,8 @@ export function BrandSection() {
                     alt={`Placeholder ${index}`}
                     className="overflow-hidden rounded-full"
                     src={`https://placehold.co/128x128?random=${index}`}
+                    width={100}
+                    height={100}
                   />
                 </MarqueeItem>
               ))}

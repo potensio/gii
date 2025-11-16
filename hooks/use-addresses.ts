@@ -82,6 +82,7 @@ export const useAddresses = () => {
   const addressesQuery = useQuery({
     queryKey: ["addresses"],
     queryFn: addressApi.getAddresses,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({

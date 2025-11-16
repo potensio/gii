@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useAddresses } from "@/hooks/use-addresses";
@@ -10,17 +11,13 @@ import {
 } from "@/hooks/use-checkout";
 import { MainNavigation } from "@/components/common/main-navigation";
 import { AddressSelector } from "@/components/checkout/address-selector";
-import {
-  ContactInfoForm,
-  type ContactInfoFormRef,
-} from "@/components/checkout/contact-info-form";
+import { ContactInfoForm } from "@/components/checkout/contact-info-form";
 import {
   AddressForm,
-  type AddressFormRef,
+  AddressFormData,
 } from "@/components/checkout/address-form";
 import { OrderSummaryCard } from "@/components/checkout/order-summary-card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import type { ContactInfoSchema } from "@/lib/validations/checkout.validation";
 
 export default function CheckoutPage() {
   const cartQuery = useCart();
@@ -28,9 +25,6 @@ export default function CheckoutPage() {
   const { addresses, isLoading: isAddressesLoading } = useAddresses();
   const guestCheckout = useGuestCheckout();
   const authenticatedCheckout = useAuthenticatedCheckout();
-
-  const contactFormRef = useRef<ContactInfoFormRef>(null);
-  const addressFormRef = useRef<AddressFormRef>(null);
 
   const cartItems = cartQuery.data?.data?.items || [];
 
@@ -41,12 +35,32 @@ export default function CheckoutPage() {
   // Simple state for selected address (authenticated users only)
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
+  // Guest checkout form refs
+  const contactFormRef = useRef<UseFormReturn<ContactInfoSchema> | null>(null);
+  const addressFormRef = useRef<UseFormReturn<AddressFormData> | null>(null);
+
+  // Track form validity for guest checkout (force re-render when forms change)
+  const [formsValid, setFormsValid] = useState(false);
+
   // Sync selectedAddressId with defaultAddress
   useEffect(() => {
     if (defaultAddress?.id) {
       setSelectedAddressId(defaultAddress.id);
     }
   }, [defaultAddress?.id]);
+
+  // Check form validity periodically for guest checkout
+  useEffect(() => {
+    if (!isLoggedIn) {
+      const interval = setInterval(() => {
+        const contactValid = contactFormRef.current?.formState.isValid ?? false;
+        const addressValid = addressFormRef.current?.formState.isValid ?? false;
+        setFormsValid(contactValid && addressValid);
+      }, 300);
+
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn]);
 
   // Handle checkout
   const handleCheckout = () => {
@@ -55,11 +69,14 @@ export default function CheckoutPage() {
         authenticatedCheckout.mutate(selectedAddressId);
       }
     } else {
-      // Combine contact info + address for guest checkout
-      const contactData = contactFormRef.current?.getData();
-      const addressData = addressFormRef.current?.getData();
+      // Validate and get form data
+      const contactForm = contactFormRef.current;
+      const addressForm = addressFormRef.current;
 
-      if (contactData && addressData) {
+      if (contactForm?.formState.isValid && addressForm?.formState.isValid) {
+        const contactData = contactForm.getValues();
+        const addressData = addressForm.getValues();
+
         guestCheckout.mutate({
           fullName: contactData.fullName,
           email: contactData.email,
@@ -71,9 +88,7 @@ export default function CheckoutPage() {
   };
 
   // Determine if checkout button should be disabled
-  const isCheckoutDisabled = isLoggedIn
-    ? !selectedAddressId
-    : !(contactFormRef.current?.isValid() && addressFormRef.current?.isValid());
+  const isCheckoutDisabled = isLoggedIn ? !selectedAddressId : !formsValid;
 
   const isSubmitting = isLoggedIn
     ? authenticatedCheckout.isPending
@@ -114,8 +129,8 @@ export default function CheckoutPage() {
                     Informasi Kontak
                   </h2>
                   <ContactInfoForm
-                    ref={contactFormRef}
                     isSubmitting={isSubmitting}
+                    formRef={(form) => (contactFormRef.current = form)}
                   />
                 </div>
 
@@ -125,10 +140,10 @@ export default function CheckoutPage() {
                     Alamat Pengiriman
                   </h2>
                   <AddressForm
-                    ref={addressFormRef}
                     isSubmitting={isSubmitting}
                     showDefaultCheckbox={false}
                     showSubmitButton={false}
+                    formRef={(form) => (addressFormRef.current = form)}
                   />
                 </div>
               </div>

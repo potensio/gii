@@ -185,6 +185,7 @@ export const addresses = pgTable(
     // Address fields
     addressLabel: text("address_label").notNull(),
     streetAddress: text("street_address").notNull(),
+    village: text("village").notNull(),
     district: text("district").notNull(),
     city: text("city").notNull(),
     state: text("state").notNull(),

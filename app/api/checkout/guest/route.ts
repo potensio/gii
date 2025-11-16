@@ -14,6 +14,7 @@ interface CheckoutRequest {
   phone: string;
   addressLabel: string;
   fullAddress: string;
+  village: string;
   district: string;
   city: string;
   province: string;
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       customerPhone: body.phone,
       addressLabel: body.addressLabel,
       fullAddress: body.fullAddress,
+      village: body.village,
       district: body.district,
       city: body.city,
       province: body.province,

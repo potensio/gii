@@ -42,7 +42,7 @@ export function MainNavigation() {
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-primary">
+              <Link href="/contact" className="hover:text-primary">
                 Kontak
               </Link>
             </li>
@@ -51,7 +51,7 @@ export function MainNavigation() {
       </div>
       <div className="flex-0 text-center">
         <Link
-          href="#"
+          href="/"
           className="text-2xl font-semibold uppercase tracking-widest"
         >
           GII

@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
     const newAddress = await addressService.createAddress(userId, {
       addressLabel: body.addressLabel,
       streetAddress: body.streetAddress,
+      village: body.village || "",
       district: body.district,
       city: body.city,
       state: body.state,

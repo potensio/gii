@@ -78,10 +78,10 @@ export function ProductDetails({
   const isAddToCartDisabled = !selectedProduct || isOutOfStock;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="space-y-2">
         <p className="text-sm uppercase text-gray-500">{brand}</p>
-        <h1 className="text-3xl font-semibold tracking-tighter md:text-4xl">
+        <h1 className="text-2xl font-semibold tracking-tighter md:text-3xl lg:text-4xl">
           {title}
         </h1>
         {/* Yellow theme */}

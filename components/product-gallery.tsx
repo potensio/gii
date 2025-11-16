@@ -22,9 +22,9 @@ export function ProductGallery({
   const currentImage = images[selectedIndex] || images[0];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Main Image */}
-      <div className="aspect-square rounded-2xl bg-muted/80">
+      <div className="aspect-square rounded-xl md:rounded-2xl bg-muted/80">
         <Image
           src={currentImage?.src || "/placeholder.svg"}
           alt={currentImage?.alt || "Main product image"}
@@ -35,7 +35,27 @@ export function ProductGallery({
       </div>
 
       {/* Thumbnails */}
-      <div className="hidden md:flex gap-2 md:gap-4 overflow-x-auto lg:overflow-y-auto ">
+      <div className="flex md:hidden gap-2 overflow-x-auto pb-2">
+        {images.map((image, index) => (
+          <button
+            key={index}
+            className={cn(
+              "relative size-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all hover:border-black bg-muted/80",
+              selectedIndex === index ? "border-black" : "border-transparent"
+            )}
+            onClick={() => onImageSelect(index)}
+            aria-label={`View image ${index + 1}`}
+          >
+            <Image
+              src={image.src || "/placeholder.svg"}
+              alt={image.alt}
+              fill
+              className="object-cover object-center mix-blend-multiply"
+            />
+          </button>
+        ))}
+      </div>
+      <div className="hidden md:flex gap-2 md:gap-4 overflow-x-auto lg:overflow-y-auto">
         {images.map((image, index) => (
           <button
             key={index}

@@ -7,6 +7,19 @@ import {
   MarqueeItem,
 } from "@/components/kibo-ui/marquee";
 
+const brands = [
+  {
+    name: "Samsung",
+    image: "/brand-logo/logo-samsung.png",
+  },
+  {
+    name: "Apple",
+    image: "/brand-logo/logo-apple.png",
+  },
+  { name: "Sony", image: "/brand-logo/logo-sony.png" },
+  { name: "LG", image: "/brand-logo/logo-lg.png" },
+];
+
 export function BrandSection() {
   return (
     <section className="w-full flex px-4 md:px-10 items-center justify-center object-center">
@@ -30,14 +43,17 @@ export function BrandSection() {
             <MarqueeFade side="left" />
             <MarqueeFade side="right" />
             <MarqueeContent>
-              {new Array(10).fill(null).map((_, index) => (
-                <MarqueeItem className="h-32 w-32" key={index}>
+              {brands.map((brand, index) => (
+                <MarqueeItem
+                  className="flex h-32 w-48 items-center justify-center"
+                  key={index}
+                >
                   <Image
-                    alt={`Placeholder ${index}`}
-                    className="overflow-hidden rounded-full"
-                    src={`https://placehold.co/128x128?random=${index}`}
-                    width={100}
-                    height={100}
+                    alt={brand.name}
+                    className="overflow-hidden"
+                    src={brand.image}
+                    width={128}
+                    height={128}
                   />
                 </MarqueeItem>
               ))}

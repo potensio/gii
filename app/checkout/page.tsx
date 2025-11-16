@@ -94,33 +94,30 @@ export default function CheckoutPage() {
     ? authenticatedCheckout.isPending
     : guestCheckout.isPending;
 
-  // Show loading state only for authenticated users loading addresses
-  if (isMeLoading || (isLoggedIn && isAddressesLoading)) {
-    return (
-      <div>
-        <MainNavigation />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6">Checkout</h1>
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Memuat...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <MainNavigation />
       <div className="grid lg:grid-cols-2 flex-1 h-full">
         <div className="col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-end">
           <div className="flex-1 max-w-lg">
-            {isLoggedIn ? (
-              <AddressSelector
-                addresses={addresses || []}
-                selectedAddressId={selectedAddressId}
-                onSelectAddress={setSelectedAddressId}
-              />
+            {isMeLoading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  Memuat informasi pengguna...
+                </p>
+              </div>
+            ) : isLoggedIn ? (
+              isAddressesLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Memuat alamat...</p>
+                </div>
+              ) : (
+                <AddressSelector
+                  addresses={addresses || []}
+                  selectedAddressId={selectedAddressId}
+                  onSelectAddress={setSelectedAddressId}
+                />
+              )
             ) : (
               <div className="space-y-8">
                 {/* Contact Information Section */}
@@ -154,15 +151,21 @@ export default function CheckoutPage() {
         <div className="lg:bg-muted col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-start">
           <div className="flex-1 max-w-lg space-y-6">
             <h2 className="text-lg font-medium tracking-tight">
-              Alamat Pengiriman
+              Ringkasan Pesanan
             </h2>
 
-            <OrderSummaryCard
-              cartItems={cartItems}
-              onCheckout={handleCheckout}
-              isSubmitting={isSubmitting}
-              disabled={isCheckoutDisabled}
-            />
+            {cartQuery.isLoading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Memuat keranjang...</p>
+              </div>
+            ) : (
+              <OrderSummaryCard
+                cartItems={cartItems}
+                onCheckout={handleCheckout}
+                isSubmitting={isSubmitting}
+                disabled={isCheckoutDisabled}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -217,9 +217,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
       />
 
       <MainNavigation />
-      <main className="flex flex-col w-full space-y-20 pb-20">
+      <main className="flex flex-col w-full space-y-8 md:space-y-12 lg:space-y-20 pb-8 md:pb-12 lg:pb-20">
         {/* Product Detail Content */}
-        <div className="px-20 mt-10">
+        <div className="px-4 sm:px-6 md:px-10 lg:px-20 mt-4 md:mt-6 lg:mt-10">
           <ProductDetailContent productData={product} />
         </div>
         {/* Related Products Carousel */}

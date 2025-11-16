@@ -229,7 +229,7 @@ export function ProductDetailContent({
 
   return (
     <>
-      <div className="grid gap-20 lg:grid-cols-2">
+      <div className="grid gap-6 md:gap-10 lg:gap-20 lg:grid-cols-2">
         {/* Product Gallery */}
         <ProductGallery
           images={galleryImages}
@@ -238,7 +238,7 @@ export function ProductDetailContent({
         />
 
         {/* Product Details */}
-        <div className="space-y-10">
+        <div className="space-y-6 md:space-y-8 lg:space-y-10">
           <ProductDetails
             brand={productGroup.brand}
             title={productGroup.name}

@@ -48,7 +48,7 @@ export function HeroSection() {
   return (
     <section className="relative flex justify-center overflow-hidden">
       {/* This div acts as the viewport for the slider, ensuring it's centered and has rounded corners */}
-      <div className="relative h-[48vh] md:h-[80vh] w-full max-w-[1400px]">
+      <div className="relative h-[48vh] md:h-[64vh] w-full max-w-[1400px]">
         {/* This div contains all the slides and will be translated horizontally */}
         <div
           className="flex h-full transition-transform duration-700 ease-in-out"
@@ -57,7 +57,7 @@ export function HeroSection() {
           {heroImages.map((image, index) => (
             <div
               key={index}
-              className="relative h-full w-full flex-shrink-0 px-4 pt-8 md:pt-16" // Add padding to create visual gap between slides
+              className="relative h-full w-full flex-shrink-0 px-4 pt-8 md:pt-10" // Add padding to create visual gap between slides
             >
               {/* Inner div for the actual image and overlay, applying the rounded corners and overflow-hidden */}
               <div className="relative h-full w-full overflow-hidden rounded-3xl">

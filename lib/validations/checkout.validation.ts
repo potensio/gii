@@ -7,11 +7,23 @@ export const contactInfoSchema = z.object({
   phone: z.string().min(10, "Nomor telepon minimal 10 digit"),
 });
 
+// Address label options
+export const addressLabelOptions = [
+  "Rumah",
+  "Kantor",
+  "Kos",
+  "Gudang",
+  "Toko",
+  "Lainnya",
+] as const;
+
 // Address validation schema (base)
 export const addressSchema = z.object({
-  recipientName: z.string().min(3, "Nama penerima minimal 3 karakter"),
+  addressLabel: z.enum(addressLabelOptions, {
+    errorMap: () => ({ message: "Pilih jenis alamat" }),
+  }),
   streetAddress: z.string().min(10, "Alamat lengkap minimal 10 karakter"),
-  addressLine2: z.string().optional(),
+  district: z.string().min(2, "Kecamatan harus diisi"),
   city: z.string().min(2, "Kota harus diisi"),
   state: z.string().min(2, "Provinsi harus diisi"),
   postalCode: z.string().regex(/^\d{5}$/, "Kode pos harus 5 digit"),

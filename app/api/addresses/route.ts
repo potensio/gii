@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     const required = [
-      "recipientName",
-      "phoneNumber",
+      "addressLabel",
       "streetAddress",
+      "district",
       "city",
       "state",
       "postalCode",
@@ -66,21 +66,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate phone number
-    if (body.phoneNumber.length < 10) {
-      throw new ValidationError("Nomor telepon minimal 10 digit");
-    }
-
     // Validate postal code
     if (!/^\d{5}$/.test(body.postalCode)) {
       throw new ValidationError("Kode pos harus 5 digit");
     }
 
     const newAddress = await addressService.createAddress(userId, {
-      recipientName: body.recipientName,
-      phoneNumber: body.phoneNumber,
+      addressLabel: body.addressLabel,
       streetAddress: body.streetAddress,
-      addressLine2: body.addressLine2 || null,
+      district: body.district,
       city: body.city,
       state: body.state,
       postalCode: body.postalCode,

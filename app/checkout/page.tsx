@@ -97,7 +97,7 @@ export default function CheckoutPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <MainNavigation />
-      <div className="grid grid-cols-2 flex-1 h-full">
+      <div className="grid lg:grid-cols-2 flex-1 h-full">
         <div className="col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-end">
           <div className="flex-1 max-w-lg">
             {isLoggedIn ? (
@@ -109,8 +109,8 @@ export default function CheckoutPage() {
             ) : (
               <div className="space-y-8">
                 {/* Contact Information Section */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold leading-tight">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-medium tracking-tight">
                     Informasi Kontak
                   </h2>
                   <ContactInfoForm
@@ -120,8 +120,8 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Delivery Address Section */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold leading-tight">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-medium tracking-tight">
                     Alamat Pengiriman
                   </h2>
                   <AddressForm
@@ -136,10 +136,10 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="bg-muted col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-start">
-          <div className="flex-1 max-w-lg space-y-4">
-            <h2 className="text-lg font-semibold leading-tight">
-              Ringkasan Pesanan
+        <div className="lg:bg-muted col-span-1 space-y-6 p-5 lg:p-10 flex justify-center lg:justify-start">
+          <div className="flex-1 max-w-lg space-y-6">
+            <h2 className="text-lg font-medium tracking-tight">
+              Alamat Pengiriman
             </h2>
 
             <OrderSummaryCard

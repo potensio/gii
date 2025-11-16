@@ -12,12 +12,12 @@ interface CheckoutRequest {
   fullName: string;
   email: string;
   phone: string;
-  recipientName: string;
+  addressLabel: string;
   fullAddress: string;
+  district: string;
   city: string;
   province: string;
   postalCode: string;
-  notes?: string;
 }
 
 /**
@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
       customerEmail: body.email,
       customerName: body.fullName,
       customerPhone: body.phone,
-      recipientName: body.recipientName,
+      addressLabel: body.addressLabel,
       fullAddress: body.fullAddress,
+      district: body.district,
       city: body.city,
       province: body.province,
       postalCode: body.postalCode,
-      notes: body.notes,
       cartItems,
       sessionId,
     });

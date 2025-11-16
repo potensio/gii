@@ -9,9 +9,9 @@ export interface GuestCheckoutData {
   email: string;
   phone: string;
   address: {
-    recipientName: string;
+    addressLabel: string;
     streetAddress: string;
-    addressLine2?: string;
+    district: string;
     city: string;
     state: string;
     postalCode: string;
@@ -60,12 +60,12 @@ export const checkoutApi = {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        recipientName: data.address.recipientName,
+        addressLabel: data.address.addressLabel,
         fullAddress: data.address.streetAddress,
+        district: data.address.district,
         city: data.address.city,
         province: data.address.state,
         postalCode: data.address.postalCode,
-        notes: data.address.addressLine2 || "",
       }),
     });
 

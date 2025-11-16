@@ -47,12 +47,12 @@ export interface CreateOrderInput {
   customerPhone: string;
 
   // Shipping address
-  recipientName: string;
+  addressLabel: string;
   fullAddress: string;
+  district: string;
   city: string;
   province: string;
   postalCode: string;
-  notes?: string;
 
   // Cart items (passed from cart service)
   cartItems: CartItem[];
@@ -319,18 +319,19 @@ export const orderService = {
           customerEmail: input.customerEmail,
           customerName: input.customerName,
           shippingAddress: JSON.stringify({
-            recipientName: input.recipientName,
+            addressLabel: input.addressLabel,
             phone: input.customerPhone,
             fullAddress: input.fullAddress,
+            district: input.district,
             city: input.city,
             province: input.province,
             postalCode: input.postalCode,
-            notes: input.notes,
           }),
           billingAddress: JSON.stringify({
-            recipientName: input.recipientName,
+            addressLabel: input.addressLabel,
             phone: input.customerPhone,
             fullAddress: input.fullAddress,
+            district: input.district,
             city: input.city,
             province: input.province,
             postalCode: input.postalCode,
@@ -431,10 +432,10 @@ export const orderService = {
 
       // 5. Prepare address JSON snapshot
       const shippingAddress = {
-        recipientName: address.recipientName,
-        phone: address.phoneNumber,
+        addressLabel: address.addressLabel,
+        phone: user.email, // Use email as fallback since phone removed from address
         fullAddress: address.streetAddress,
-        addressLine2: address.addressLine2,
+        district: address.district,
         city: address.city,
         state: address.state,
         postalCode: address.postalCode,

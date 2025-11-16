@@ -165,7 +165,7 @@ export function AddressSelector({
                     htmlFor={address.id}
                     className="font-semibold cursor-pointer"
                   >
-                    {address.recipientName}
+                    {address.addressLabel}
                   </Label>
                   {address.isDefault && (
                     <Badge variant="secondary" className="text-xs">
@@ -176,9 +176,9 @@ export function AddressSelector({
 
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{address.streetAddress}</p>
-                  {address.addressLine2 && <p>{address.addressLine2}</p>}
                   <p>
-                    {address.city}, {address.state} {address.postalCode}
+                    {address.district}, {address.city}, {address.state}{" "}
+                    {address.postalCode}
                   </p>
                 </div>
 
@@ -254,9 +254,9 @@ export function AddressSelector({
           {editingAddress && (
             <AddressForm
               initialData={{
-                recipientName: editingAddress.recipientName,
+                addressLabel: editingAddress.addressLabel,
                 streetAddress: editingAddress.streetAddress,
-                addressLine2: editingAddress.addressLine2 || "",
+                district: editingAddress.district,
                 city: editingAddress.city,
                 state: editingAddress.state,
                 postalCode: editingAddress.postalCode,

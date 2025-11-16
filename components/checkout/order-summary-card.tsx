@@ -35,8 +35,8 @@ export function OrderSummaryCard({
   const isDisabled = !hasCartItems || disabled || isSubmitting;
 
   return (
-    <div className="space-y-4 leading-tight">
-      <div className="space-y-2">
+    <div className="space-y-6 leading-tight">
+      <div className="space-y-4">
         <div className="flex justify-between text-sm">
           <span className="text-foreground/75 font-medium">Subtotal</span>
           <span className="font-medium">
@@ -52,8 +52,8 @@ export function OrderSummaryCard({
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-lg font-semibold">Total</span>
-          <span className="text-xl font-semibold">
+          <span className="text-lg font-medium tracking-tight">Total</span>
+          <span className="text-xl font-medium tracking-tight">
             Rp{total.toLocaleString("id-ID")}
           </span>
         </div>

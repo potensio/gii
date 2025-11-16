@@ -183,10 +183,9 @@ export const addresses = pgTable(
       .notNull(),
 
     // Address fields
-    recipientName: text("recipient_name").notNull(),
-    phoneNumber: text("phone_number").notNull(),
+    addressLabel: text("address_label").notNull(),
     streetAddress: text("street_address").notNull(),
-    addressLine2: text("address_line_2"),
+    district: text("district").notNull(),
     city: text("city").notNull(),
     state: text("state").notNull(),
     postalCode: text("postal_code").notNull(),

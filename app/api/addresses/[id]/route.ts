@@ -62,11 +62,6 @@ export async function PATCH(
 
     const body = await request.json();
 
-    // Validate phone number if provided
-    if (body.phoneNumber && body.phoneNumber.length < 10) {
-      throw new ValidationError("Nomor telepon minimal 10 digit");
-    }
-
     // Validate postal code if provided
     if (body.postalCode && !/^\d{5}$/.test(body.postalCode)) {
       throw new ValidationError("Kode pos harus 5 digit");

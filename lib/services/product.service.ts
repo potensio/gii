@@ -1,5 +1,16 @@
 import { db } from "../db/db";
-import { and, eq, inArray, ilike, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  ilike,
+  sql,
+  type SQL,
+  gte,
+  lte,
+  asc,
+  desc,
+} from "drizzle-orm";
 import {
   productGroups,
   productVariants,
@@ -77,6 +88,18 @@ function createUserInputFilters(filters: ProductFilters): WhereCondition[] {
   return conditions;
 }
 
+// Create price filter conditions for product groups
+// Note: Price filtering requires joining with products table, so this is handled separately
+function createPriceFilters(filters: ProductFilters): {
+  minPrice?: number;
+  maxPrice?: number;
+} {
+  return {
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+  };
+}
+
 // Filters based on user role permissions (isActive visibility)
 function createRoleBasedFilters(
   filters: ProductFilters,
@@ -131,7 +154,9 @@ function createProductFilters(
 // === Database Queries ===
 async function getProductGroups(
   conditions: WhereCondition[],
-  sortBy?: "newest" | "random"
+  sortBy?: "newest" | "random" | "price-low" | "price-high" | "popularity",
+  limit?: number,
+  offset?: number
 ): Promise<SelectProductGroup[]> {
   const validConditions = conditions.filter(
     (c): c is SQL<unknown> => c !== undefined
@@ -148,9 +173,124 @@ async function getProductGroups(
     query = query.orderBy(sql`RANDOM()`) as typeof query;
   } else if (sortBy === "newest") {
     query = query.orderBy(sql`${productGroups.createdAt} DESC`) as typeof query;
+  } else if (sortBy === "popularity") {
+    query = query.orderBy(
+      sql`${productGroups.isHighlighted} DESC`,
+      sql`RANDOM()`
+    ) as typeof query;
+  }
+  // Note: price-low and price-high sorting will be handled in the main service method
+  // because it requires joining with the products table
+
+  // Apply pagination
+  if (limit !== undefined) {
+    query = query.limit(limit) as typeof query;
+  }
+  if (offset !== undefined) {
+    query = query.offset(offset) as typeof query;
   }
 
   return await query;
+}
+
+async function getProductGroupsWithPrice(
+  conditions: WhereCondition[],
+  sortBy?: "newest" | "random" | "price-low" | "price-high" | "popularity",
+  limit?: number,
+  offset?: number
+): Promise<SelectProductGroup[]> {
+  const validConditions = conditions.filter(
+    (c): c is SQL<unknown> => c !== undefined
+  );
+
+  // Create a subquery to get minimum price per product group
+  const priceSubquery = db
+    .select({
+      productGroupId: products.productGroupId,
+      minPrice: sql<number>`MIN(${products.price})`.as("min_price"),
+    })
+    .from(products)
+    .where(and(eq(products.isActive, true), eq(products.isDeleted, false)))
+    .groupBy(products.productGroupId)
+    .as("price_data");
+
+  // Build the main query with join
+  let query = db
+    .select({
+      id: productGroups.id,
+      name: productGroups.name,
+      slug: productGroups.slug,
+      category: productGroups.category,
+      brand: productGroups.brand,
+      description: productGroups.description,
+      weight: productGroups.weight,
+      additionalDescriptions: productGroups.additionalDescriptions,
+      images: productGroups.images,
+      isHighlighted: productGroups.isHighlighted,
+      isActive: productGroups.isActive,
+      isDeleted: productGroups.isDeleted,
+      createdAt: productGroups.createdAt,
+      updatedAt: productGroups.updatedAt,
+      minPrice: priceSubquery.minPrice,
+    })
+    .from(productGroups)
+    .leftJoin(
+      priceSubquery,
+      eq(productGroups.id, priceSubquery.productGroupId)
+    );
+
+  if (validConditions.length > 0) {
+    query = query.where(and(...validConditions)) as typeof query;
+  }
+
+  // Apply sorting
+  if (sortBy === "price-low") {
+    query = query.orderBy(asc(priceSubquery.minPrice)) as typeof query;
+  } else if (sortBy === "price-high") {
+    query = query.orderBy(desc(priceSubquery.minPrice)) as typeof query;
+  } else if (sortBy === "popularity") {
+    query = query.orderBy(
+      desc(productGroups.isHighlighted),
+      sql`RANDOM()`
+    ) as typeof query;
+  } else if (sortBy === "random") {
+    query = query.orderBy(sql`RANDOM()`) as typeof query;
+  } else {
+    // Default to newest
+    query = query.orderBy(desc(productGroups.createdAt)) as typeof query;
+  }
+
+  // Apply pagination
+  if (limit !== undefined) {
+    query = query.limit(limit) as typeof query;
+  }
+  if (offset !== undefined) {
+    query = query.offset(offset) as typeof query;
+  }
+
+  const results = await query;
+
+  // Remove the minPrice field from results as it's not part of SelectProductGroup
+  return results.map(({ minPrice, ...group }) => group as SelectProductGroup);
+}
+
+async function countProductGroups(
+  conditions: WhereCondition[]
+): Promise<number> {
+  const validConditions = conditions.filter(
+    (c): c is SQL<unknown> => c !== undefined
+  );
+
+  let query = db
+    .select({ count: sql<number>`COUNT(*)`.as("count") })
+    .from(productGroups);
+
+  if (validConditions.length > 0) {
+    query = query.where(and(...validConditions)) as typeof query;
+  }
+
+  const result = await query;
+  return result[0]?.count || 0;
 }
 
 async function getVariants(
@@ -257,7 +397,13 @@ export const productService = {
   async getProductGroups(
     filters: ProductFilters,
     viewerRole: UserRole
-  ): Promise<CompleteProduct[]> {
+  ): Promise<{
+    products: CompleteProduct[];
+    totalCount: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     // Step 1: Apply user input filters (search, category, brand)
     const userInputFilters = createUserInputFilters(filters);
 
@@ -267,14 +413,98 @@ export const productService = {
     // Step 3: Combine all filters
     const finalFilters = [...userInputFilters, ...roleBasedFilters];
 
-    // Step 4: Fetch product groups with combined filters and sorting
-    const fetchedProductGroups = await getProductGroups(
-      finalFilters,
-      filters.sortBy
-    );
-    if (fetchedProductGroups.length === 0) return [];
+    // Step 4: Extract price filters
+    const priceFilters = createPriceFilters(filters);
 
-    // Step 4.5: Parse additional descriptions and images from JSON
+    // Step 5: Calculate pagination parameters
+    const limit = filters.limit || 12;
+    const page = filters.page || 1;
+    const offset = (page - 1) * limit;
+
+    // Step 6: Get total count for pagination (before applying limit/offset)
+    const totalCount = await countProductGroups(finalFilters);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // If no results, return early
+    if (totalCount === 0) {
+      return {
+        products: [],
+        totalCount: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
+
+    // Step 7: Determine if we need price-based sorting or filtering
+    const needsPriceQuery =
+      filters.sortBy === "price-low" ||
+      filters.sortBy === "price-high" ||
+      priceFilters.minPrice !== undefined ||
+      priceFilters.maxPrice !== undefined;
+
+    let fetchedProductGroups: SelectProductGroup[];
+
+    if (needsPriceQuery) {
+      // Use the query that joins with products table for price data
+      // We need to apply price filters in a subquery
+      if (
+        priceFilters.minPrice !== undefined ||
+        priceFilters.maxPrice !== undefined
+      ) {
+        // Create a subquery to get product groups that have products within price range
+        const priceFilterSubquery = db
+          .select({
+            productGroupId: products.productGroupId,
+          })
+          .from(products)
+          .where(
+            and(
+              eq(products.isActive, true),
+              eq(products.isDeleted, false),
+              priceFilters.minPrice !== undefined
+                ? gte(products.price, priceFilters.minPrice)
+                : undefined,
+              priceFilters.maxPrice !== undefined
+                ? lte(products.price, priceFilters.maxPrice)
+                : undefined
+            )
+          )
+          .groupBy(products.productGroupId)
+          .as("price_filtered_groups");
+
+        // Add filter to only include product groups that have products in price range
+        const priceFilterCondition = sql`${productGroups.id} IN (SELECT ${priceFilterSubquery.productGroupId} FROM ${priceFilterSubquery})`;
+        finalFilters.push(priceFilterCondition);
+      }
+
+      fetchedProductGroups = await getProductGroupsWithPrice(
+        finalFilters,
+        filters.sortBy,
+        limit,
+        offset
+      );
+    } else {
+      // Use the simpler query without price joins
+      fetchedProductGroups = await getProductGroups(
+        finalFilters,
+        filters.sortBy,
+        limit,
+        offset
+      );
+    }
+
+    if (fetchedProductGroups.length === 0) {
+      return {
+        products: [],
+        totalCount,
+        page,
+        limit,
+        totalPages,
+      };
+    }
+
+    // Step 8: Parse additional descriptions and images from JSON
     const parsedProductGroups = fetchedProductGroups.map((group) => {
       const parsed = {
         ...group,
@@ -293,32 +523,32 @@ export const productService = {
       };
     });
 
-    // Step 5: Extract group IDs for subsequent queries
+    // Step 9: Extract group IDs for subsequent queries
     const groupIds = parsedProductGroups.map((g) => g.id);
 
-    // Step 6: Build filters for variants and products (with role-based restrictions)
+    // Step 10: Build filters for variants and products (with role-based restrictions)
     const variantFilters = createVariantFilters(groupIds, viewerRole);
     const productFilters = createProductFilters(groupIds, viewerRole);
 
-    // Step 7: Fetch variants and products in parallel
+    // Step 11: Fetch variants and products in parallel
     const [variants, productsList] = await Promise.all([
       getVariants(variantFilters),
       getProductsList(productFilters),
     ]);
 
-    // Step 8: Group data by product group ID
+    // Step 12: Group data by product group ID
     const variantsByGroup = groupBy(variants, (v) => v.productGroupId);
     const productsByGroup = groupBy(productsList, (p) => p.productGroupId);
 
-    // Step 9: Fetch variant combinations
+    // Step 13: Fetch variant combinations
     const productIds = productsList.map((p) => p.id);
     const combinations = await getVariantCombinations(productIds);
 
-    // Step 10: Create variant selections map
+    // Step 14: Create variant selections map
     const variantSelections = createVariantSelections(combinations, variants);
 
-    // Step 11: Assemble final result
-    return assembleCompleteProducts(
+    // Step 15: Assemble final result
+    const completeProducts = assembleCompleteProducts(
       parsedProductGroups as Array<
         SelectProductGroup & {
           images?: Array<{ url: string; isThumbnail: boolean }>;
@@ -328,6 +558,14 @@ export const productService = {
       productsByGroup,
       variantSelections
     );
+
+    return {
+      products: completeProducts,
+      totalCount,
+      page,
+      limit,
+      totalPages,
+    };
   },
 
   async getProductGroupBySlug(
@@ -802,5 +1040,63 @@ export const productService = {
         `Gagal memperbarui produk lengkap: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
+  },
+
+  async getCategories(): Promise<Array<{ name: string; count: number }>> {
+    const result = await db
+      .select({
+        name: productGroups.category,
+        count: sql<number>`COUNT(*)`.as("count"),
+      })
+      .from(productGroups)
+      .where(
+        and(
+          eq(productGroups.isActive, true),
+          eq(productGroups.isDeleted, false)
+        )
+      )
+      .groupBy(productGroups.category)
+      .orderBy(productGroups.category);
+
+    return result;
+  },
+
+  async getBrands(): Promise<Array<{ name: string; count: number }>> {
+    const result = await db
+      .select({
+        name: productGroups.brand,
+        count: sql<number>`COUNT(*)`.as("count"),
+      })
+      .from(productGroups)
+      .where(
+        and(
+          eq(productGroups.isActive, true),
+          eq(productGroups.isDeleted, false)
+        )
+      )
+      .groupBy(productGroups.brand)
+      .orderBy(productGroups.brand);
+
+    return result;
+  },
+
+  async getPriceRange(): Promise<{ min: number; max: number }> {
+    const result = await db
+      .select({
+        min: sql<number>`MIN(${products.price})`.as("min_price"),
+        max: sql<number>`MAX(${products.price})`.as("max_price"),
+      })
+      .from(products)
+      .innerJoin(productGroups, eq(products.productGroupId, productGroups.id))
+      .where(
+        and(
+          eq(products.isActive, true),
+          eq(products.isDeleted, false),
+          eq(productGroups.isActive, true),
+          eq(productGroups.isDeleted, false)
+        )
+      );
+
+    return result[0] || { min: 0, max: 0 };
   },
 };

@@ -66,17 +66,18 @@ async function getRelatedProducts(
   limit: number = 10
 ): Promise<CarouselProduct[]> {
   try {
-    const products = await productService.getProductGroups(
+    const result = await productService.getProductGroups(
       {
         category: category,
         isActive: true,
         sortBy: "random",
+        limit: limit + 1, // Fetch one extra in case we need to filter out current product
       },
       "user"
     );
 
     // Filter out current product and limit results
-    const filteredProducts = products
+    const filteredProducts = result.products
       .filter((p) => p.productGroup.id !== excludeId)
       .slice(0, limit);
 
@@ -95,15 +96,16 @@ async function getRelatedProducts(
 export async function generateStaticParams() {
   try {
     // Fetch all active products
-    const products = await productService.getProductGroups(
+    const result = await productService.getProductGroups(
       {
         isActive: true,
+        limit: 1000, // Fetch all products for static generation
       },
       "user"
     );
 
     // Map products to slug params array
-    return products.map((product) => ({
+    return result.products.map((product) => ({
       slug: product.productGroup.slug,
     }));
   } catch (error) {

@@ -41,7 +41,10 @@ export interface ProductFilters {
   search?: string;
   page?: number;
   pageSize?: number;
-  sortBy?: "newest" | "random";
+  sortBy?: "newest" | "random" | "price-low" | "price-high" | "popularity";
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
 }
 
 // API functions (these would call your actual API routes)

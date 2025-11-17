@@ -44,16 +44,17 @@ async function fetchProducts(
 ): Promise<CarouselProduct[]> {
   try {
     // Fetch directly from service for better performance and SEO
-    const products = await productService.getProductGroups(
+    const result = await productService.getProductGroups(
       {
         isActive: true,
         sortBy: sortBy,
+        limit: 10,
       },
       "user"
     );
 
-    // Transform to carousel format and limit to 10
-    return products.slice(0, 10).map((product) => {
+    // Transform to carousel format
+    return result.products.map((product) => {
       const images = product.productGroup.images || [];
       const thumbnailUrl =
         images.find((img: any) => img.isThumbnail)?.url ||

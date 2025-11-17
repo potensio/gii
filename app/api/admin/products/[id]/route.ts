@@ -12,14 +12,14 @@ export async function GET(
     const viewerRole = decodeUserRole(request);
 
     // Fetch all products and filter by ID
-    const products = await productService.getProductGroups(
-      { page: 1, pageSize: 1000 },
+    const result = await productService.getProductGroups(
+      { page: 1, limit: 1000 },
       viewerRole
     );
 
     const { id } = await params;
     // Find the specific product by ID
-    const product = products.find((p) => p.productGroup.id === id);
+    const product = result.products.find((p) => p.productGroup.id === id);
 
     if (!product) {
       return NextResponse.json(

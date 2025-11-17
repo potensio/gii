@@ -50,13 +50,10 @@ export async function GET(request: NextRequest) {
     };
 
     // Fetch products using product service with 'user' role (public access)
-    const completeProducts = await productService.getProductGroups(
-      filters,
-      "user"
-    );
+    const result = await productService.getProductGroups(filters, "user");
 
     // Transform CompleteProduct[] to SimplifiedProduct[]
-    const simplifiedProducts: SimplifiedProduct[] = completeProducts.map(
+    const simplifiedProducts: SimplifiedProduct[] = result.products.map(
       (cp) => ({
         id: cp.productGroup.id,
         name: cp.productGroup.name,
@@ -70,7 +67,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // Apply limit
+    // Apply limit (note: this is now handled by the service layer, but keeping for backwards compatibility)
     const limitedProducts = simplifiedProducts.slice(0, queryParams.limit);
 
     return NextResponse.json(

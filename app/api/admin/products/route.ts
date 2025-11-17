@@ -8,6 +8,9 @@ import { productSchema } from "@/lib/validations/product.validation";
 // ==================== Request Parsers ====================
 function parseProductFilters(searchParams: URLSearchParams): ProductFilters {
   const isActiveParam = searchParams.get("isActive");
+  const minPriceParam = searchParams.get("minPrice");
+  const maxPriceParam = searchParams.get("maxPrice");
+  const sortByParam = searchParams.get("sortBy");
 
   return {
     category: searchParams.get("category") || undefined,
@@ -15,7 +18,11 @@ function parseProductFilters(searchParams: URLSearchParams): ProductFilters {
     search: searchParams.get("search") || undefined,
     page: parseInt(searchParams.get("page") || "1", 10),
     pageSize: parseInt(searchParams.get("pageSize") || "10", 10),
+    limit: parseInt(searchParams.get("limit") || "12", 10),
     isActive: isActiveParam ? isActiveParam === "true" : undefined,
+    minPrice: minPriceParam ? parseInt(minPriceParam, 10) : undefined,
+    maxPrice: maxPriceParam ? parseInt(maxPriceParam, 10) : undefined,
+    sortBy: (sortByParam as ProductFilters["sortBy"]) || undefined,
   };
 }
 
@@ -26,13 +33,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filters = parseProductFilters(searchParams);
 
-    const products = await productService.getProductGroups(filters, viewerRole);
+    const result = await productService.getProductGroups(filters, viewerRole);
 
     console.log(
       {
         success: true,
         message: "Product groups retrieved successfully",
-        data: products,
+        data: result.products,
+        pagination: {
+          totalCount: result.totalCount,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
       },
       { status: 200 }
     );
@@ -40,7 +53,13 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         message: "Product groups retrieved successfully",
-        data: products,
+        data: result.products,
+        pagination: {
+          totalCount: result.totalCount,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
       },
       { status: 200 }
     );

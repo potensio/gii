@@ -24,7 +24,7 @@ export function ProductGrid({ products, emptyMessage }: ProductGridProps) {
 
   // Render responsive grid layout (2 cols mobile, 3 tablet, 4 desktop)
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-3">
       {products.map((product) => {
         // Transform product data: Get the lowest price from products
         const lowestPrice = product.products.reduce(

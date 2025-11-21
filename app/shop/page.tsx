@@ -1,13 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { MainNavigation } from "@/components/common/main-navigation";
 import { productService } from "@/lib/services/product.service";
-import type { ProductFilters } from "@/hooks/use-products";
 import type { Metadata } from "next";
-import { FilterSidebar } from "@/components/shop/filter-sidebar";
+import { ProductFilters as ProductFiltersComponent } from "@/components/shop/product-filters";
 import { ProductGrid } from "@/components/shop/product-grid";
 import { SortSelect } from "@/components/shop/sort-select";
 import { PaginationControls } from "@/components/shop/pagination-controls";
-import { MobileFilterSheet } from "@/components/shop/mobile-filter-sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { SlidersHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  parseShopParams,
+  calculateActiveFilterCount,
+  calculatePaginationIndices,
+} from "@/lib/utils/parse-shop-params";
 
 // Apply Next.js revalidation
 export const revalidate = 60;
@@ -90,82 +103,39 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     // Parse and await search parameters
     const params = await searchParams;
 
-    // Parse and validate page parameter
-    const parsedPage = parseInt(params.page || "1");
-    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
-
-    // Parse and validate price parameters
-    const parsedMinPrice = parseInt(params.minPrice || "");
-    const minPrice = isNaN(parsedMinPrice) ? undefined : parsedMinPrice;
-
-    const parsedMaxPrice = parseInt(params.maxPrice || "");
-    const maxPrice = isNaN(parsedMaxPrice) ? undefined : parsedMaxPrice;
-
-    // Validate price range (ignore both if minPrice > maxPrice)
-    let validMinPrice = minPrice;
-    let validMaxPrice = maxPrice;
-    if (
-      minPrice !== undefined &&
-      maxPrice !== undefined &&
-      minPrice > maxPrice
-    ) {
-      validMinPrice = undefined;
-      validMaxPrice = undefined;
-    }
-
-    // Parse and validate sortBy parameter
-    const sortBy = params.sortBy || "newest";
-    const validSortBy = [
-      "newest",
-      "price-low",
-      "price-high",
-      "popularity",
-    ].includes(sortBy)
-      ? (sortBy as "newest" | "price-low" | "price-high" | "popularity")
-      : "newest";
-
-    // Build filters object
-    const filters: ProductFilters = {
-      category: params.category,
-      brand: params.brand,
-      search: params.search,
-      minPrice: validMinPrice,
-      maxPrice: validMaxPrice,
-      sortBy: validSortBy,
-      page,
-      limit: 12,
-    };
-
-    // Fetch products and filter metadata in parallel
-    const [productResult, categories, brands, priceRange] = await Promise.all([
-      productService.getProductGroups(filters, "user"),
+    // Fetch filter metadata first (needed for parsing)
+    const [categories, brands, priceRange] = await Promise.all([
       productService.getCategories(),
       productService.getBrands(),
       productService.getPriceRange(),
     ]);
 
+    // Parse and validate all parameters
+    const { filters, currentFilters, page, limit, sortBy } = parseShopParams(
+      params,
+      priceRange
+    );
+
+    // Fetch products with parsed filters
+    const productResult = await productService.getProductGroups(
+      filters,
+      "user"
+    );
+
     const { products, totalCount, totalPages } = productResult;
 
-    // Calculate display indices
-    const startIndex = (page - 1) * 12;
-    const endIndex = Math.min(startIndex + 12, totalCount);
+    // Calculate pagination display
+    const { startIndex, endIndex } = calculatePaginationIndices(
+      page,
+      limit,
+      totalCount
+    );
 
-    // Prepare current filters for FilterSidebar
-    const currentFilters = {
-      categories: params.category
-        ? Array.isArray(params.category)
-          ? params.category
-          : [params.category]
-        : [],
-      brands: params.brand
-        ? Array.isArray(params.brand)
-          ? params.brand
-          : [params.brand]
-        : [],
-      minPrice: validMinPrice || priceRange.min,
-      maxPrice: validMaxPrice || priceRange.max,
-      search: params.search || "",
-    };
+    // Calculate active filter count for mobile button
+    const activeFilterCount = calculateActiveFilterCount(
+      currentFilters,
+      priceRange
+    );
 
     return (
       <>
@@ -175,12 +145,11 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Desktop Sidebar Filters - Hidden on mobile */}
               <aside className="hidden lg:block w-64 flex-shrink-0">
-                <div className="sticky top-20">
-                  <FilterSidebar
-                    categories={categories}
-                    brands={brands}
-                    priceRange={priceRange}
+                <div className="sticky top-10">
+                  <ProductFiltersComponent
+                    data={{ categories, brands, priceRange }}
                     currentFilters={currentFilters}
+                    mode="instant"
                   />
                 </div>
               </aside>
@@ -191,17 +160,45 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 <div className="flex items-center justify-between gap-4 mb-6">
                   {/* Mobile Filter Sheet - Hidden on desktop */}
                   <div className="lg:hidden">
-                    <MobileFilterSheet
-                      categories={categories}
-                      brands={brands}
-                      priceRange={priceRange}
-                      currentFilters={currentFilters}
-                    />
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <SlidersHorizontal className="h-4 w-4" />
+                          Filters
+                          {activeFilterCount > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+                            >
+                              {activeFilterCount}
+                            </Badge>
+                          )}
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent
+                        side="left"
+                        className="w-full sm:max-w-md overflow-y-auto"
+                      >
+                        <SheetHeader>
+                          <SheetTitle>Filters</SheetTitle>
+                          <SheetDescription>
+                            Refine your product search with filters
+                          </SheetDescription>
+                        </SheetHeader>
+                        <div className="py-6">
+                          <ProductFiltersComponent
+                            data={{ categories, brands, priceRange }}
+                            currentFilters={currentFilters}
+                            mode="deferred"
+                          />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
                   </div>
 
                   {/* Sort Select */}
                   <div className="ml-auto">
-                    <SortSelect currentSort={validSortBy} />
+                    <SortSelect currentSort={sortBy} />
                   </div>
                 </div>
 

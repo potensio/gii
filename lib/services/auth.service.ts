@@ -222,7 +222,7 @@ export const authService = {
         },
         process.env.JWT_SECRET!,
         {
-          expiresIn: "1h",
+          expiresIn: "30d",
         }
       );
 
@@ -297,7 +297,7 @@ export const authService = {
         },
         process.env.JWT_SECRET!,
         {
-          expiresIn: "24h", // Extended for better UX
+          expiresIn: "30d",
         }
       );
 
